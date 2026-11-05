@@ -69,10 +69,14 @@ On construit dans la vue de chaque réseau.
 
 - **Plateau** : une installation par hexagone, avec des règles de pose par terrain (barrage sur rivière, nucléaire au bord de l'eau, éolien en mer sur la côte…). Les villes occupent plusieurs hexagones et s'agrandissent avec les années.
 - **Réseau** : lignes 15, 63, 225 et 400 kV tracées d'hexagone en hexagone. Au début, les usines alimentent directement les villes en 15 kV ; plus tard, l'ordre devient centrale → 225 kV → poste 225/63 kV → 63 kV → ville.
+  - Seul un poste change de tension : une centrale raccordée en 225/400 kV ne peut pas repartir en 15/63 kV vers une ville.
   - Flux de puissance calculés ligne par ligne (courant continu), avec les pertes.
   - Contrôle du critère N-1, déclenchement des lignes en surcharge, îlotage.
 - **Dispatch** : appel des centrales par coût marginal (modifiable), batteries, valeur de l'eau des barrages, import et export, fréquence, délestage.
 - **Météo** : saisons, vent, soleil, débit de la rivière, prévisions à 3 jours.
+  - À l'écran : nuit bleutée sous la lune, aube et crépuscule dorés, nuages qui dérivent avec le vent et dont l'ombre court sur la carte, pluie, neige qui tient au sol puis fond, brouillard des matins d'hiver, éclairs pendant les tempêtes, feuilles mortes à l'automne, couleurs du sol selon la saison.
+  - La nuit, seules les villes alimentées s'allument : une coupure se voit.
+- **Tutoriel** (Menu → Tutoriel) : la chaîne de l'électricité (centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville) et celle de l'eau (captage → potabilisation → château d'eau → ville → égout → épuration → rivière), étape par étape.
 - **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts.
 - **R&D** : 37 technologies réparties en 5 branches et 5 niveaux.
 - **Événements** : pannes, tempêtes, vagues de froid, canicules, sécheresses, crise du gaz.

@@ -153,6 +153,18 @@ svg.schema text { font: 700 9px var(--corps); fill: var(--pale); }
 .boite h2 { margin: 0; font-family: var(--titre); font-size: 24px; text-wrap: balance; }
 .boite h2.logo { font-size: 38px; color: var(--or); text-align: center; text-shadow: 0 3px 0 var(--bord); }
 .boite p { margin: 0; font-size: 14.5px; color: var(--pale); }
+.tuto-ch { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2px 0; padding: 10px 4px; border-radius: 14px; background: var(--sol); border: 2px solid var(--bord); }
+.tuto-n { display: flex; flex-direction: column; align-items: center; width: 62px; opacity: .3; transition: opacity .3s, transform .3s; }
+.tuto-n.on { opacity: 1; transform: translateY(-2px); }
+.tuto-n svg { width: 38px; height: 38px; }
+.tuto-n b { font-size: 10.5px; line-height: 1.15; text-align: center; color: var(--pale); }
+.tuto-n.inclus svg { opacity: .8; border: 2px dashed var(--gris); border-radius: 10px; }
+.tuto-fl { display: flex; flex-direction: column; align-items: center; min-width: 30px; font-size: 10px; font-weight: 800; color: var(--doux); }
+.tuto-fl i { display: block; width: 28px; height: 4px; border-radius: 2px; margin: 3px 0; background: repeating-linear-gradient(90deg, var(--c, var(--or)) 0 6px, transparent 6px 10px); animation: tuto-flux .7s linear infinite; }
+@keyframes tuto-flux { to { background-position: 10px 0; } }
+@media (prefers-reduced-motion: reduce) { .tuto-fl i { animation: none; } }
+.tuto-pts { display: flex; gap: 6px; justify-content: center; } .tuto-pts span { width: 9px; height: 9px; border-radius: 50%; background: var(--fond3); border: 2px solid var(--bord); } .tuto-pts span.on { background: var(--or); }
+.boite ul.tuto-l { margin: 0; padding-left: 18px; font-size: 14px; color: var(--pale); display: flex; flex-direction: column; gap: 4px; }
 .boite .btn { width: 100%; }
 .choix-l { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 .choix-l button { min-height: 54px; border-radius: 12px; border: 2.5px solid var(--bord); background: var(--fond2); font: 800 13px var(--corps); cursor: pointer; padding: 4px 8px; text-align: left; }
@@ -1320,6 +1332,8 @@ function finValide(t, kv) {
   if (kv === 15 && mw > 15) return `${t.occ.nom} est trop puissante pour du 15 kV`;
   if (kv === 63 && mw > 150) return `${t.occ.nom} est trop puissante pour du 63 kV`;
   if (kv === 400 && !['poste', 'frontiere'].includes(ty) && mw < 400) return 'Le 400 kV est réservé aux postes et aux grosses centrales';
+  // seul un poste transforme : une centrale reste soit en transport (225/400 kV), soit en répartition (15/63 kV)
+  if (ty !== 'poste' && LIGNES.some(l => (l.a === t || l.b === t) && (l.kv > 63) !== (kv > 63))) return `${t.occ.nom} est déjà raccordée en ${kv > 63 ? '15/63' : '225/400'} kV : seul un poste 225/63 kV change de tension`;
   return null;
 }
 function capLigne(l) {
@@ -2333,7 +2347,7 @@ const PAUSE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColo
 const VITESSES = [[0, PAUSE, 'Pause'], [6, '1×', '6 minutes par seconde'], [60, '1 h', '1 heure par seconde'], [360, '6 h', '6 heures par seconde'], [1440, '1 j', '1 jour par seconde'], [10080, '1 sem', '1 semaine par seconde'], [43800, '1 mois', '1 mois par seconde']];
 function hud() {
   const w = meteo(S.min);
-  $('#date').innerHTML = `${jourTxt(S.min)} ${annee(S.min)} · ${hhmm(S.min)}<small>${ere().nom} · ${saison(S.min)} · vent ${nf(w.vent)} m/s · ${nf(w.temp)} °C · ${w.neb > .7 ? 'couvert' : w.neb > .35 ? 'nuageux' : 'dégagé'}</small>`;
+  $('#date').innerHTML = `${jourTxt(S.min)} ${annee(S.min)} · ${hhmm(S.min)}<small>${ere().nom} · ${saison(S.min)} · vent ${nf(w.vent)} m/s · ${nf(w.temp)} °C · ${S.evt.tempete > S.min ? (w.temp < 1.5 ? 'tempête de neige' : 'orage') : w.neb > .72 ? (w.temp < 1.5 ? 'neige' : 'pluie') : w.neb > .7 ? 'couvert' : w.neb > .35 ? 'nuageux' : 'dégagé'}</small>`;
   const [, , cls] = etatFreq(S.f); $('#p-freq').className = 'pill ' + cls; $('#freq').textContent = nf(S.f, 2) + ' Hz';
   const te = S.eau.taux ?? 1, ce = S.eau.conf ?? 1; $('#p-eau').className = 'pill cache ' + (te < .8 || ce < .9 ? 'critique' : te < .97 || ce < .99 ? 'alerte' : ''); $('#eau-txt').textContent = `Eau ${pc(te)}`;
   $('#sat').textContent = nf(S.sat) + ' %'; $('#argent').textContent = nf(S.argent / 1e6, 1) + ' M€'; $('#argent').classList.toggle('neg', S.argent < 0);
@@ -2544,6 +2558,7 @@ document.addEventListener('click', ev => {
   else if (act === 'nouvelle') { nouvellePartie(diffChoisie, carteDef(carteChoisie, graineAlea)); $('#modale').hidden = true; }
   else if (act === 'carte') { carteChoisie = id; menu(); }
   else if (act === 'graine') { graineAlea = 1 + Math.floor(Math.random() * 99998); carteChoisie = 'aleatoire'; menu(); }
+  else if (act === 'tuto') { const [k, n] = id.split(':'); tuto(k, +n); }
   else if (act === 'banc') menuBanc();
   else if (act === 'banc-sel') { const l = bancSel[b.dataset.k]; l.includes(id) ? l.splice(l.indexOf(id), 1) : l.push(id); menuBanc(); }
   else if (act === 'banc-go') lancerBanc();
@@ -2574,8 +2589,51 @@ function menu() {
     <button type="button" class="btn ${S.enJeu || sv ? 'secondaire' : ''}" data-act="nouvelle">Nouvelle campagne · 1900 → 2050</button>
     <div class="encart"><h3>Trois vues</h3><p>Carte (touche 1) montre toute la région. Électricité (2) montre les centrales, les lignes et le courant. Eau (3) montre les captages, les usines, les châteaux d’eau, les conduites et l’eau qui y coule. On construit dans la vue de chaque réseau.</p></div>
     <div class="encart"><h3>Comment jouer</h3><p>Posez centrales et postes sur les hexagones (barre du bas), puis reliez-les avec l’outil Ligne : centrale → 225 kV → poste 225/63 kV → 63 kV → ville. Une centrale non reliée ne produit rien. Surveillez la fréquence, la charge des lignes (lentille « Charge réseau ») et le critère N-1 dans l’onglet Réseau. Accélérez le temps en haut à gauche.</p></div>
+    <button type="button" class="btn secondaire" data-act="tuto" data-id="elec:0">Tutoriel · électricité et eau</button>
     <button type="button" class="btn secondaire petit" data-act="banc">Banc d’équilibrage</button>
     <p class="verrou">La partie est enregistrée automatiquement dans ce navigateur chaque jour de jeu.</p>`);
+}
+// tutoriel : la chaîne de chaque réseau, étape par étape (les ouvrages concernés s'allument)
+const TUTO_IC = {
+  ville: '<path d="M4 30V17l7-6 7 6v13z" fill="#f3efe6" stroke="#0f130e" stroke-width="2.2"/><path d="M18 30V9h11v21z" fill="#d9573b" stroke="#0f130e" stroke-width="2.2"/><path d="M9 30v-6h4v6M21 13h5M21 18h5M21 23h5" stroke="#0f130e" stroke-width="2"/>',
+  transfo: '<circle cx="13" cy="17" r="8" fill="none" stroke="#0f130e" stroke-width="2.8"/><circle cx="21" cy="17" r="8" fill="none" stroke="#ffc94d" stroke-width="2.8"/>',
+  riviere: '<path d="M3 12q4-4 8 0t8 0 8 0 4-1M3 19q4-4 8 0t8 0 8 0 4-1M3 26q4-4 8 0t8 0 8 0 4-1" stroke="#38b6ff" stroke-width="2.8" fill="none" stroke-linecap="round"/>',
+};
+const icT = k => TUTO_IC[k] || ICONES[k];
+// n : [icône, nom, classe] ; f : [texte de la flèche, couleur]
+const CH_ELEC = [['nucleaire', 'Centrale'], ['transfo', 'Transfo élévateur', 'inclus'], ['225 / 400 kV'], ['poste', 'Poste 225/63 kV'], ['63 kV'], ['transfo', 'Poste source', 'inclus'], ['ville', 'Ville']];
+const CH_PION = [['usine', 'Usine'], ['15 kV'], ['ville', 'Ville']];
+const CH_EAU = [['prise', 'Captage'], ['eau brute', '#3ad1c4'], ['potab', 'Potabili­sation'], ['potable', '#3f9cff'], ['chateau', 'Château d’eau'], ['ville', 'Ville'], ['eaux usées', '#b07f4c'], ['step', 'Épuration'], ['épurée', '#9fe0b5'], ['riviere', 'Rivière']];
+const chaine = (ch, on) => `<div class="tuto-ch" aria-hidden="true">${ch.map((e, i) => e.length === 1 || e[1]?.startsWith('#') ? `<span class="tuto-fl"><i style="--c:${e[1] || 'var(--or)'}"></i>${e[0]}</span>` : `<span class="tuto-n${on.includes(i) ? ' on' : ''}${e[2] ? ' ' + e[2] : ''}"><svg viewBox="0 0 34 34">${icT(e[0])}</svg><b>${e[1]}</b></span>`).join('')}</div>`;
+const TOUT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+const TUTO = {
+  elec: [
+    { t: 'La chaîne de l’électricité', ch: CH_ELEC, on: TOUT, l: ['On produit loin des villes, dans les centrales.', 'On élève la tension pour transporter : en très haute tension, les pertes sont faibles.', 'On l’abaisse dans un poste, puis dans le poste source de la ville, avant de servir les foyers.', 'Dans le jeu : centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville. Le transfo élévateur est compris dans la centrale, le poste source dans la ville.'] },
+    { t: '1900 : les pionniers', ch: CH_PION, on: [0, 2], l: ['Au début, une petite usine (10 MW) alimente la ville voisine en 15 kV, sur des poteaux en bois.', 'Une ligne 15 kV porte 15 MW au plus : gardez les usines près des villes.', 'Le 63 kV arrive en 1920 (150 MW par ligne) : il relie encore directement usines et villes.'] },
+    { t: '1. Produire', ch: CH_ELEC, on: [0, 1], l: ['Posez une centrale dans la vue Électricité (touche 2). Chaque type a ses terrains : barrage sur rivière, nucléaire au bord de l’eau…', 'Sa fiche indique la tension de raccordement conseillée.', 'Une centrale non reliée ne produit rien.', 'Au-delà de 150 MW, une centrale part en 225 ou 400 kV. Le 400 kV est réservé aux centrales de 400 MW et plus, et aux postes.'] },
+    { t: '2. Transporter', ch: CH_ELEC, on: [1, 3], l: ['Le 225 kV arrive en 1935 (450 MW par ligne), le 400 kV en 1960 (1 600 MW).', 'Tirez la ligne avec l’outil Ligne : cliquez sur la centrale, puis sur le poste.', 'Le poste 225/63 kV a deux autotransformateurs de 250 MVA : c’est le seul ouvrage qui change de tension.', 'Une centrale raccordée en 225 kV ne peut donc pas repartir en 63 kV vers une ville : il faut passer par un poste.'] },
+    { t: '3. Distribuer', ch: CH_ELEC, on: [3, 5, 6], l: ['Une ville se raccorde en 15 ou 63 kV, jamais en très haute tension.', 'Reliez chaque ville à un poste en 63 kV.', 'Les petites centrales (éolien, solaire, biomasse, batteries, turbines) peuvent aller directement en 63 kV vers un poste ou une ville.'] },
+    { t: '4. Tenir le réseau', ch: CH_ELEC, on: TOUT, l: ['Doublez les liaisons : avec deux lignes 63 kV, une ville reste alimentée si l’une tombe (critère N-1, onglet Réseau).', 'Surveillez la lentille « Charge réseau » : une ligne au-delà de 130 % pendant 45 minutes déclenche.', 'À partir de 1938, une ligne 225 kV vers la frontière permet d’importer et d’exporter.'] },
+  ],
+  eau: [
+    { t: 'Le cycle de l’eau', ch: CH_EAU, on: TOUT, l: ['On capte l’eau, on la rend potable, on la stocke en hauteur, puis on la distribue.', 'Les eaux usées repartent par les égouts vers une station d’épuration, qui rend une eau propre à la rivière.', 'Dans le jeu, tout se construit dans la vue Eau (touche 3) : les ouvrages travaillent ensemble s’ils sont sur le même réseau de conduites.'] },
+    { t: '1. Capter', ch: CH_EAU, on: [0], l: ['Captage de source : eau propre, mais petit débit (collines).', 'Forage en nappe : sur une nappe (lentille Nappes), attention aux nitrates.', 'Prise d’eau en rivière : beaucoup d’eau, mais sale.', 'Plus tard : forage profond (1955), dessalement sur la côte (1985).'] },
+    { t: '2. Rendre potable', ch: CH_EAU, on: [0, 2], l: ['L’usine de potabilisation arrive en 1905 avec un filtre à sable et du chlore.', 'La conduite entre la prise d’eau et l’usine transporte de l’eau brute (turquoise).', 'Les normes se durcissent au fil du siècle : ajoutez les étapes depuis la fiche de l’usine (charbon actif, ozonation, dénitratation, ultrafiltration).'] },
+    { t: '3. Stocker et distribuer', ch: CH_EAU, on: [2, 4, 5], l: ['Le château d’eau (ou le réservoir sur colline) donne la pression et couvre les pointes du matin et du soir.', 'Sans château d’eau ni station de pompage, la ville n’est servie qu’à 80 %.', 'Tirez une conduite (bleue) jusqu’à la ville : la distribution se dessine toute seule dans les quartiers.', 'Les conduites fuient en vieillissant : renouvelez-les depuis l’onglet Eau.'] },
+    { t: '4. Assainir', ch: CH_EAU, on: [5, 7, 9], l: ['L’outil Égout trace un collecteur (marron) de la ville vers une épuration.', 'Lagunage dès 1900 pour une petite ville (5 000 habitants). Station d’épuration en 1950, au bord d’une rivière ou de la mer.', 'Les eaux non épurées polluent la rivière en aval et les prises d’eau qui s’y trouvent. Elles coûtent des amendes à partir de 1992.'] },
+    { t: '5. Réutiliser', ch: CH_EAU, on: [7, 5], l: ['Avec la recherche, une épuration peut être équipée pour la réutilisation (à partir de 2010).', 'Des conduites vertes portent l’eau traitée vers les fermes, puis vers l’industrie.', 'Autant d’eau potable et de prélèvements en rivière économisés.'] },
+  ],
+};
+function tuto(sujet = 'elec', i = 0) {
+  const L = TUTO[sujet], e = L[i];
+  modale(`<h2 id="modale-titre">Tutoriel</h2>
+    <div class="choix-l" style="grid-template-columns:1fr 1fr">${[['elec', 'Électricité'], ['eau', 'Eau']].map(([k, n]) => `<button type="button" data-act="tuto" data-id="${k}:0" class="${k === sujet ? 'actif' : ''}">${n}</button>`).join('')}</div>
+    <div class="section" style="margin-top:0">${e.t}</div>
+    ${chaine(e.ch, e.on)}
+    <ul class="tuto-l">${e.l.map(x => `<li>${x}</li>`).join('')}</ul>
+    <div class="tuto-pts" role="img" aria-label="Étape ${i + 1} sur ${L.length}">${L.map((_, k) => `<span class="${k === i ? 'on' : ''}"></span>`).join('')}</div>
+    <div style="display:flex;gap:8px"><button type="button" class="btn secondaire" style="flex:1" data-act="tuto" data-id="${sujet}:${i - 1}" ${i ? '' : 'disabled'}>Précédent</button>${i < L.length - 1 ? `<button type="button" class="btn" style="flex:1" data-act="tuto" data-id="${sujet}:${i + 1}">Suivant</button>` : sujet === 'elec' ? '<button type="button" class="btn" style="flex:1" data-act="tuto" data-id="eau:0">Passer à l’eau</button>' : ''}</div>
+    <button type="button" class="btn secondaire petit" data-act="${S.enJeu ? 'fermer-modale' : 'menu'}">${S.enJeu ? 'Reprendre la partie' : 'Retour au menu'}</button>`);
 }
 function rapportAnnuel(r, er) {
   const fin = r.an === 2049;
@@ -2992,6 +3050,93 @@ function animAmbiance(dt) {
 // ============================================================ boucle
 S = etatInitial('normal');
 genererCarte(carteDef('valmont'));
+// ============================================================ ciel : jour et nuit, nuages, pluie, neige, brouillard, saisons
+const COUL = h => new THREE.Color(h);
+const SOL_J = COUL(0xfff0d4), SOL_OR = COUL(0xff9f5a), SOL_LUNE = COUL(0x8ea6ff), HEMI_J = COUL(0xeef7ff), HEMI_N = COUL(0x4d5c8a);
+const FOND_J = COUL(0x1b211a), FOND_OR = COUL(0x3b2717), FOND_N = COUL(0x090d1a), BRUME = COUL(0x9aa4a8), NEIGE_E = COUL(0xcfd9e6), BLANC = COUL(0xffffff), GRIS_N = COUL(0x8d939c);
+// teinte du sol mois par mois : hiver froid, printemps vert, été doré, automne roux
+const SAISONS = [0xe2e9f2, 0xe6edf2, 0xf0fbe8, 0xeefde6, 0xf2ffe8, 0xfffbe6, 0xfff4d8, 0xfff0cc, 0xffeacc, 0xffd8a8, 0xffd2a4, 0xe8edf2].map(COUL);
+scene.fog = new THREE.Fog(FOND_J, 1e4, 2e4);  // toujours présent : l'ajouter en cours de partie recompilerait tous les matériaux
+const TACHE = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'), d = g.createRadialGradient(16, 16, 0, 16, 16, 16); d.addColorStop(0, '#fff'); d.addColorStop(.45, 'rgba(255,255,255,.75)'); d.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = d; g.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); })();
+// nuages : leur nombre suit la nébulosité, ils dérivent avec le vent et leur ombre court sur la carte
+const M_NUAGE = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: degrade, transparent: true, opacity: .45, depthWrite: false });
+const NUAGES = Array.from({ length: 18 }, (_, i) => {
+  const n = 3 + (i % 3), parts = [];
+  for (let k = 0; k < n; k++) parts.push(new THREE.IcosahedronGeometry(9 + hache(i, k, 71) * 9, 1).scale(1, .55, 1).translate((k - n / 2) * 11 + hache(i, k, 72) * 5, hache(i, k, 73) * 4, (hache(i, k, 74) - .5) * 14));
+  const m = new THREE.Mesh(mergeGeometries(parts), M_NUAGE); m.castShadow = true; m.rotation.y = hache(i, 0, 78) * Math.PI;
+  m.position.set((hache(i, 0, 75) - .5) * 2 * (OX + 80), 70 + hache(i, 0, 76) * 15, (hache(i, 0, 77) - .5) * 2 * (OZ + 60)); scene.add(m); return m;
+});
+// pluie (traits), neige et feuilles mortes (points) dans une boîte qui suit la caméra
+const N_GOUTTES = 1500, GOUT = Float32Array.from({ length: N_GOUTTES * 3 }, Math.random);
+const PLUIE = new THREE.LineSegments(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(N_GOUTTES * 6), 3)), new THREE.LineBasicMaterial({ color: 0xe4f0ff, transparent: true, opacity: .7, depthWrite: false }));
+const FLOCONS = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(N_GOUTTES * 3), 3)), new THREE.PointsMaterial({ map: TACHE, size: 2.4, transparent: true, depthWrite: false }));
+// fenêtres et réverbères la nuit : seules les villes alimentées s'allument
+const LUM = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ map: TACHE, size: 5, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+for (const o of [PLUIE, FLOCONS, LUM]) { o.frustumCulled = false; o.visible = false; scene.add(o); }
+let lumCle = '', lumTic = 0, neigeSol = 0, minPrec = null, eclair = 0, tEclair = 4;
+function majLumieres() {
+  const cle = VILLES.map(v => v.nom + v.tuiles.length + v.servie).join();
+  if (cle === lumCle) return; lumCle = cle;
+  const pos = [], col = [];
+  for (const v of VILLES) if (v.servie) for (const t of v.tuiles) for (let k = 0; k < 5; k++) {
+    pos.push(t.x + (hache(t.q, t.r, 80 + k) - .5) * 14, t.top + 1.5 + hache(t.q, t.r, 90 + k) * 5, t.z + (hache(t.q, t.r, 100 + k) - .5) * 12);
+    col.push(1, k % 3 ? .74 : .9, k % 3 ? .36 : .65);
+  }
+  LUM.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); LUM.geometry.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+}
+const CT = new THREE.Color();
+function animCiel(dt, kt) {
+  const sl = soleil(S.min), w = meteo(S.min), mo = date(S.min).getUTCMonth(), h = heure(S.min);
+  const jour = clamp((sl.el + .08) / .3, 0, 1), dore = Math.exp(-(((sl.el - .04) / .1) ** 2)), el = Math.max(.12, sl.el);
+  const orage = S.evt && S.evt.tempete > S.min, pluieK = orage ? 1 : clamp((w.neb - .72) / .25, 0, 1), neige = w.temp < 1.5;
+  // lumière : lune bleutée la nuit, soleil doré à l'aube et au crépuscule, voilé par les nuages
+  soleilL.position.set(-Math.sin(sl.az) * 300 * Math.cos(el), 300 * Math.sin(el) + 60, Math.cos(sl.az) * 300 * Math.cos(el));
+  soleilL.color.copy(SOL_LUNE).lerp(SOL_J, jour).lerp(SOL_OR, dore * .7);
+  soleilL.intensity = (.5 + 2.1 * jour) * (1 - .35 * w.neb * jour) * (1 - .35 * pluieK);
+  if (orage && !DOUX && (tEclair -= dt) < 0) { eclair = 1; tEclair = 3 + Math.random() * 8; }  // pas d'éclairs avec « réduire les animations »
+  eclair = Math.max(0, eclair - dt * 5);
+  ciel.color.copy(HEMI_N).lerp(HEMI_J, jour); ciel.intensity = .75 + .75 * jour + eclair * 1.6;
+  scene.background.copy(FOND_N).lerp(FOND_J, jour).lerp(FOND_OR, dore * .6).lerp(HEMI_J, eclair * .2);
+  // brouillard : pluie, neige, ou matin calme d'automne et d'hiver
+  const matin = (mo >= 9 || mo <= 1) && h > 4.5 && h < 9.5 && w.vent < 5 ? Math.sin((h - 4.5) / 5 * Math.PI) : 0, brume = Math.max(pluieK * .7, matin * .8);
+  scene.fog.color.copy(BRUME).multiplyScalar(.25 + .75 * jour);
+  scene.fog.near = distc * (1.6 - brume * 1.2); scene.fog.far = scene.fog.near + distc * (6 - brume * 5.3);
+  // saisons : teinte du sol, neige qui tient au sol puis fond (en minutes de jeu)
+  const dm = minPrec === null ? 0 : clamp(S.min - minPrec, 0, 1440); minPrec = S.min;
+  neigeSol = clamp(neigeSol + (neige ? dm / 720 * pluieK : -dm / 1440 * clamp((w.temp - 1.5) / 4, 0, 1)), 0, 1);
+  CT.copy(TEINTE[vue]).multiply(SAISONS[mo]); MAT_SOL.color.lerp(CT, kt);
+  MAT_SOL.emissive.copy(NEIGE_E).multiplyScalar(neigeSol * .3 * (vue === 'carte' ? 1 : .3) * (.4 + .6 * jour));
+  // nuages
+  const ang = .5 + .5 * Math.sin(S.min / 4000), vx = Math.cos(ang) * w.vent, vz = Math.sin(ang) * w.vent, nVis = w.neb * 21 - 2;
+  M_NUAGE.opacity = .45 * clamp((distc - 140) / 160, 0, 1) * (.35 + .65 * jour);  // de près, on voit sous les nuages : il ne reste que leur ombre
+  M_NUAGE.color.copy(BLANC).lerp(GRIS_N, pluieK);
+  NUAGES.forEach((m, i) => {
+    m.visible = i < nVis; if (DOUX) return;
+    m.position.x += vx * dt * .8; m.position.z += vz * dt * .8;
+    if (m.position.x > OX + 100) m.position.x -= 2 * (OX + 100); if (m.position.z > OZ + 80) m.position.z -= 2 * (OZ + 80);
+  });
+  // précipitations
+  const tombe = !DOUX && pluieK > 0, feuilles = !DOUX && !tombe && (mo === 9 || mo === 10) && w.vent > 6 && jour > 0;
+  PLUIE.visible = tombe && !neige; FLOCONS.visible = (tombe && neige) || feuilles;
+  if (PLUIE.visible || FLOCONS.visible) {
+    const hx = distc * .9, hz = distc * .7, H = 110, n = Math.round(N_GOUTTES * (feuilles ? .2 : pluieK)), vit = PLUIE.visible ? 150 : feuilles ? 8 : 13, t = performance.now() / 1000;
+    const P = (PLUIE.visible ? PLUIE : FLOCONS).geometry.attributes.position, A = P.array;
+    for (let i = 0; i < n; i++) {
+      const j = i * 3; let y = GOUT[j + 1] - dt * vit * (.8 + .08 * (i % 5)) / H; if (y < 0) y += 1; GOUT[j + 1] = y;
+      GOUT[j] = (GOUT[j] + dt * vx * .5 / (2 * hx) + 1) % 1; GOUT[j + 2] = (GOUT[j + 2] + dt * vz * .5 / (2 * hz) + 1) % 1;
+      const x = cible.x + (GOUT[j] - .5) * 2 * hx, z = cible.z + (GOUT[j + 2] - .5) * 2 * hz, yy = y * H;
+      if (PLUIE.visible) A.set([x, yy, z, x - vx * .35, yy + 6, z - vz * .35], i * 6);
+      else { const s = Math.sin(t * (feuilles ? 2.2 : 1.1) + i) * (feuilles ? 3 : 1.4); A.set([x + s, yy, z + Math.cos(t * .9 + i) * (feuilles ? 2 : .8)], j); }
+    }
+    P.needsUpdate = true; PLUIE.geometry.setDrawRange(0, n * 2); FLOCONS.geometry.setDrawRange(0, n);
+    PLUIE.material.opacity = .75 * (vue === 'carte' ? 1 : .5);
+    FLOCONS.material.color.set(feuilles ? 0xd9772e : 0xffffff); FLOCONS.material.size = feuilles ? 2.8 : 2.4; FLOCONS.material.opacity = vue === 'carte' ? .95 : .5;
+  }
+  // lumières des villes
+  if ((lumTic -= dt) < 0) { lumTic = .5; majLumieres(); }
+  LUM.material.opacity = clamp(1 - jour * 1.5, 0, 1); LUM.visible = LUM.material.opacity > .01;
+}
+
 let avant = performance.now(), rafraichi = 0, fEch = 0, image = 0;
 function tic(maintenant) {
   requestAnimationFrame(tic);
@@ -3008,11 +3153,7 @@ function tic(maintenant) {
   for (const r of ROTORS) if (actifU(r.u) && r.u.p > .5) r.g.rotation.z -= dt * r.v * 2 * Math.min(1, .3 + r.u.p / r.u.cap);
   for (let i = ANIMS.length - 1; i >= 0; i--) { const a = ANIMS[i], q = Math.min(1, (maintenant - a.t0) / 650); a.grp.scale.y = q < 1 ? 1 + Math.sin(q * Math.PI * 1.5) * (1 - q) * .5 - (1 - q) ** 3 : 1; if (q >= 1) ANIMS.splice(i, 1); }
   if (fant) FANT.opacity = .6 + Math.sin(maintenant / 220) * .15;
-  // le soleil suit l'heure de jeu
-  const sl = soleil(S.min), el = Math.max(.12, sl.el), jourK = clamp(sl.el / .35 + .55, .55, 1);
-  soleilL.position.set(-Math.sin(sl.az) * 300 * Math.cos(el), 300 * Math.sin(el) + 60, Math.cos(sl.az) * 300 * Math.cos(el));
-  soleilL.intensity = 2.6 * jourK; ciel.intensity = .7 + .8 * jourK;
-  const kt = Math.min(1, dt * 6); MAT_SOL.color.lerp(TEINTE[vue], kt); MAT_RIV.color.lerp(vue === 'elec' ? TEINTE.elec : TEINTE.carte, kt);
+  const kt = Math.min(1, dt * 6); animCiel(dt, kt); MAT_RIV.color.lerp(vue === 'elec' ? TEINTE.elec : TEINTE.carte, kt);
   HALO_M.eau.opacity = HALO_M.elec.opacity = DOUX ? .8 : .55 + Math.sin(maintenant / 330) * .3;
   animParticules(dt); animEau(dt); animAmbiance(dt); animFumees(dt); placerEtiquettes();
   if (image++ % 8 === 0) majMini();
