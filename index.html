@@ -885,9 +885,9 @@ const capTexte = ty => (ty.m3 ? `${nf(ty.m3)} m³/j` : ty.stock ? `${nf(ty.stock
 const ORDRE_CAPT = { source: 0, forage: 1, prise: 2, forageP: 3, dessal: 4 };  // on appelle d'abord l'eau la moins chère
 
 // ------------------------------------------------------------ conduites : graphe d'arêtes entre hexagones voisins
-const TUYAU = { brute: [0x3ad1c4, 1, 'Adduction d’eau brute'], potable: [0x3f9cff, .9, 'Conduite d’eau potable'], secondaire: [0x86c8ff, .55, 'Distribution'], usee: [0xb07f4c, .85, 'Collecteur d’eaux usées'], rejet: [0x9fe0b5, .6, 'Rejet épuré'] };
-const FAM = { brute: 'p', potable: 'p', secondaire: 'p', usee: 'a', rejet: 'a' }, RANG = { secondaire: 0, potable: 1, brute: 2, rejet: 0, usee: 1 };
-const DECAL = { p: [0, 0], a: [3.2, 2] };  // l'assainissement court à côté de l'eau potable, jamais dessus
+const TUYAU = { brute: [0x3ad1c4, 1, 'Adduction d’eau brute'], potable: [0x3f9cff, .9, 'Conduite d’eau potable'], secondaire: [0x86c8ff, .55, 'Distribution'], usee: [0xb07f4c, .85, 'Collecteur d’eaux usées'], rejet: [0x9fe0b5, .6, 'Rejet épuré'], reut: [0x7ed957, .6, 'Eau traitée réutilisée'] };
+const FAM = { brute: 'p', potable: 'p', secondaire: 'p', usee: 'a', rejet: 'a', reut: 'r' }, RANG = { secondaire: 0, potable: 1, brute: 2, rejet: 0, usee: 1, reut: 0 };
+const DECAL = { p: [0, 0], a: [3.2, 2], r: [-3.2, -2] };  // l'assainissement court à côté de l'eau potable, jamais dessus
 const COUT_TUYAU = { p: .06, a: .08 };  // M€ par hexagone
 let ARETES = new Map(), EAU_SALE = true, RESEAUX = [], EGOUTS = [];
 const cleA = (f, a, b) => f + '|' + a.k + '|' + b.k;
@@ -1062,7 +1062,18 @@ function pasEau(m) {
 const vieilles = () => [...ARETES.values()].filter(e => annee(S.min) - e.an >= 30);
 const coutRenouv = () => vieilles().length * .1e6;
 function renouveler() { const l = vieilles(), c = coutRenouv(); if (!l.length) return 'Aucune conduite de plus de 30 ans.'; S.argent -= c; S.an.capex += c; for (const e of l) e.an = annee(S.min); EAU_SALE = true; dessinerEau(); log(`Renouvellement de ${l.length} tronçons de conduites (${nf(c / 1e6, 1)} M€) : les fuites et les casses diminuent.`, 'bon'); return null; }
-function equiperReut(u) { const c = REUT[u.type][1] * 1e6; if (!rd('reut') || u.reut) return; S.argent -= c; S.an.capex += c; u.reut = true; log(`${u.nom} : réutilisation des eaux traitées pour l’irrigation et l’industrie (${nf(c / 1e6, 1)} M€).`, 'bon'); }
+function equiperReut(u) { const c = REUT[u.type][1] * 1e6; if (!rd('reut') || u.reut) return; S.argent -= c; S.an.capex += c; u.reut = true; poserReut(u); log(`${u.nom} : réutilisation des eaux traitées pour l’irrigation et l’industrie (${nf(c / 1e6, 1)} M€).`, 'bon'); }
+function poserReut(u) {  // conduites vertes vers les trois fermes les plus proches et la zone industrielle la plus proche
+  const pres = (l, d) => l.filter(t => dist(t, u.t) <= d).sort((a, b) => dist(a, u.t) - dist(b, u.t));
+  const fermes = pres(LISTE.filter(t => t.ferme && !t.occ && !t.ville), 5).slice(0, 3), indus = pres(VILLES.flatMap(v => v.tuiles.filter(t => t.quartier === 'industriel')), 6).slice(0, 1);
+  for (const t of [...fermes, ...indus]) { const p = cheminEau(u.t, t, 'r'); if (p) for (let i = 1; i < p.length; i++) ajouteArete(p[i - 1], p[i], 'reut'); }
+  dessinerEau();
+}
+function retirerReut(u) {  // à la démolition, on retire le réseau vert qui part de la station
+  const vu = new Set([u.t]), file = [u.t];
+  while (file.length) { const t = file.shift(); for (const [k, e] of ARETES) if (e.f === 'r' && (e.a === t || e.b === t)) { const n = e.a === t ? e.b : e.a; ARETES.delete(k); if (!vu.has(n) && !(n.occ && n.occ.reut)) { vu.add(n); file.push(n); } } }
+  dessinerEau();
+}
 function cassesEau(m) {  // chaque nuit, une vieille conduite peut casser
   const a = annee(m);
   for (const e of ARETES.values()) if (!e.hs && e.type !== 'secondaire' && alea() < .000004 * Math.max(0, a - e.an) * DIFF[S.diff].evt * (rd('telerel') ? .5 : 1)) {
@@ -1258,7 +1269,7 @@ function trierOrdre() { S.ordre.sort((a, b) => coutMarginal(unite(a)) - coutMarg
 function demolir(u) {
   const ls = LIGNES.filter(l => l.a === u.t || l.b === u.t), garder = u.type !== 'poste' && ls.length >= 2;  // le poste de la centrale reste en place
   if (!garder) for (const l of ls) demolirLigne(l, true);
-  jeter(u.grp); jeter(u.grue); jeter(u.halo); u.eti?.remove(); if (estEauU(u)) EAU_SALE = true;
+  jeter(u.grp); jeter(u.grue); jeter(u.halo); u.eti?.remove(); if (estEauU(u)) EAU_SALE = true; if (u.reut) retirerReut(u);
   ROTORS.splice(0, ROTORS.length, ...ROTORS.filter(r => r.u !== u)); FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.u !== u));
   UNITES.splice(UNITES.indexOf(u), 1); S.ordre = S.ordre.filter(id => id !== u.id); u.t.occ = null;
   if (garder) { creerUnite(u.t, 'poste', { immediat: true, nom: `Poste ${/^[aeiouéèh]/i.test(lieu(u.t)) ? 'd’' : 'de '}${lieu(u.t)}`.replace('de le ', 'du ').replace('de les ', 'des ') }); log(`Le poste électrique de ${u.nom} est conservé : ses ${ls.length} lignes restent en service.`); }
@@ -1437,7 +1448,7 @@ function animEau(dt) {
   if (!PART_EAU) return; PART_EAU.visible = vue === 'eau'; if (vue !== 'eau') return;
   let i = 0;
   for (const f of FLUX_EAU) {
-    const coule = f.riv || (!(f.e.hs && f.e.hs > S.min) && (f.e.f === 'a' || (f.e.res?.taux ?? 1) > 0));
+    const coule = f.riv || (!(f.e.hs && f.e.hs > S.min) && (f.e.f === 'a' || (f.e.f === 'r' ? (S.eau.reutQ || 0) > 0 : (f.e.res?.taux ?? 1) > 0)));
     for (let k = 0; k < f.s.length; k++) {
       if (!coule || DOUX) { MD.makeScale(0, 0, 0); PART_EAU.setMatrixAt(i++, MD); continue; }
       f.s[k] = (f.s[k] + dt * f.v / Math.max(1, f.a.distanceTo(f.b))) % 1;
@@ -2777,6 +2788,9 @@ function acheterEau(type, v, dmax = 5) {
   const u = acheterUnite(t, type); return typeof u === 'string' ? null : u;
 }
 function relierEau(u, v, type) { const p = cheminEau(u.t, v.tuiles.slice().sort((a, b) => dist(a, u.t) - dist(b, u.t))[0], FAM[type]); if (!p) return false; S.argent -= (p.length - 1) * COUT_TUYAU[FAM[type]] * 1e6; poserConduite(null, null, type, p); return true; }
+function botPollution() {  // comme un joueur attentif : on coupe les captages touchés par une pollution, on les rouvre après
+  for (const u of UNITES) if (TYPES[u.type].role === 'captage') { const t = touche0(u); if (t && u.dispo !== false) { u.dispo = false; u.coupeBot = true; } else if (!t && u.coupeBot) { u.dispo = true; u.coupeBot = false; } }
+}
 function botEau() {
   const a = annee(S.min);
   for (const v of VILLES) {
@@ -2843,7 +2857,7 @@ async function bancPartie(carte, diff, strat, graine) {
   while (!S.fini && annee(S.min) < 2050) {
     S.imb = integrer(15); S.min += 15; pas(S.min);
     for (const b of BR) if (actifB(b) || b.hs > S.min) suivi.set(b, Math.max(suivi.get(b) || 0, actifB(b) ? b.taux : 1.2));
-    if (Math.abs(heure(S.min)) < .01) { jours++; if (jours % 30 === 0) botMois(st, suivi); if (jours % 120 === 0) { bancEtat?.(`${CARTE.nom} · ${DIFF[diff].nom} · ${st.nom} · ${annee(S.min)}`); await new Promise(r => setTimeout(r, 0)); } }
+    if (Math.abs(heure(S.min)) < .01) { jours++; if (st.rd) botPollution(); if (jours % 30 === 0) botMois(st, suivi); if (jours % 120 === 0) { bancEtat?.(`${CARTE.nom} · ${DIFF[diff].nom} · ${st.nom} · ${annee(S.min)}`); await new Promise(r => setTimeout(r, 0)); } }
   }
   const r49 = S.rapports.at(-1) || {}, compte = {};
   for (const u of UNITES) compte[u.type] = (compte[u.type] || 0) + 1;
@@ -3012,7 +3026,7 @@ majBarre(); majLentilles(); majLentille();
 cible.set(VILLES[0].centre.x + 30, 0, VILLES[0].centre.z + 20); majCam(); redim();
 requestAnimationFrame(tic);
 menu();
-window.GM = { get AMB() { return AMB; }, __cam(t, d) { cible.set(t.x, 0, t.z + 12); distc = d; majCam(); }, topoEau, get ARETES() { return ARETES; }, get RESEAUX() { return RESEAUX; }, choisirVue, poserConduite, cheminEau, botEau, pasEau, accidentEau, crisesEau, blocEauHex, panneauEau, panneauRD, equiperReut, etapeOk, bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
+window.GM = { get AMB() { return AMB; }, __cam(t, d) { cible.set(t.x, 0, t.z + 12); distc = d; majCam(); }, topoEau, get ARETES() { return ARETES; }, get RESEAUX() { return RESEAUX; }, choisirVue, poserConduite, cheminEau, botEau, pasEau, accidentEau, crisesEau, demolir, botPollution, blocEauHex, panneauEau, panneauRD, equiperReut, etapeOk, bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
 </script>
 
 </body>
