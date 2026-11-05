@@ -1030,7 +1030,7 @@ function pasEau(m) {
   for (let i = 0; i < RIV.length; i++) { cum = cum * .85 + rej[i]; E.pollu[i] = cum / Math.max(50, debitRiv(i, w) * 900); }
   // nappes : recharge l'hiver, pompage
   const rech = (mo <= 2 || mo >= 10 ? 1.6 : mo >= 5 && mo <= 8 ? .35 : 1) * w.debit;
-  E.nappe = clamp(E.nappe + (45000 / 96 * rech - pompeNappe) / 1.5e7, 0, 1); E.profonde = clamp(E.profonde + (1500 / 96 - pompeProf) / 3e7, 0, 1);
+  E.nappe = clamp(E.nappe + (80000 / 96 * rech - pompeNappe) / 4e7, 0, 1); E.profonde = clamp(E.profonde + (6000 / 96 - pompeProf) / 8e7, 0, 1);  // nappe alluviale ≈ 30 hm³ rechargés par an ; nappe profonde : réserve lente
   // coûts fixes : ouvrages et entretien des conduites ; amendes après la directive de 1991
   r.opex += UNITES.reduce((s, u) => s + (estEauU(u) && !u.fin ? TYPES[u.type].opexE * 1e3 : 0), 0) / (365 * 96) + ARETES.size * 2000 / (365 * 96);
   if (a >= 1992) r.amendes += r.nonTraite * .5;
@@ -2717,8 +2717,9 @@ function botEau() {
     const enCours = UNITES.some(u => u.fin && estEauU(u) && Math.min(...v.tuiles.map(x => dist(x, u.t))) <= 5);
     if (capJ < besoin && !enCours) {
       let u = null;
-      if (besoin - capJ > 4000 && dispoType('potab')) { u = acheterEau('prise', v); if (u) { const p = acheterEau('potab', v); if (p) { relierEau(u, v, 'brute'); relierEau(p, v, 'potable'); u = p; } } }
-      u = u || acheterEau('forage', v) || (dispoType('forageP') && acheterEau('forageP', v)) || acheterEau('source', v) || (dispoType('dessal') && acheterEau('dessal', v, 4));
+      const nappeOk = S.eau.nappe > .45, profOk = S.eau.profonde > .5 && UNITES.filter(x => x.type === 'forageP').length < 3;
+      if ((besoin - capJ > 4000 || !nappeOk) && dispoType('potab')) { u = acheterEau('prise', v, 8); if (u) { const p = acheterEau('potab', v); if (p) { relierEau(u, v, 'brute'); relierEau(p, v, 'potable'); u = p; } } }
+      u = u || (nappeOk && acheterEau('forage', v)) || (profOk && dispoType('forageP') && acheterEau('forageP', v)) || acheterEau('source', v) || (dispoType('dessal') && acheterEau('dessal', v, 4)) || (!dispoType('potab') && acheterEau('forage', v));
       if (u && u.type !== 'potab') relierEau(u, v, 'potable');
     }
     if (C && !C.pression && !enCours) { const s = acheterEau('chateau', v, 2); if (s) relierEau(s, v, 'potable'); }
@@ -2779,7 +2780,7 @@ async function bancPartie(carte, diff, strat, graine) {
   for (const u of UNITES) compte[u.type] = (compte[u.type] || 0) + 1;
   return { carte: CARTE.nom, carteId: carte, graine: CARTE.graine, diff, strat, issue: S.fini || 'en cours', fin: dateTxt(S.min), duree: Math.round((performance.now() - t0) / 1000),
     argent: Math.round(S.argent / 1e6), dette: Math.round(S.dette / 1e6), sat: Math.round(S.sat), villesKO, compte, lignes: LIGNES.length, objectifs: OBJ.map(([n, f]) => [n, !!f(r49)]),
-    rapports: S.rapports.map(r => ({ an: r.an, bas: Math.round(r.bas), co2: Math.round(r.co2), coupure: Math.round(r.coupure * 10) / 10, res: Math.round(r.res / 1e6), sat: Math.round(r.sat), pointe: Math.round(r.pointe), capex: Math.round(r.capex / 1e6) })) };
+    rapports: S.rapports.map(r => ({ an: r.an, bas: Math.round(r.bas), co2: Math.round(r.co2), coupure: Math.round(r.coupure * 10) / 10, res: Math.round(r.res / 1e6), sat: Math.round(r.sat), pointe: Math.round(r.pointe), capex: Math.round(r.capex / 1e6), eau: Math.round(r.eauServi ?? 0), conf: Math.round(r.eauConf ?? 0), epure: Math.round(r.eauEpure ?? 0) })) };
 }
 let bancEtat = null;
 const ISSUES = { victoire: ['Victoire', 'vert'], echec: ['Objectifs manqués', 'or'], faillite: ['Faillite', 'rouge'], revocation: ['Révocation', 'rouge'] };
