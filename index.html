@@ -2713,7 +2713,7 @@ function botEau() {
   const a = annee(S.min);
   for (const v of VILLES) {
     const C = v.res, besoin = (v.m3d || 0) * 96 * 1.35 / (1 - (C?.fuite || .1));
-    const capJ = C ? C.unites.filter(u => TYPES[u.type].role === 'captage').reduce((s, u) => s + TYPES[u.type].m3, 0) : 0;
+    const capJ = C ? Math.min(C.unites.filter(u => TYPES[u.type].role === 'captage').reduce((s, u) => s + TYPES[u.type].m3, 0), (C.dispo || 0) * 96 * 1.1) : 0;  // un forage sur une nappe vide ne compte plus
     const enCours = UNITES.some(u => u.fin && estEauU(u) && Math.min(...v.tuiles.map(x => dist(x, u.t))) <= 5);
     if (capJ < besoin && !enCours) {
       let u = null;
