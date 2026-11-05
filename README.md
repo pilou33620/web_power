@@ -53,6 +53,10 @@ On construit dans la vue de chaque réseau.
   - débit de la rivière, irrigation des fermes l'été, débit réservé à partir de 1984, nappe qui se recharge l'hiver ;
   - stocks des châteaux d'eau, fuites qui augmentent avec l'âge des conduites, casses.
 - **Qualité** : six paramètres (turbidité, microbes, matières organiques, nitrates, pesticides, micropolluants). Leurs normes entrent en vigueur au fil du siècle. La chaîne de traitement de chaque usine se complète par étapes : filtre à sable et chlore, charbon actif, ozonation, dénitratation, ultrafiltration.
+- **Recherche** : une branche « Eau et assainissement » de 10 technologies. Elle débloque les étapes de traitement après leur date (charbon actif, ozonation, dénitratation, ultrafiltration). Elle réduit aussi les fuites et les casses, augmente la capacité des stations d'épuration, rend le dessalement moins gourmand et ouvre la réutilisation des eaux usées.
+- **Crises sanitaires** : une eau chargée en microbes peut déclencher une épidémie dans la ville (typhoïde au début du siècle, puis dysenterie, gastro-entérite). Une épidémie coûte des soins, fait chuter la satisfaction et dure une à deux semaines.
+- **Pollutions accidentelles** (à partir de 1920) : un rejet industriel descend la rivière ou un captage de nappe est contaminé pendant quelques jours. On coupe les captages touchés depuis leur fiche ; la recherche « Surveillance continue de la qualité » les coupe automatiquement.
+- **Réutilisation des eaux usées** (recherche, à partir de 2010) : une station d'épuration ou un lagunage équipé fournit son eau traitée à l'irrigation des fermes, puis à l'industrie, à la place de l'eau potable et des prélèvements en rivière.
 - **Assainissement** : les eaux usées non épurées polluent la rivière en aval et dégradent les prises d'eau. Elles coûtent des amendes à partir de 1992.
 - **Économie** : prix du m³ réglable, restrictions d'usage, renouvellement des vieilles conduites. Le pompage et le traitement consomment de l'électricité.
 
@@ -65,7 +69,7 @@ On construit dans la vue de chaque réseau.
 - **Dispatch** : appel des centrales par coût marginal (modifiable), batteries, valeur de l'eau des barrages, import et export, fréquence, délestage.
 - **Météo** : saisons, vent, soleil, débit de la rivière, prévisions à 3 jours.
 - **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts.
-- **R&D** : 28 technologies réparties en 4 branches et 5 niveaux.
+- **R&D** : 37 technologies réparties en 5 branches et 5 niveaux.
 - **Événements** : pannes, tempêtes, vagues de froid, canicules, sécheresses, crise du gaz.
 - **Ambiance** : fermes sur les plaines et les prairies, routes entre les villes (en terre, puis goudronnées en 1930), charrettes puis voitures, bateaux, oiseaux, vaches, cerfs et tracteurs.
 - **Cartes** :

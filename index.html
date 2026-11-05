@@ -856,11 +856,14 @@ const POLL = [['turb', 'Turbidité', 'NFU', 5, 1930], ['mic', 'Microbes', 'germe
 // étapes de potabilisation : facteur restant de chaque polluant après l'étape
 const ETAPES = {
   sable: { nom: 'Filtre à sable et chlore', an: 1905, cout: 0, f: { turb: .05, org: .5, mic: .005 } },
-  charbon: { nom: 'Charbon actif', an: 1965, cout: 4, f: { org: .4, pest: .12, micro: .6 } },
-  ozone: { nom: 'Ozonation', an: 1980, cout: 6, f: { mic: .2, org: .6, micro: .5 } },
-  denitr: { nom: 'Dénitratation', an: 1990, cout: 8, f: { nitr: .3 } },
-  membranes: { nom: 'Ultrafiltration', an: 2000, cout: 12, f: { turb: .1, mic: .05, micro: .3 } },
+  charbon: { nom: 'Charbon actif', an: 1965, rd: 'cag', cout: 4, f: { org: .4, pest: .12, micro: .6 } },
+  ozone: { nom: 'Ozonation', an: 1980, rd: 'ozone', cout: 6, f: { mic: .2, org: .6, micro: .5 } },
+  denitr: { nom: 'Dénitratation', an: 1990, rd: 'denitr', cout: 8, f: { nitr: .3 } },
+  membranes: { nom: 'Ultrafiltration', an: 2000, rd: 'membranes', cout: 12, f: { turb: .1, mic: .05, micro: .3 } },
 };
+const etapeOk = k => annee(S.min) >= ETAPES[k].an && (!ETAPES[k].rd || rd(ETAPES[k].rd));
+const REUT = { step: [12000, 6], lagunage: [800, .5] };  // réutilisation : m³/j fournis, équipement en M€
+const ehU = u => TYPES[u.type].eh * (u.type === 'step' && rd('bioMB') ? 1.5 : 1);
 // m3 : capacité en m³/j ; stock en m³ ; eh : équivalents-habitants ; kwh par m³ ; opexE en k€/an
 Object.assign(TYPES, {
   source: { role: 'captage', qual: 'source', nom: 'Captage de source', court: 'Source', m3: 1500, capex: .4, delai: 4, opexE: 8, kwh: 0, ok: t => t.t === 'colline' || voisins(t).some(n => n.t === 'montagne'), non: 'Collines ou pied de montagne', pot: 'nappe', an: 1900 },
@@ -946,6 +949,11 @@ const rivProche = t => { let b = null, bd = 4; for (const r of RIV) if (r.rivier
 
 // ------------------------------------------------------------ qualité de l'eau brute
 function brute(u, w, a) {
+  const v = brute0(u, w, a), acc = S.eau.acc;
+  if (acc && acc.id === u.id && acc.fin > S.min) { v.mic *= 50; v.nitr *= 4; v.pest *= 10; v.micro *= 10; v.org *= 3; }  // lisier ou carburant dans la nappe
+  return v;
+}
+function brute0(u, w, a) {
   const q = TYPES[u.type].qual, t = u.t, ag = agri(a), ind = indusEau(a), crue = w.debit > 1.25 ? 2.5 : 1;
   if (q === 'source') return { turb: 1, mic: .02, org: 2, nitr: 12 * t.nitr * ag, pest: 2 * ag, micro: ind };
   if (q === 'nappe') return { turb: 2 * Math.sqrt(crue), mic: .06, org: 4, nitr: 65 * t.nitr * ag, pest: 14 * t.nitr * ag, micro: 6 * ind };  // le forage est chloré sur place
@@ -965,17 +973,26 @@ function pasEau(m) {
   for (const e of ARETES.values()) if (e.hs && e.hs <= m) { e.hs = 0; EAU_SALE = true; log(`Conduite réparée près de ${lieu(e.a)}.`, 'bon'); }
   const E = S.eau, a = annee(m), w = meteo(m), mo = date(m).getUTCMonth(), Lj = interp(LITRES, a), K = kEau(a);
   const chaud = 1 + clamp((w.temp - 20) / 12, 0, 1) * .3, prof = PROFIL_EAU(heure(m)), restr = E.restriction ? .85 : 1;
-  const r = { dem: 0, livre: 0, manque: 0, nc: 0, usees: 0, nonTraite: 0, ventes: 0, opex: 0, amendes: 0 };
-  for (const v of VILLES) { v.m3d = (v.hab * Lj / 1000 + v.tuiles.filter(t => t.quartier === 'industriel').length * 2500 * (.4 + .6 * indusEau(a))) / 96 * prof * chaud * restr; v.m3l = 0; v.eauMW = 0; r.dem += v.m3d; }
-  // rivière : débit, débit réservé (loi de 1984), irrigation des fermes l'été, prélèvements de l'amont vers l'aval
+  const r = { dem: 0, livre: 0, manque: 0, nc: 0, usees: 0, nonTraite: 0, ventes: 0, opex: 0, amendes: 0, reut: 0 };
+  // eaux usées traitées réutilisées (volume du pas précédent) : d'abord l'irrigation, puis l'industrie à la place de l'eau potable
   const irr = (mo >= 5 && mo <= 7 ? 1 : mo === 4 || mo === 8 ? .4 : 0) * (E.restriction ? .5 : 1), preleve = new Float64Array(RIV.length + 1);
-  for (const f of FERMES) preleve[f] += .012 * irr * 900;
+  const irrTot = FERMES.length * .012 * irr * 900, irrR = Math.min(irrTot, E.reutQ || 0);
+  let indTot = 0; for (const v of VILLES) { v.m3i = v.tuiles.filter(t => t.quartier === 'industriel').length * 2500 * (.4 + .6 * indusEau(a)) / 96 * prof * chaud * restr; indTot += v.m3i; }
+  const indR = Math.min(indTot, (E.reutQ || 0) - irrR), kInd = indTot ? 1 - indR / indTot : 1, kDem = rd('telerel') ? .95 : 1;
+  r.reut = irrR + indR; r.ventes += r.reut * .5 * K; r.opex += r.reut * .15;
+  for (const v of VILLES) { v.m3d = (v.hab * Lj / 1000 / 96 * prof * chaud * restr + v.m3i * kInd) * kDem; v.m3l = 0; v.eauMW = 0; r.dem += v.m3d; }
+  if (VILLES[0]) VILLES[0].eauMW += r.reut * .3 / 250;
+  // rivière : débit, débit réservé (loi de 1984), irrigation des fermes l'été, prélèvements de l'amont vers l'aval
+  for (const f of FERMES) preleve[f] += .012 * irr * 900 * (irrTot ? 1 - irrR / irrTot : 1);
+  const acc = E.acc && E.acc.fin > m ? E.acc : null;
+  const touche = u => acc && (acc.id === u.id || (acc.genre === 'riviere' && u.type === 'prise' && u.rivI >= acc.i));  // captage dans la pollution
   const dispoRiv = i => { let p = 0; for (let k = 0; k <= i; k++) p += preleve[k]; return Math.max(0, debitRiv(i, w) * 900 - (a >= 1984 ? .1 * (.6 + 2.2 * i / RIV.length) * 900 : 0) - p); };
   let pompeNappe = 0, pompeProf = 0;
   for (const C of RESEAUX) {
-    const d = C.villes.reduce((s, v) => s + v.m3d, 0), U = C.unites.filter(u => !u.fin && !(u.panne > m));
+    const d = C.villes.reduce((s, v) => s + v.m3d, 0), U = C.unites.filter(u => !u.fin && !(u.panne > m) && u.dispo !== false && !(rd('alerte') && touche(u)));
+    for (const u of C.unites) u.q = 0;  // un captage coupé ne produit plus
     C.age = C.aretes.length ? C.aretes.reduce((s, e) => s + a - e.an, 0) / C.aretes.length : 0;
-    C.fuite = .05 + .35 * clamp(C.age / 80, 0, 1);
+    C.fuite = (.05 + .35 * clamp(C.age / 80, 0, 1)) * (rd('fuites') ? .7 : 1);
     const stocks = U.filter(u => TYPES[u.type].role === 'stock'), pompe = U.some(u => u.type === 'pompage'); C.pression = stocks.length > 0 || pompe;
     const capt = U.filter(u => TYPES[u.type].role === 'captage').sort((x, y) => ORDRE_CAPT[x.type] - ORDRE_CAPT[y.type]);
     let dispo = 0;
@@ -1009,17 +1026,19 @@ function pasEau(m) {
     for (const [k] of POLL) qual[k] = tot > 0 ? parts.reduce((s, x) => s + x[0] * x[1][k], 0) / tot : 0;
     C.qual = qual; C.defauts = tot > 0 ? defauts(qual, a) : []; C.conf = !C.defauts.length;
     if (!C.conf) r.nc += livre;
-    for (const u of capt) if (u.type === 'dessal') r.opex += (u.q || 0) * .3;
+    if (qual.mic > 1 && livre > 0) for (const v of C.villes) { v.micJ = (v.micJ || 0) + 1; v.micM = Math.max(v.micM || 0, qual.mic); }  // risque d'épidémie, avec ou sans norme
+    for (const u of capt) if (u.type === 'dessal') { r.opex += (u.q || 0) * (rd('osmose') ? .18 : .3); kwh -= (u.q || 0) * (rd('osmose') ? 1.4 : 0); }
     const ch = C.villes[0]; if (ch) ch.eauMW += kwh / 250;
     r.livre += livre; r.ventes += livre * E.tarif * K;
   }
   for (const v of VILLES) r.manque += Math.max(0, v.m3d - v.m3l);
   // assainissement : les eaux usées des villes raccordées sont épurées dans la limite des stations
-  const rej = new Float64Array(RIV.length + 1);
+  const rej = new Float64Array(RIV.length + 1); let reutQ = 0;
   for (const v of VILLES) { v.usees = v.m3l * .85 + (v.res ? 0 : v.m3d * .5); v.traite = 0; r.usees += v.usees; }  // sans réseau, le puits et la fosse rejettent quand même
   for (const C of EGOUTS) {
-    const U = C.unites.filter(u => !u.fin && !(u.panne > m)), cap = U.reduce((s, u) => s + TYPES[u.type].eh, 0) * Lj / 1000 / 96, us = C.villes.reduce((s, v) => s + v.usees, 0);
+    const U = C.unites.filter(u => !u.fin && !(u.panne > m)), cap = U.reduce((s, u) => s + ehU(u), 0) * Lj / 1000 / 96, us = C.villes.reduce((s, v) => s + v.usees, 0);
     const k = us > 0 ? Math.min(1, cap / us) : 1; C.charge = cap > 0 ? us / cap : 0;
+    reutQ += Math.min(us * k, U.reduce((s, u) => s + (u.reut ? REUT[u.type][0] / 96 : 0), 0));
     for (const v of C.villes) v.traite = v.usees * k;
     const kw = U.reduce((s, u) => s + TYPES[u.type].kwh, 0) ? us * k * .4 : 0; if (C.villes[0]) C.villes[0].eauMW += kw / 250;
     r.opex += us * k * .05;
@@ -1027,7 +1046,8 @@ function pasEau(m) {
   for (const v of VILLES) { const nt = v.usees - v.traite; r.nonTraite += nt; if (v.rivI !== null && v.rivI !== undefined) rej[v.rivI] += nt; }
   // pollution de la rivière : les rejets se cumulent vers l'aval et s'auto-épurent un peu à chaque hexagone
   let cum = 0; E.pollu = E.pollu || [];
-  for (let i = 0; i < RIV.length; i++) { cum = cum * .85 + rej[i]; E.pollu[i] = cum / Math.max(50, debitRiv(i, w) * 900); }
+  for (let i = 0; i < RIV.length; i++) { cum = cum * .85 + rej[i]; E.pollu[i] = cum / Math.max(50, debitRiv(i, w) * 900) + (acc && acc.genre === 'riviere' && i >= acc.i ? 1.5 * .85 ** (i - acc.i) : 0); }
+  E.reutQ = reutQ;
   // nappes : recharge l'hiver, pompage
   const rech = (mo <= 2 || mo >= 10 ? 1.6 : mo >= 5 && mo <= 8 ? .35 : 1) * w.debit;
   E.nappe = clamp(E.nappe + (80000 / 96 * rech - pompeNappe) / 4e7, 0, 1); E.profonde = clamp(E.profonde + (6000 / 96 - pompeProf) / 8e7, 0, 1);  // nappe alluviale ≈ 30 hm³ rechargés par an ; nappe profonde : réserve lente
@@ -1042,12 +1062,40 @@ function pasEau(m) {
 const vieilles = () => [...ARETES.values()].filter(e => annee(S.min) - e.an >= 30);
 const coutRenouv = () => vieilles().length * .1e6;
 function renouveler() { const l = vieilles(), c = coutRenouv(); if (!l.length) return 'Aucune conduite de plus de 30 ans.'; S.argent -= c; S.an.capex += c; for (const e of l) e.an = annee(S.min); EAU_SALE = true; dessinerEau(); log(`Renouvellement de ${l.length} tronçons de conduites (${nf(c / 1e6, 1)} M€) : les fuites et les casses diminuent.`, 'bon'); return null; }
+function equiperReut(u) { const c = REUT[u.type][1] * 1e6; if (!rd('reut') || u.reut) return; S.argent -= c; S.an.capex += c; u.reut = true; log(`${u.nom} : réutilisation des eaux traitées pour l’irrigation et l’industrie (${nf(c / 1e6, 1)} M€).`, 'bon'); }
 function cassesEau(m) {  // chaque nuit, une vieille conduite peut casser
   const a = annee(m);
-  for (const e of ARETES.values()) if (!e.hs && e.type !== 'secondaire' && alea() < .000004 * Math.max(0, a - e.an) * DIFF[S.diff].evt) {
+  for (const e of ARETES.values()) if (!e.hs && e.type !== 'secondaire' && alea() < .000004 * Math.max(0, a - e.an) * DIFF[S.diff].evt * (rd('telerel') ? .5 : 1)) {
     e.hs = m + 1440; EAU_SALE = true; S.argent -= .05e6;
     log(`Casse d’une conduite près de ${lieu(e.a)} : réparation en 24 h (50 k€).`, 'mauvais'); toast(`Casse de conduite près de ${lieu(e.a)}.`);
   }
+}
+
+// crises sanitaires : une eau chargée en microbes finit par rendre les habitants malades
+const NOM_CRISE = a => a < 1920 ? 'Épidémie de fièvre typhoïde' : a < 1950 ? 'Épidémie de dysenterie' : a < 1990 ? 'Épidémie de gastro-entérite' : 'Contamination bactérienne du réseau';
+function crisesEau(m) {
+  const E = S.eau, a = annee(m), al = rd('alerte') ? .5 : 1; E.crises = (E.crises || []).filter(c => c.fin > m || (log(`Fin de la crise sanitaire à ${c.v}.`, 'bon'), false));
+  for (const v of VILLES) {
+    const f = (v.micJ || 0) / 96, sev = clamp(Math.log10(v.micM || 1) / 2, .15, 1); v.micJ = 0; v.micM = 0;
+    if (f > 0 && !E.crises.some(c => c.v === v.nom) && alea() < .04 * f * sev * DIFF[S.diff].evt * al) {
+      const n = NOM_CRISE(a), j = Math.round((7 + alea() * 10) * al), c = v.hab * 30;
+      E.crises.push({ v: v.nom, fin: m + j * 1440, nom: n }); S.an.crises++; S.argent -= c; S.an.amendes += c;
+      log(`${n} à ${v.nom} : l’eau du réseau est contaminée. Soins et eau en bouteille pendant ${j} jours (${nf(c / 1e6, 1)} M€). Ajoutez une étape de traitement ou coupez le captage en cause.`, 'mauvais'); toast(`${n} à ${v.nom} !`);
+    }
+  }
+}
+// pollutions accidentelles : rejet dans la rivière ou dans une nappe, de plus en plus fréquentes avec l'industrie et l'agriculture
+function accidentEau(m) {
+  const E = S.eau, a = annee(m);
+  if (E.acc && E.acc.fin <= m) { log(`Pollution résorbée : ${E.acc.nom.toLowerCase()} près de ${E.acc.lieu}.`, 'bon'); E.acc = null; }
+  if (E.acc || a < 1920 || alea() > .0015 * DIFF[S.diff].evt * (.3 + indusEau(a) + .5 * agri(a))) return;
+  const capt = UNITES.filter(u => !u.fin && ['forage', 'source'].includes(u.type)), riv = RIV.length && alea() < .7;
+  if (riv) { const i = Math.floor(alea() * RIV.length); E.acc = { genre: 'riviere', i, fin: m + (2 + alea() * 3) * 1440, nom: a < 1950 ? 'Rejet d’une tannerie' : ['Déversement d’hydrocarbures', 'Rejet toxique d’une usine', 'Mortalité de poissons après un rejet chimique'][Math.floor(alea() * 3)], lieu: lieu(RIV[i]) }; }
+  else if (capt.length) { const u = capt[Math.floor(alea() * capt.length)]; E.acc = { genre: 'nappe', id: u.id, fin: m + (5 + alea() * 10) * 1440, nom: ['Pollution au lisier', 'Fuite d’une cuve de carburant'][Math.floor(alea() * 2)], lieu: lieu(u.t) }; }
+  else return;
+  S.an.acc++;
+  log(`${E.acc.nom} près de ${E.acc.lieu} : ${E.acc.genre === 'riviere' ? 'la pollution descend la rivière. Coupez les prises d’eau en aval' : 'le captage est contaminé. Coupez-le'} le temps qu’elle passe${rd('alerte') ? ' (la surveillance continue s’en charge)' : ''}.`, 'mauvais');
+  toast(`${E.acc.nom} près de ${E.acc.lieu}.`);
 }
 
 // ============================================================ époques de la campagne
@@ -1077,8 +1125,8 @@ function prixCombustible(type, a) {
   return TYPES[type].cout;
 }
 
-// ============================================================ R&D (4 branches, 5 niveaux)
-const BRANCHES = ['Production', 'Réseau et transport', 'Stockage et flexibilité', 'Gestion et smart grid'];
+// ============================================================ R&D (5 branches, 5 niveaux)
+const BRANCHES = ['Production', 'Réseau et transport', 'Stockage et flexibilité', 'Gestion et smart grid', 'Eau et assainissement'];
 const RD = [
   { id: 'locales', an: 1995, b: 0, niv: 1, nom: 'Filières locales', cout: 8, effet: 'Débloque la centrale biomasse' },
   { id: 'pales', an: 1990, b: 0, niv: 1, nom: 'Pales composites', cout: 6, effet: '+8 % de production éolienne' },
@@ -1107,6 +1155,16 @@ const RD = [
   { id: 'tarifs', an: 1975, b: 3, niv: 2, nom: 'Heures creuses dynamiques', cout: 15, effet: 'Pointe du soir −4 %', pre: ['compteurs', 'maint'] },
   { id: 'previ', an: 2012, b: 3, niv: 3, nom: 'Prévisions météo fines', cout: 20, effet: 'Incertitude des prévisions −50 %', pre: ['effac', 'tarifs'] },
   { id: 'ia', an: 2028, b: 3, niv: 5, nom: 'Pilotage par IA', cout: 80, effet: 'Pertes −10 %, demande −3 %', pre: ['previ'] },
+  { id: 'fuites', an: 1960, b: 4, niv: 1, nom: 'Recherche acoustique des fuites', cout: 6, effet: 'Fuites des conduites −30 %' },
+  { id: 'cag', an: 1965, b: 4, niv: 1, nom: 'Charbon actif en grains', cout: 6, effet: 'Débloque l’étape Charbon actif des usines de potabilisation' },
+  { id: 'ozone', an: 1980, b: 4, niv: 2, nom: 'Ozonation', cout: 10, effet: 'Débloque l’étape Ozonation', pre: ['cag'] },
+  { id: 'alerte', an: 1985, b: 4, niv: 2, nom: 'Surveillance continue de la qualité', cout: 8, effet: 'Captages pollués coupés automatiquement, crises sanitaires deux fois plus rares et plus courtes', pre: ['fuites'] },
+  { id: 'denitr', an: 1990, b: 4, niv: 3, nom: 'Dénitratation biologique', cout: 12, effet: 'Débloque l’étape Dénitratation', pre: ['ozone'] },
+  { id: 'telerel', an: 1998, b: 4, niv: 3, nom: 'Télérelève et sectorisation', cout: 12, effet: 'Demande en eau −5 %, casses de conduites divisées par deux', pre: ['alerte'] },
+  { id: 'membranes', an: 2000, b: 4, niv: 4, nom: 'Ultrafiltration sur membranes', cout: 18, effet: 'Débloque l’étape Ultrafiltration', pre: ['denitr'] },
+  { id: 'bioMB', an: 2005, b: 4, niv: 4, nom: 'Bioréacteurs à membranes', cout: 20, effet: 'Stations d’épuration +50 % de capacité', pre: ['membranes'] },
+  { id: 'reut', an: 2010, b: 4, niv: 5, nom: 'Réutilisation des eaux usées traitées', cout: 20, effet: 'Les épurations peuvent arroser les fermes et fournir l’industrie', pre: ['bioMB', 'telerel'] },
+  { id: 'osmose', an: 2012, b: 4, niv: 5, nom: 'Osmose inverse basse énergie', cout: 25, effet: 'Dessalement −40 % d’électricité et de coût', pre: ['membranes'] },
 ];
 const RDI = Object.fromEntries(RD.map(r => [r.id, r]));
 const rd = id => S.rd.acquis.includes(id);
@@ -1127,7 +1185,7 @@ const dateTxt = m => { const d = date(m); return `${d.getUTCDate()} ${MOIS[d.get
 const saison = m => ['Hiver', 'Hiver', 'Printemps', 'Printemps', 'Printemps', 'Été', 'Été', 'Été', 'Automne', 'Automne', 'Automne', 'Hiver'][date(m).getUTCMonth()];
 const MOIS_MIN = 30.44 * 1440;
 const DISTRIB = 45;  // €/MWh livré en basse et moyenne tension (les industriels raccordés en 63 kV n'en paient pas)
-const nouveauCumul = () => ({ ventes: 0, comb: 0, carbone: 0, opex: 0, imp: 0, exp: 0, rd: 0, prets: 0, amendes: 0, capex: 0, e: 0, co2: 0, bas: 0, ren: 0, coupure: 0, pointe: 0, m3: 0, m3d: 0, m3m: 0, nc: 0, eu: 0, ut: 0, eauV: 0, eauO: 0 });
+const nouveauCumul = () => ({ ventes: 0, comb: 0, carbone: 0, opex: 0, imp: 0, exp: 0, rd: 0, prets: 0, amendes: 0, capex: 0, e: 0, co2: 0, bas: 0, ren: 0, coupure: 0, pointe: 0, m3: 0, m3d: 0, m3m: 0, nc: 0, eu: 0, ut: 0, eauV: 0, eauO: 0, crises: 0, acc: 0 });
 let S, UNITES = [], LIGNES = [], uid = 0;
 const IMP = { id: 'imp', type: 'import', nom: 'Interconnexion avec la région voisine', p: 0, c: 0, dispo: true };
 function etatInitial(diff) {
@@ -1642,14 +1700,15 @@ function minuit(m) {
   const charbon = annee(m) >= 1980 ? UNITES.filter(u => estCharbon(u) && enService(u)).length : 0;  // la pollution n'est mal vue qu'à partir des années 1980
   const exigence = clamp((annee(m) - 1900) / 70, .05, 1);  // au début du siècle, les pannes faisaient partie de la vie
   const ex = exigenceEau(annee(m)), E = S.eau;  // eau : pénurie, eau non conforme, rejets non épurés, prix, restrictions
-  const eauPen = Math.min(30, j.m3m / Math.max(1, j.m3d) * 100 * .8 * ex) + Math.min(20, j.nc / Math.max(1, j.m3) * 60 * ex) + (annee(m) >= 1970 ? Math.min(8, j.ut / Math.max(1, j.eu) * 8) : 0) + Math.max(0, E.tarif - 3.6) * 8 + (E.restriction ? 3 : 0);
+  const eauPen = Math.min(30, j.m3m / Math.max(1, j.m3d) * 100 * .8 * ex) + Math.min(20, j.nc / Math.max(1, j.m3) * 60 * ex) + (annee(m) >= 1970 ? Math.min(8, j.ut / Math.max(1, j.eu) * 8) : 0) + Math.max(0, E.tarif - 3.6) * 8 + (E.restriction ? 3 : 0)
+    + Math.min(25, (E.crises || []).reduce((s, c) => s + (VILLES.find(v => v.nom === c.v)?.hab || 0), 0) / Math.max(1, VILLES.reduce((s, v) => s + v.hab, 0)) * 60);  // une épidémie marque les esprits
   const cible = 80 - Math.min(70, S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8 - eauPen;
   S.eauPen = eauPen;
   S.sat = clamp(S.sat + (cible - S.sat) * .03, 0, 100); S.nimby *= .985;
   // recherche
   if (S.rd.cours) { S.rd.avance += S.rd.budget / 365; const r = RDI[S.rd.cours]; if (S.rd.avance >= r.cout) { S.rd.acquis.push(r.id); S.rd.cours = null; S.rd.avance = 0; log(`R&D : « ${r.nom} » acquise. ${r.effet}.`, 'bon'); toast(`Recherche terminée : ${r.nom}.`, 'ok'); majBarre(); } }
   // pannes et aléas
-  cassesEau(m);
+  cassesEau(m); crisesEau(m); accidentEau(m);
   for (const u of UNITES) if (enService(u) && !estEauU(u) && !TYPES[u.type].fatal && u.type !== 'poste' && u.type !== 'frontiere' && alea() < .0035 * dif.evt * (rd('maint') ? .5 : 1)) { u.panne = m + (1 + Math.floor(alea() * 4)) * 1440; log(`Panne : ${u.nom} s'arrête pour ${Math.round((u.panne - m) / 1440)} jours.`, 'mauvais'); toast(`Panne : ${u.nom} à l'arrêt (−${nf(u.p)} MW).`); }
   const mo = date(m).getUTCMonth(), hiver = mo <= 1 || mo === 11, ete = mo >= 5 && mo <= 7;
   if (alea() < (hiver ? .02 : .006) * dif.evt) evenement('tempete');
@@ -1698,7 +1757,8 @@ function nouvelAn(m) {
   if (er) { S.ere = ERES.indexOf(er); log(`Nouvelle époque : ${er.nom}. ${er.txt}`, 'bon'); }
   rapportAnnuel(r, er);
 }
-const statsAnEau = a => ({ eauServi: 100 * (1 - a.m3m / Math.max(1, a.m3d)), eauConf: 100 * (1 - a.nc / Math.max(1, a.m3)), eauEpure: 100 * (1 - a.ut / Math.max(1, a.eu)) });
+const touche0 = u => { const c = S.eau.acc; return c && c.fin > S.min && (c.id === u.id || (c.genre === 'riviere' && u.type === 'prise' && u.rivI >= c.i)); };
+const statsAnEau = a => ({ crises: a.crises || 0, acc: a.acc || 0, eauServi: 100 * (1 - a.m3m / Math.max(1, a.m3d)), eauConf: 100 * (1 - a.nc / Math.max(1, a.m3)), eauEpure: 100 * (1 - a.ut / Math.max(1, a.eu)) });
 const HAB = { centre: 30000, residentiel: 25000, affaires: 12000, industriel: 8000, hopital: 3000, village: 2500 };
 const habVille = v => v.tuiles.reduce((a, t) => a + HAB[t.quartier], 0);
 const COULEURS_V = ['#ffc94d', '#7cc0f2', '#ff9f8a', '#b8e07b', '#d9a6ff', '#ffb36b', '#8fe3d0', '#f2a1c8'];
@@ -2056,6 +2116,8 @@ function alertes() {
   for (const [k, f] of Object.entries(S.evt)) if (f > S.min) a.push(['alerte', `${NOM_EVT[k]} jusqu’au ${dateTxt(f)}.`]);
   const an = annee(S.min);
   for (const v of VILLES) if (!v.res && an >= 1920) a.push([an >= 1950 ? 'mauvais' : 'alerte', `${v.nom} n’a pas de réseau d’eau : reliez un captage avec l’outil Conduite (vue Eau).`]);
+  if (S.eau.acc && S.eau.acc.fin > S.min) a.push(['mauvais', `${S.eau.acc.nom} près de ${S.eau.acc.lieu} : captages touchés à couper (vue Eau).`]);
+  for (const c of S.eau.crises || []) a.push(['mauvais', `${c.nom} à ${c.v} jusqu’au ${dateTxt(c.fin)}.`]);
   for (const C of RESEAUX) { if (!C.conf) a.push(['mauvais', `Eau non conforme à ${C.villes.map(v => v.nom).join(', ')} : ${C.defauts.join(', ')}.`]); if (C.taux < .95) a.push(['alerte', `Pénurie d’eau à ${C.villes.map(v => v.nom).join(', ')} : ${pc(C.taux)} des besoins servis.`]); }
   if (S.eau.nappe < .3) a.push(['alerte', `La nappe baisse (${pc(S.eau.nappe)}) : les forages produisent moins.`]);
   if (an >= 1970 && (S.eau.epure ?? 1) < .8) a.push(['alerte', `Seulement ${pc(S.eau.epure ?? 0)} des eaux usées sont épurées : la rivière se dégrade${an >= 1992 ? ' et les amendes tombent' : ''}.`]);
@@ -2387,11 +2449,13 @@ function panneauEau() {
       ${kpi('Réserve', nf(st.reserve * 24, 1), 'h', st.reserve, 'var(--eau)')}${kpi('Rendement du réseau', pc(st.rend), '', st.rend, st.rend > .8 ? 'var(--vert)' : 'var(--orange)')}
       ${kpi('Eaux usées épurées', pc(E.epure ?? 0), '', E.epure ?? 0, (E.epure ?? 0) > .9 ? 'var(--vert)' : 'var(--orange)')}${kpi('Âge moyen des conduites', nf(st.age), 'ans', st.age / 80, st.age > 50 ? 'var(--rouge)' : 'var(--eau)')}
     </div>
+    ${S.eau.acc && S.eau.acc.fin > S.min ? `<div class="journal-l mauvais"><span class="d">POLLUTION</span><span class="t">${S.eau.acc.nom} près de ${S.eau.acc.lieu}, jusqu’au ${dateTxt(S.eau.acc.fin)}. ${S.eau.acc.genre === 'riviere' ? 'Prises d’eau en aval touchées' : 'Captage contaminé'}${rd('alerte') ? ' : coupure automatique.' : ' : coupez les captages touchés depuis leur fiche.'}</span></div>` : ''}
+    ${(S.eau.crises || []).map(c => `<div class="journal-l mauvais"><span class="d">CRISE</span><span class="t">${c.nom} à ${c.v}, jusqu’au ${dateTxt(c.fin)}.</span></div>`).join('')}
     <div class="encart"><h3>Ressource</h3>
       ${RIV.length ? `<div class="barre-l"><span>Rivière</span><div class="jauge"><i style="width:${clamp(w.debit / 1.6, 0, 1) * 100}%;background:var(--eau)"></i></div><span>${nf(debitRiv(RIV.length * .6, w), 1)} m³/s</span></div>` : ''}
       <div class="barre-l"><span>Nappe</span><div class="jauge"><i style="width:${E.nappe * 100}%;background:${E.nappe < .35 ? 'var(--orange)' : 'var(--eau)'}"></i></div><span>${pc(E.nappe)}</span></div>
       ${a >= 1955 ? `<div class="barre-l"><span>Nappe profonde</span><div class="jauge"><i style="width:${E.profonde * 100}%;background:var(--eau)"></i></div><span>${pc(E.profonde)}</span></div>` : ''}
-      <div class="stat"><span>Production</span><b>${nf(st.prod)} m³/j</b><span>Demande</span><b>${nf(st.dem)} m³/j</b><span>Prix du m³ (eau et assainissement)</span><b>${nf(st.prix, 2)} €</b></div></div>
+      <div class="stat"><span>Production</span><b>${nf(st.prod)} m³/j</b><span>Demande</span><b>${nf(st.dem)} m³/j</b><span>Prix du m³ (eau et assainissement)</span><b>${nf(st.prix, 2)} €</b>${rd('reut') ? `<span>Eaux usées réutilisées</span><b>${nf((E.reutQ || 0) * 96)} m³/j</b>` : ''}</div></div>
     <div class="section">Prévisions à 7 jours</div>
     <table class="tab"><thead><tr><th>Jour</th><th>Temp. max</th><th>Débit</th></tr></thead><tbody>${jours.map(j => `<tr><td>${jourTxt(j.m)}</td><td>${nf(j.t)} °C</td><td>×${nf(j.q, 2)}</td></tr>`).join('')}</tbody></table>
     <div class="section">Réseaux d’eau potable</div>
@@ -2413,13 +2477,16 @@ function blocEauHex(u) {
   if (ty.role === 'captage') h += `<span>Production</span><b>${nf((u.q || 0) * 96)} m³/j</b>${ty.qual === 'riviere' ? `<span>Débit de la rivière</span><b>${nf(debitRiv(u.rivI || 0, meteo(S.min)), 2)} m³/s</b>` : ''}${ty.qual === 'nappe' ? `<span>Niveau de la nappe</span><b>${pc(S.eau.nappe)}</b>` : ''}`;
   if (ty.role === 'stock') h += `<span>Niveau</span><b>${pc(u.niv ?? 0)}</b>`;
   if (ty.role === 'traitement') h += `<span>Eau traitée</span><b>${nf((u.q || 0) * 96)} m³/j</b>`;
-  if (ty.role === 'epuration') h += `<span>Charge</span><b>${C ? pc(C.charge || 0) : '—'}</b>`;
+  if (ty.role === 'epuration') h += `<span>Charge</span><b>${C ? pc(C.charge || 0) : '—'}</b>${u.reut ? `<span>Réutilisation</span><b>${nf(REUT[u.type][0])} m³/j</b>` : ''}`;
+  if (S.eau.acc && touche0(u)) h += `<span>Pollution</span><b style="color:var(--rouge)">${S.eau.acc.nom}${u.dispo === false ? ' · captage coupé' : rd('alerte') ? ' · coupé automatiquement' : ''}</b>`;
   h += `<span>Réseau</span><b style="color:var(${C ? '--vert' : '--rouge'})">${C ? C.villes.map(v => v.nom).join(', ') : ty.role === 'epuration' ? 'Reliez-la à une ville avec l’outil Égout' : 'Reliez-le à une ville avec l’outil Conduite'}</b></div>`;
   if (u.type === 'potab' && !u.fin) {
-    const et = u.etapes || ['sable'], dispo = Object.entries(ETAPES).filter(([k, e]) => !et.includes(k) && a >= e.an), futur = Object.entries(ETAPES).filter(([, e]) => a < e.an);
-    h += `<div class="section">Chaîne de traitement</div><div class="chaine">${et.map(k => `<span class="etape">${ETAPES[k].nom}</span>`).join('<span class="fleche">→</span>')}${futur.map(([, e]) => `<span class="fleche">+</span><span class="etape verrou">${e.nom} · ${e.an}</span>`).join('')}</div>
+    const et = u.etapes || ['sable'], dispo = Object.entries(ETAPES).filter(([k]) => !et.includes(k) && etapeOk(k)), futur = Object.entries(ETAPES).filter(([k]) => !et.includes(k) && !etapeOk(k));
+    h += `<div class="section">Chaîne de traitement</div><div class="chaine">${et.map(k => `<span class="etape">${ETAPES[k].nom}</span>`).join('<span class="fleche">→</span>')}${futur.map(([, e]) => `<span class="fleche">+</span><span class="etape verrou">${e.nom} · ${a < e.an ? e.an : 'R&D'}</span>`).join('')}</div>
       <div class="btns">${dispo.map(([k, e]) => `<button type="button" class="btn petit secondaire" data-act="etape" data-id="${u.id}" data-k="${k}">+ ${e.nom} · ${e.cout} M€</button>`).join('')}</div>`;
   }
+  if (ty.role === 'captage' && !u.fin) h += `<div class="btns"><button type="button" class="btn ${u.dispo === false ? '' : 'secondaire'} petit" data-act="arret" data-id="${u.id}">${u.dispo === false ? 'Rouvrir le captage' : 'Couper le captage'}</button></div>`;
+  if (REUT[u.type] && !u.fin && !u.reut) h += `<div class="btns"><button type="button" class="btn petit secondaire" data-act="reut" data-id="${u.id}" ${rd('reut') ? '' : 'disabled'}>${rd('reut') ? `Équiper pour la réutilisation · ${nf(REUT[u.type][1], 1)} M€` : 'Réutilisation : recherche nécessaire'}</button></div>`;
   if (C && C.qual && ty.role !== 'epuration') h += `<div class="section">Qualité de l’eau distribuée</div>${POLL.map(([k, n, un, nor, an]) => { const v = C.qual[k], act = a >= an; return `<div class="barre-l"><span style="width:110px">${n}</span><div class="jauge"><i style="width:${clamp(v / nor / 2, 0, 1) * 100}%;background:${!act ? '#6b6f68' : v > nor ? 'var(--rouge)' : 'var(--eau)'}"></i></div><span>${act ? (v > nor ? 'hors norme' : 'conforme') : 'pas de norme'}</span></div>`; }).join('')}<p class="verrou">La barre marque la norme à mi-longueur.</p>`;
   return h;
 }
@@ -2444,7 +2511,8 @@ document.addEventListener('click', ev => {
   else if (act === 'trier') { S.ordreManuel = false; trierOrdre(); dispatch(S.min); ouvrir('dispatch', true); }
   else if (act === 'batt') { unite(id).mode = b.dataset.mode; dispatch(S.min); ouvrir('dispatch', true); }
   else if (act === 'effacement') { S.effacement = !S.effacement; log(S.effacement ? 'Effacement industriel activé.' : 'Fin de l’effacement industriel.', 'alerte'); dispatch(S.min); ouvrir('dispatch', true); }
-  else if (act === 'arret') { const u = unite(id); u.dispo = !u.dispo; log(`${u.nom} ${u.dispo ? 'recouplée au réseau' : 'mise à l’arrêt'} sur ordre du dispatcheur.`, u.dispo ? 'bon' : 'alerte'); dispatch(S.min); ouvrir('hex', true); }
+  else if (act === 'reut') { equiperReut(unite(id)); ouvrir('hex', true); }
+  else if (act === 'arret') { const u = unite(id); u.dispo = !u.dispo; log(estEauU(u) ? `${u.nom} ${u.dispo ? 'rouvert' : 'coupé'}.` : `${u.nom} ${u.dispo ? 'recouplée au réseau' : 'mise à l’arrêt'} sur ordre du dispatcheur.`, u.dispo ? 'bon' : 'alerte'); dispatch(S.min); ouvrir('hex', true); }
   else if (act === 'demolir') {
     const u = unite(id); if (confirmer !== id) { confirmer = id; return ouvrir('hex', true); }
     confirmer = null; toast(`${u.nom} ${estCharbon(u) ? 'fermée' : 'démolie'}.`, 'info'); fermer(u); ouvrir('hex', true);
@@ -2580,7 +2648,7 @@ const CLE = 'gridmaster-campagne-v1';
 function sauver() {
   if (!S?.enJeu || BANC_ON) return;
   const d = { S: { ...S, hist: S.hist.slice(-96), fhist: undefined, D: undefined }, uid, gs, carte: CARTE,
-    unites: UNITES.map(u => ({ id: u.id, type: u.type, k: u.t.k, nom: u.nom, dispo: u.dispo, panne: u.panne, fin: u.fin, debut: u.debut, soc: u.soc, mode: u.mode, niv: u.niv, etapes: u.etapes })),
+    unites: UNITES.map(u => ({ id: u.id, type: u.type, k: u.t.k, nom: u.nom, dispo: u.dispo, panne: u.panne, fin: u.fin, debut: u.debut, soc: u.soc, mode: u.mode, niv: u.niv, etapes: u.etapes, reut: u.reut })),
     aretes: [...ARETES.values()].map(e => [e.a.k, e.b.k, e.type, e.an]),
     lignes: LIGNES.map(l => ({ id: l.id, a: l.a.k, b: l.b.k, kv: l.kv, fin: l.fin, hs: l.hs, chemin: l.tuiles.map(t => t.k) })), villes: VILLES.map(v => ({ nom: v.nom, couleur: v.couleur, rang: v.rang, rayon: v.rayon, i: v.i, prochaine: v.prochaine, fondee: v.fondee, grace: v.grace, base: v.base, centre: v.centre.k, tuiles: v.tuiles.map(t => [t.k, t.quartier]) })) };
   try { localStorage.setItem(CLE, JSON.stringify(d)); } catch (e) { /* stockage indisponible : la partie continue sans sauvegarde */ }
@@ -2597,7 +2665,7 @@ function charger() {
     for (const [k, q] of x.tuiles) { const t = T.get(k); Object.assign(t, { ville: v, quartier: q, t: 'ville' }); t.top = Math.max(t.top, TERR.ville.h); v.tuiles.push(t); dessinerQuartier(t, false); }
     v.hab = v.hab0 = habVille(v); v.rang0 = v.base ? 'capitale' : v.rang; VILLES.push(v);
   }
-  for (const s of d.unites) { const u = creerUnite(T.get(s.k), s.type, { immediat: !s.fin, nom: s.nom, fin: s.fin }); Object.assign(u, { id: s.id, dispo: s.dispo, panne: s.panne, debut: s.debut, soc: s.soc, mode: s.mode }); if (s.niv !== undefined) u.niv = s.niv; if (s.etapes) u.etapes = s.etapes; }
+  for (const s of d.unites) { const u = creerUnite(T.get(s.k), s.type, { immediat: !s.fin, nom: s.nom, fin: s.fin }); Object.assign(u, { id: s.id, dispo: s.dispo, panne: s.panne, debut: s.debut, soc: s.soc, mode: s.mode }); if (s.niv !== undefined) u.niv = s.niv; if (s.etapes) u.etapes = s.etapes; if (s.reut) u.reut = true; }
   for (const [a, b, ty, an] of d.aretes || []) ajouteArete(T.get(a), T.get(b), ty, an);
   dessinerEau(); dessinerRoutes(); topoEau();
   for (const s of d.lignes) { const l = tracerLigne(T.get(s.a), T.get(s.b), s.kv, { immediat: !s.fin, chemin: s.chemin.map(k => T.get(k)) }); if (l) Object.assign(l, { id: s.id, fin: s.fin, hs: s.hs }); if (l && l.fin) dessinerLigne(l); }
@@ -2611,9 +2679,9 @@ function charger() {
 // Aucune IA : chaque stratégie applique des règles fixes une fois par mois de jeu, ce qui rend le banc reproductible.
 const STRATS = {
   passif: { nom: 'Passif', desc: 'Ne construit rien : la région manque vite d’électricité, la partie doit être perdue.' },
-  fossile: { nom: 'Fossile', desc: 'Charbon, puis fioul, puis gaz : suit la croissance au moindre coût, sans viser le bas carbone.', budget: .3, ferme: true, rd: ['maint', 'compteurs', 'locales', 'ccga', 'compens', 'scada', 'effac', 'tarifs', 'htls'], ferme2: ['gaz', 'charbonG', 'fioul', 'charbon', 'tac', 'usine'] },
+  fossile: { nom: 'Fossile', desc: 'Charbon, puis fioul, puis gaz : suit la croissance au moindre coût, sans viser le bas carbone.', budget: .3, ferme: true, rd: ['fuites', 'cag', 'ozone', 'alerte', 'denitr', 'membranes', 'maint', 'compteurs', 'locales', 'ccga', 'compens', 'scada', 'effac', 'tarifs', 'htls'], ferme2: ['gaz', 'charbonG', 'fioul', 'charbon', 'tac', 'usine'] },
   vert: { nom: 'Bas carbone', desc: 'Hydraulique dès que possible, nucléaire à partir de 1974, puis renouvelables, stockage et petits réacteurs.', budget: 1, ferme: true, vert: true,
-    rd: ['reversible', 'compens', 'tarifs', 'effac', 'scada', 'pales', 'maint', 'locales', 'volants', 'htls', 'ccga', 'epr', 'compteurs', 'li', 'offshore', 'dlr', 'previ', 'bifacial', 'b4h', 'sodium', 'gridf', 'smr', 'v2g', 'h2', 'ia', 'hvdc', 'fusion'], ferme2: ['smr', 'nucleaire', 'barrage', 'fil', 'biomasse', 'charbonG', 'charbon', 'usine', 'tac'] },
+    rd: ['fuites', 'cag', 'ozone', 'alerte', 'denitr', 'telerel', 'membranes', 'bioMB', 'reut', 'osmose', 'reversible', 'compens', 'tarifs', 'effac', 'scada', 'pales', 'maint', 'locales', 'volants', 'htls', 'ccga', 'epr', 'compteurs', 'li', 'offshore', 'dlr', 'previ', 'bifacial', 'b4h', 'sodium', 'gridf', 'smr', 'v2g', 'h2', 'ia', 'hvdc', 'fusion'], ferme2: ['smr', 'nucleaire', 'barrage', 'fil', 'biomasse', 'charbonG', 'charbon', 'usine', 'tac'] },
 };
 let BANC_ON = false;
 const CF = { fil: .55, solaire: .13, eolien: .27, offshore: .42, barrage: .45, biomasse: .7, nucleaire: .85, smr: .85, fusion: .85 };
@@ -2725,20 +2793,21 @@ function botEau() {
     if (C && !C.pression && !enCours) { const s = acheterEau('chateau', v, 2); if (s) relierEau(s, v, 'potable'); }
     if (C && C.volMax && C.volMax < besoin * .15 && !enCours) { const s = acheterEau('chateau', v, 2); if (s) relierEau(s, v, 'potable'); }
     // assainissement : lagunage pour les petites villes, station d'épuration dès 1950
-    const E = v.egout, capE = E ? E.unites.reduce((s, u) => s + TYPES[u.type].eh, 0) : 0;
+    const E = v.egout, capE = E ? E.unites.reduce((s, u) => s + ehU(u), 0) : 0;
     if (capE < v.hab * 1.1 && !UNITES.some(u => u.fin && TYPES[u.type].role === 'epuration')) {  // avant 1950, seuls les petits villages ont un lagunage
       const ep = a >= 1950 && v.hab > 8000 ? acheterEau('step', v) : v.hab <= 8000 && !capE ? acheterEau('lagunage', v, 3) : null;
       if (ep) relierEau(ep, v, 'usee');
     }
     // traitement : on ajoute l'étape qui corrige le défaut
     if (C && !C.conf) for (const p of C.unites.filter(u => u.type === 'potab' && !u.fin)) {
-      const k = Object.keys(ETAPES).find(k => !(p.etapes || []).includes(k) && a >= ETAPES[k].an); if (k) ajouterEtape(p, k);
+      const k = Object.keys(ETAPES).find(k => !(p.etapes || []).includes(k) && etapeOk(k)); if (k) ajouterEtape(p, k);
     }
+    if (rd('reut') && E) for (const u of E.unites.filter(u => u.type === 'step' && !u.fin && !u.reut)) if (S.argent > REUT.step[1] * 1e6 + seuilFaillite()) equiperReut(u);
   }
   if (vieilles().length > 12 && S.argent > coutRenouv() + seuilFaillite()) renouveler();
 }
 function ajouterEtape(u, k) {
-  const e = ETAPES[k]; if (!u.etapes) u.etapes = ['sable']; if (u.etapes.includes(k) || annee(S.min) < e.an) return 'Étape indisponible.';
+  const e = ETAPES[k]; if (!u.etapes) u.etapes = ['sable']; if (u.etapes.includes(k) || !etapeOk(k)) return 'Étape indisponible.';
   S.argent -= e.cout * 1e6; S.an.capex += e.cout * 1e6; u.etapes.push(k); log(`${u.nom} : nouvelle étape « ${e.nom} » (${e.cout} M€).`, 'bon'); return null;
 }
 function botMois(st, suivi) {
@@ -2780,7 +2849,7 @@ async function bancPartie(carte, diff, strat, graine) {
   for (const u of UNITES) compte[u.type] = (compte[u.type] || 0) + 1;
   return { carte: CARTE.nom, carteId: carte, graine: CARTE.graine, diff, strat, issue: S.fini || 'en cours', fin: dateTxt(S.min), duree: Math.round((performance.now() - t0) / 1000),
     argent: Math.round(S.argent / 1e6), dette: Math.round(S.dette / 1e6), sat: Math.round(S.sat), villesKO, compte, lignes: LIGNES.length, objectifs: OBJ.map(([n, f]) => [n, !!f(r49)]),
-    rapports: S.rapports.map(r => ({ an: r.an, bas: Math.round(r.bas), co2: Math.round(r.co2), coupure: Math.round(r.coupure * 10) / 10, res: Math.round(r.res / 1e6), sat: Math.round(r.sat), pointe: Math.round(r.pointe), capex: Math.round(r.capex / 1e6), eau: Math.round(r.eauServi ?? 0), conf: Math.round(r.eauConf ?? 0), epure: Math.round(r.eauEpure ?? 0) })) };
+    rapports: S.rapports.map(r => ({ an: r.an, bas: Math.round(r.bas), co2: Math.round(r.co2), coupure: Math.round(r.coupure * 10) / 10, res: Math.round(r.res / 1e6), sat: Math.round(r.sat), pointe: Math.round(r.pointe), capex: Math.round(r.capex / 1e6), eau: Math.round(r.eauServi ?? 0), conf: Math.round(r.eauConf ?? 0), epure: Math.round(r.eauEpure ?? 0), crises: r.crises, acc: r.acc })) };
 }
 let bancEtat = null;
 const ISSUES = { victoire: ['Victoire', 'vert'], echec: ['Objectifs manqués', 'or'], faillite: ['Faillite', 'rouge'], revocation: ['Révocation', 'rouge'] };
@@ -2943,7 +3012,7 @@ majBarre(); majLentilles(); majLentille();
 cible.set(VILLES[0].centre.x + 30, 0, VILLES[0].centre.z + 20); majCam(); redim();
 requestAnimationFrame(tic);
 menu();
-window.GM = { get AMB() { return AMB; }, __cam(t, d) { cible.set(t.x, 0, t.z + 12); distc = d; majCam(); }, topoEau, get ARETES() { return ARETES; }, get RESEAUX() { return RESEAUX; }, choisirVue, poserConduite, cheminEau, botEau, pasEau, bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
+window.GM = { get AMB() { return AMB; }, __cam(t, d) { cible.set(t.x, 0, t.z + 12); distc = d; majCam(); }, topoEau, get ARETES() { return ARETES; }, get RESEAUX() { return RESEAUX; }, choisirVue, poserConduite, cheminEau, botEau, pasEau, accidentEau, crisesEau, blocEauHex, panneauEau, panneauRD, equiperReut, etapeOk, bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
 </script>
 
 </body>
