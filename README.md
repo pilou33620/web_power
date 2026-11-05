@@ -26,7 +26,12 @@ Le jeu tient dans un seul fichier, `index.html`, sans installation ni serveur ob
 - **Localement** : ouvrez `index.html` dans un navigateur récent. Une connexion internet est nécessaire pour charger three.js et les polices.
 - **En ligne** : activez GitHub Pages sur la branche `main` (Settings → Pages). Le jeu sera alors disponible à l'adresse `https://pilou33620.github.io/web_power/`.
 
-La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu.
+- **Sur le réseau local** (tablette, autre poste) : `python3 serveur.py`, ou le bouton de `web_launcher` (port 8794). Bibliothèque standard Python seulement, rien à installer ; marche pareil sous Raspberry Pi, Windows et Termux.
+  - L'autre appareil ouvre l'adresse « réseau » affichée, entre une fois le code d'appairage (affiché dans le terminal et sur la carte du launcher), et peut installer la CA du poste depuis `/appairage/ca.pem` pour éviter l'alerte HTTPS.
+  - Options : `--port N`, `--local` (127.0.0.1 seulement), `--sans-navigateur`, `--sans-pause`, `--sans-maj` (au démarrage, le serveur met le dépôt à jour par `git pull --ff-only`, sauf sous `web_launcher`, qui s'en charge).
+  - Banc du serveur : `python test/banc-serveur.py` (affiche `OK`).
+
+La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu : chaque appareil a donc sa propre partie, et le serveur ne stocke rien.
 
 ## Trois vues
 
