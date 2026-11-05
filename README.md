@@ -4,7 +4,7 @@
 
 La partie est une campagne historique de 1900 à 2050. En 1900, une seule ville découvre l'électricité, alimentée par une petite usine au charbon et une usine au fil de l'eau, en 15 kV. Au fil des époques, les villes s'étendent, de nouveaux villages apparaissent et deviennent des villes, et les technologies arrivent à leur date historique : 63 kV, grands barrages, 225 kV et interconnexion, fioul, 400 kV, nucléaire, gaz, éolien, solaire, batteries, petits réacteurs, fusion.
 
-Le but est d'électrifier la région à mesure qu'elle se peuple, puis d'atteindre en 2050 une électricité bas carbone, sans coupure et sans faillite.
+La région a deux réseaux à gérer : l'électricité et l'eau. Le but est de les étendre à mesure que la région se peuple. En 2050, l'électricité doit être bas carbone, sans coupure ni faillite, et l'eau potable servie et conforme aux normes.
 
 | Époque | À partir de | Ce qui change |
 |---|---|---|
@@ -28,6 +28,34 @@ Le jeu tient dans un seul fichier, `index.html`, sans installation ni serveur ob
 
 La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu.
 
+## Trois vues
+
+- **Carte** (touche 1) : toute la région, les deux réseaux à la fois, sans les flux.
+- **Électricité** (touche 2) : centrales et postes en surbrillance dorée, courant dans les lignes ; les ouvrages de l'eau passent en fantôme.
+- **Eau** (touche 3) : captages, usines, châteaux d'eau et épurations en surbrillance bleue, conduites en transparence avec l'eau qui y coule ; les centrales passent en fantôme.
+
+On construit dans la vue de chaque réseau.
+
+## Gestion de l'eau
+
+- **Ouvrages**, datés comme les centrales :
+  - captage de source, forage en nappe, prise d'eau en rivière (1900) ;
+  - usine de potabilisation (1905) ;
+  - château d'eau, réservoir sur colline (1900) ;
+  - station de pompage (1910) ;
+  - lagunage (1900) ;
+  - forage profond (1955) ;
+  - station d'épuration (1950) ;
+  - dessalement (1985).
+- **Conduites et égouts** : tracés d'hexagone en hexagone ; une nouvelle conduite suit de préférence les conduites existantes. Dans une ville raccordée, la distribution se dessine toute seule de quartier en quartier.
+- **Simulation**, par réseau connexe et par pas de 15 minutes :
+  - demande des habitants et des industries, avec les pointes du matin et du soir et la chaleur ;
+  - débit de la rivière, irrigation des fermes l'été, débit réservé à partir de 1984, nappe qui se recharge l'hiver ;
+  - stocks des châteaux d'eau, fuites qui augmentent avec l'âge des conduites, casses.
+- **Qualité** : six paramètres (turbidité, microbes, matières organiques, nitrates, pesticides, micropolluants). Leurs normes entrent en vigueur au fil du siècle. La chaîne de traitement de chaque usine se complète par étapes : filtre à sable et chlore, charbon actif, ozonation, dénitratation, ultrafiltration.
+- **Assainissement** : les eaux usées non épurées polluent la rivière en aval et dégradent les prises d'eau. Elles coûtent des amendes à partir de 1992.
+- **Économie** : prix du m³ réglable, restrictions d'usage, renouvellement des vieilles conduites. Le pompage et le traitement consomment de l'électricité.
+
 ## Contenu
 
 - **Plateau** : une installation par hexagone, avec des règles de pose par terrain (barrage sur rivière, nucléaire au bord de l'eau, éolien en mer sur la côte…). Les villes occupent plusieurs hexagones et s'agrandissent avec les années.
@@ -39,6 +67,7 @@ La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu.
 - **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts.
 - **R&D** : 28 technologies réparties en 4 branches et 5 niveaux.
 - **Événements** : pannes, tempêtes, vagues de froid, canicules, sécheresses, crise du gaz.
+- **Ambiance** : fermes sur les plaines et les prairies, routes entre les villes (en terre, puis goudronnées en 1930), charrettes puis voitures, bateaux, oiseaux, vaches, cerfs et tracteurs.
 - **Cartes** :
   - Vallée de Valmont ;
   - Côte d'Émeraude ;

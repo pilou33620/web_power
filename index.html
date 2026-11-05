@@ -11,7 +11,7 @@
 :root {
   color-scheme: dark;
   --fond: #1b211a; --fond2: #253021; --fond3: #2a3327; --bord: #0f130e; --trait: #2b1d14; --sol: #141813;
-  --txt: #f6f4ea; --doux: #b3bca5; --pale: #d6dccb; --gris: #a9b39a; --or: #ffc94d; --vert: #7be08a; --rouge: #ff8a7a; --orange: #ff9a4a; --creme: #fff7e6;
+  --txt: #f6f4ea; --doux: #b3bca5; --pale: #d6dccb; --gris: #a9b39a; --or: #ffc94d; --vert: #7be08a; --rouge: #ff8a7a; --orange: #ff9a4a; --creme: #fff7e6; --eau: #38b6ff;
   --titre: Fredoka, "Trebuchet MS", system-ui, sans-serif; --corps: Nunito, "Segoe UI", system-ui, sans-serif; --mono: ui-monospace, Menlo, Consolas, monospace;
   --ombre: 0 4px 0 rgba(0,0,0,.35);
 }
@@ -161,6 +161,20 @@ svg.schema text { font: 700 9px var(--corps); fill: var(--pale); }
 .choix-l button.actif { background: var(--or); color: var(--trait); } .choix-l button.actif small { color: var(--trait); }
 .toast { position: fixed; left: 50%; top: calc(72px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 30; padding: 10px 16px; border-radius: 14px; background: var(--rouge); color: var(--trait); border: 2.5px solid var(--bord); font-weight: 800; box-shadow: var(--ombre); max-width: 90vw; text-align: center; }
 .toast.ok { background: var(--vert); } .toast.info { background: var(--or); }
+/* trois vues : carte, électricité, eau */
+.vues { display: flex; gap: 3px; padding: 3px; border-radius: 13px; background: var(--fond2); border: 2px solid var(--bord); flex: none; }
+.vues button { min-height: 36px; padding: 0 11px; border: 0; border-radius: 10px; background: transparent; font-weight: 800; font-size: 13.5px; cursor: pointer; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.vues button svg { width: 17px; height: 17px; flex: none; }
+.vues button:hover { background: var(--fond3); }
+.vues button.actif { color: var(--trait); box-shadow: 0 3px 0 var(--bord); }
+.vues [data-id="carte"].actif { background: var(--vert); } .vues [data-id="elec"].actif { background: var(--or); } .vues [data-id="eau"].actif { background: var(--eau); }
+body[data-vue="elec"] .barre { border-bottom-color: #6b5520; } body[data-vue="eau"] .barre { border-bottom-color: #1d5a86; }
+.eti.eau { background: var(--eau) !important; } .eti.eau.alerte { background: var(--orange) !important; }
+.chaine { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.etape { padding: 3px 8px; border-radius: 9px; background: #23465e; border: 2px solid var(--bord); font-size: 12px; font-weight: 800; }
+.etape.verrou { background: var(--fond); color: var(--gris); border-style: dashed; }
+.fleche { color: var(--gris); font-weight: 800; }
+.vide-chantier { padding: 8px 14px; font-size: 13px; font-weight: 800; color: var(--doux); white-space: nowrap; }
 
 @media (min-width: 900px) {
   #app { grid-template-columns: minmax(0, 1fr) 420px; grid-template-rows: calc(60px + env(safe-area-inset-top, 0px)) minmax(0, 1fr) 62px; }
@@ -179,6 +193,7 @@ svg.schema text { font: 700 9px var(--corps); fill: var(--pale); }
   .lentilles { top: auto; bottom: 108px; flex-direction: row; flex-wrap: wrap; max-width: calc(100% - 24px); }
   .aide { bottom: auto; top: 60px; }
 }
+@media (max-width: 1100px) { .vues button span { display: none; } .vues button { padding: 0 9px; } }
 @media (max-width: 640px) {
   .pill.cache { display: none; } .titre-date { font-size: 15px; } .argent { font-size: 17px; } .etiquette { font-size: 9px; letter-spacing: 1px; }
   .barre { gap: 6px; } .pill { padding: 3px 7px; font-size: 12.5px; }
@@ -195,9 +210,15 @@ svg.schema text { font: 700 9px var(--corps); fill: var(--pale); }
   <header class="barre">
     <button type="button" class="ico" data-act="menu" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <div id="date" class="titre-date">GridMaster</div>
+    <nav class="vues" aria-label="Vue de la carte">
+      <button type="button" data-act="vue" data-id="carte" class="actif" title="Vue globale (touche 1)"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2 17 6v8l-7 4-7-4V6z" fill="#86c552" stroke="#0f130e" stroke-width="2" stroke-linejoin="round"/></svg><span>Carte</span></button>
+      <button type="button" data-act="vue" data-id="elec" title="Vue électricité (touche 2)"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M11 1 4 11h5l-1 8 7-10h-5z" fill="#ffc94d" stroke="#0f130e" stroke-width="2" stroke-linejoin="round"/></svg><span>Électricité</span></button>
+      <button type="button" data-act="vue" data-id="eau" title="Vue eau (touche 3)"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1c4 6 6 8.5 6 11.5a6 6 0 0 1-12 0C4 9.5 6 7 10 1z" fill="#38b6ff" stroke="#0f130e" stroke-width="2" stroke-linejoin="round"/></svg><span>Eau</span></button>
+    </nav>
     <div class="pills">
       <div id="p-evt" class="pill evt cache" hidden></div>
       <div id="p-freq" class="pill" title="Fréquence du réseau"><span class="pt"></span><span id="freq">50,00 Hz</span></div>
+      <div id="p-eau" class="pill cache" title="Eau potable : part des besoins servis"><span class="pt"></span><span id="eau-txt">Eau —</span></div>
       <div class="pill cache" title="Satisfaction des habitants"><svg width="15" height="15" viewBox="0 0 24 24" fill="#ffc94d" stroke="#0f130e" stroke-width="1.5" aria-hidden="true"><path d="M12 2l3 7 7 .6-5.3 4.6 1.6 7.1L12 17.5 5.7 21.3l1.6-7.1L2 9.6 9 9z"/></svg><span id="sat">—</span></div>
     </div>
     <div class="tresorerie"><div class="etiquette">TRÉSORERIE</div><div id="argent" class="argent">—</div></div>
@@ -223,6 +244,7 @@ svg.schema text { font: 700 9px var(--corps); fill: var(--pale); }
   <nav class="nav" aria-label="Navigation du jeu">
     <button type="button" data-act="onglet" data-id="accueil"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Région</button>
     <button type="button" data-act="onglet" data-id="dispatch"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 20h18"/><path d="M4 16l4-6 4 3 4-7 4 5"/></svg>Dispatch</button>
+    <button type="button" data-act="onglet" data-id="eau"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3c4.5 6 6.5 9 6.5 12a6.5 6.5 0 0 1-13 0C5.5 12 7.5 9 12 3z"/></svg>Eau</button>
     <button type="button" data-act="onglet" data-id="construire"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 21h18M6 21V9l6-4 6 4v12"/><path d="M10 21v-5h4v5"/></svg>Construire</button>
     <button type="button" data-act="onglet" data-id="reseau"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3l-4 18M12 3l4 18M7 9h10M6 14h12"/></svg>Réseau</button>
     <button type="button" data-act="onglet" data-id="meteo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7 18z"/></svg>Météo</button>
@@ -384,6 +406,15 @@ function genererTerrain(def) {
     FRONT_T = LISTE.filter(x => ok(x) && (def.abs ? x.row > ROWS * .4 && x.row < ROWS * .8 : true)).sort((a, b) => bords[cote](a) - bords[cote](b) || Math.abs(a.row - ROWS / 2) + Math.abs(a.col - COLS / 2) - Math.abs(b.row - ROWS / 2) - Math.abs(b.col - COLS / 2))[0] || null;
   }
   for (const x of LISTE) { x.top = TERR[x.brume ? 'brume' : x.t].h; x.t0 = x.ville ? 'prairie' : x.t; }
+  // hydrologie : distance à la rivière, nappe alluviale, sensibilité aux nitrates ; fermes sur les plaines et les prairies
+  const d = new Map(), file = RIV.filter(x => x.riviere !== undefined); file.forEach(x => d.set(x, 0));
+  while (file.length) { const x = file.shift(); for (const n of voisins(x)) if (!d.has(n)) { d.set(n, d.get(x) + 1); file.push(n); } }
+  for (const x of LISTE) {
+    x.dr = d.get(x) ?? 9;
+    x.nappe = clamp(.85 * Math.max(0, 1 - x.dr / 3.5) + .5 * (fbm(x.col * .13 + 70, x.row * .13) - .3), 0, 1);
+    x.nitr = clamp(({ plaine: .75, prairie: .4, foret: .08 }[x.t] ?? .2) + (hache(x.q, x.r, 11) - .5) * .25 + (x.dr <= 2 ? .1 : 0), 0, 1);
+    x.ferme = !x.brume && !x.ville && x.riviere === undefined && x !== FRONT_T && !SITES.includes(x) && VILLES.every(v => dist(v.centre, x) > 2) ? (x.t === 'plaine' && hache(x.q, x.r, 41) < .5 ? 'culture' : x.t === 'prairie' && hache(x.q, x.r, 41) < .2 ? 'elevage' : null) : null;
+  }
 }
 function majAcceptation() {
   for (const t of LISTE) {
@@ -416,6 +447,10 @@ const MAT = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: degrad
 const FANT = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: degrade, transparent: true, opacity: .7, depthWrite: false });
 const CHANT = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: degrade, transparent: true, opacity: .42, depthWrite: false });
 const CONT = new THREE.MeshBasicMaterial({ color: 0x24180f, side: THREE.BackSide });
+const MAT_SOL = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: degrade });  // terrain et décor : assombris dans les vues réseau
+const MAT_RIV = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: degrade });  // rivières : restent vives dans la vue Eau
+const GHOST = new THREE.MeshToonMaterial({ color: 0xa3a89a, gradientMap: degrade, transparent: true, opacity: .32, depthWrite: false });
+const CONT_V = { eau: new THREE.MeshBasicMaterial({ color: 0x38b6ff, side: THREE.BackSide }), elec: new THREE.MeshBasicMaterial({ color: 0xffc94d, side: THREE.BackSide }) };
 
 const VA = new THREE.Vector3(), VB = new THREE.Vector3(), AXEY = new THREE.Vector3(0, 1, 0);
 const lot = () => ({ g: [], o: [] });
@@ -440,11 +475,12 @@ function put(L, geo, col, x = 0, y = 0, z = 0, ry = 0, ep = .26) {
 function transfere(src, L, x, y, z, ry = 0, s = 1) { for (const k of ['g', 'o']) for (const geo of src[k]) { if (s !== 1) geo.scale(s, s, s); if (ry) geo.rotateY(ry); geo.translate(x, y, z); L[k].push(geo); } }
 function fige(L, parent = scene, mat = MAT) {
   const grp = new THREE.Group();
-  if (L.g.length) { const m = new THREE.Mesh(mergeGeometries(L.g), mat); m.castShadow = m.receiveShadow = mat === MAT; grp.add(m); }
-  if (L.o.length && mat === MAT) grp.add(new THREE.Mesh(mergeGeometries(L.o), CONT));
+  const plein = mat === MAT || mat === MAT_SOL || mat === MAT_RIV;
+  if (L.g.length) { const m = new THREE.Mesh(mergeGeometries(L.g), mat); m.castShadow = m.receiveShadow = plein; grp.add(m); }
+  if (L.o.length && plein) grp.add(new THREE.Mesh(mergeGeometries(L.o), CONT));
   parent.add(grp); return grp;
 }
-function jeter(obj) { if (!obj) return; obj.parent?.remove(obj); obj.traverse(o => { if (o.isMesh || o.isLineSegments) { o.geometry.dispose(); if (o.material !== MAT && o.material !== FANT && o.material !== CHANT && o.material !== CONT && o.userData.propre) o.material.dispose(); } }); }
+function jeter(obj) { if (!obj) return; obj.parent?.remove(obj); obj.traverse(o => { if (o.isMesh || o.isLineSegments) { o.geometry.dispose(); const mt = o.userData.m0 || o.material; if (o.userData.propre && ![MAT, FANT, CHANT, CONT, GHOST, MAT_SOL, MAT_RIV].includes(mt)) mt.dispose(); } }); }
 const boite = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 const cyl = (rt, rb, h, s = 10) => new THREE.CylinderGeometry(rt, rb, h, s);
 const cone = (r, h, s = 8) => new THREE.ConeGeometry(r, h, s);
@@ -473,7 +509,7 @@ const eau = new THREE.Mesh(new THREE.PlaneGeometry(COLS * R * SQ3 - 20, ROWS * R
 eau.rotation.x = -Math.PI / 2; eau.position.y = -.7; eau.receiveShadow = true; scene.add(eau);
 function construirePlateau() {
   jeter(PLATEAU); PLATEAU = new THREE.Group(); scene.add(PLATEAU);
-  const DECOR = lot(), TUILES = lot();
+  const DECOR = lot(), TUILES = lot(), RIVL = lot(); FERMES.length = 0;
   for (const t of LISTE) {
     semer(t);
     const d = TERR[t.brume ? 'brume' : t.ville ? 'prairie' : t.t], bas = -10, h = t.top - bas;
@@ -493,6 +529,7 @@ function construirePlateau() {
       const [x, z] = i ? rr() : [t.x + entre(-1, 1), t.z + entre(-1, 1)], s = i ? entre(.6, .8) : entre(1, 1.2);
       put(DECOR, cone(6 * s, 9 * s, 5), 0x8a8173, x, y + 4.5 * s, z, rnd() * 2); put(DECOR, cone(2.6 * s, 3.9 * s, 5), 0xf7f5ee, x, y + 7.05 * s, z, 0, .12);
     }
+    if (t.ferme) { const F = lot(); bFerme(F, t.ferme === 'elevage'); t.grpF = fige(F, PLATEAU, MAT_SOL); t.grpF.position.set(t.x, t.top, t.z); t.grpF.rotation.y = (hache(t.q, t.r, 43) * 6 | 0) * Math.PI / 3; if (t.ferme === 'culture' && t.dr <= 2) FERMES.push(rivProche(t) ?? 0); continue; }
     if (t.t === 'plaine' && t.riviere === undefined) for (let i = 0; i < 3; i++) { const [x, z] = rr(); put(DECOR, boite(entre(3, 5), .5, entre(2, 3)), [0xe3c75b, 0xd6b24a, 0xa9c457][rnd() * 3 | 0], x, y + .25, z, rnd() * 3, .15); }
     if (t.t === 'prairie' && t.riviere === undefined && rnd() < .5) { const [x, z] = rr(); put(DECOR, sphere(1, 0), 0x5fa83c, x, y + .7, z); }
     if (t.t === 'cote' && rnd() < .3) { const [x, z] = rr(); put(DECOR, sphere(entre(.8, 1.4), 0), 0x9b958a, x, y + .6, z); }
@@ -504,9 +541,9 @@ function construirePlateau() {
     const A = av ? milieu(t, av) : [t.x + 2, t.z - 2], B = ap ? milieu(t, ap) : [t.x - 1.5, t.z + 1.5], C = [t.x + (hache(t.q, t.r, 5) - .5) * 4, t.z + (hache(t.q, t.r, 6) - .5) * 4];
     const pts = []; for (let s = 0; s <= 12; s++) { const k = s / 12; pts.push([(1 - k) ** 2 * A[0] + 2 * k * (1 - k) * C[0] + k * k * B[0], (1 - k) ** 2 * A[1] + 2 * k * (1 - k) * C[1] + k * k * B[1]]); }
     const w = av ? 1.9 : 1.2;
-    put(DECOR, ruban(pts, w + 1.1, t.top + .05), 0xdccf96, 0, 0, 0, 0, 0); put(DECOR, ruban(pts, w, t.top + .1), 0x46a9dd, 0, 0, 0, 0, 0);
+    put(DECOR, ruban(pts, w + 1.1, t.top + .05), 0xdccf96, 0, 0, 0, 0, 0); put(RIVL, ruban(pts, w, t.top + .1), 0x46a9dd, 0, 0, 0, 0, 0); t.rivPts = pts;
   }
-  fige(TUILES, PLATEAU); fige(DECOR, PLATEAU);
+  fige(TUILES, PLATEAU, MAT_SOL); fige(DECOR, PLATEAU, MAT_SOL); fige(RIVL, PLATEAU, MAT_RIV);
   const p = [];
   for (const t of LISTE) if (t.brume) for (let i = 0; i < 6; i++) { const a = coin(t, i, .965), b = coin(t, (i + 1) % 6, .965); p.push(a[0], t.top + .05, a[1], b[0], t.top + .05, b[1]); }
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
@@ -638,6 +675,92 @@ Object.assign(BAT, {
     put(L, cyl(.75, .95, 11, 10), 0xc9c4b6, 3.4, 5.5, 4); put(L, cyl(.78, .78, 1, 10), 0xd9573b, 3.4, 10.5, 4, 0, .1); ex.fum.push([3.4, 11.4, 4, false]);
   },
 });
+// ouvrages de l'eau (le +x local regarde la rivière ou la mer)
+Object.assign(BAT, {
+  prise(L) {
+    sol(L, 0xb9b4a4);
+    put(L, boite(4.6, 3, 4.2), 0xe6e0d0, -2, 1.5, 0); toit(L, 5, 4.6, 1.5, 0x3f7fb5, -2, 3, 0, Math.PI / 2);
+    put(L, boite(7, .6, 1.8), 0xbcb7aa, 3.6, 1, 0); put(L, boite(.5, 2.6, 3.6), 0x6b6f75, 7.2, .6, 0);
+    const tu = cyl(.7, .7, 7, 8); tu.rotateZ(Math.PI / 2); put(L, tu, 0x3f9cff, 3.4, .6, 1.8, 0, .15);
+  },
+  potab(L) {
+    sol(L, 0xc2bdae);
+    for (const z of [-4.2, -.6]) { put(L, boite(7.4, 1.3, 3), 0xd5d0c4, -1.6, .65, z); put(L, boite(6.8, .2, 2.4), 0x6fb8a8, -1.6, 1.32, z, 0, 0); }
+    put(L, boite(4.6, 3.2, 3.6), 0xf3efe6, -1.4, 1.6, 4); put(L, boite(4.9, .5, 3.9), 0x3f9cff, -1.4, 3.4, 4);
+    put(L, cyl(1.1, 1.1, 2.8, 12), 0xf4f3ee, 4.8, 1.4, -2.6); put(L, cyl(1.15, 1.15, .5, 12), 0x7be08a, 4.8, 3, -2.6, 0, .1);
+    put(L, cyl(1.1, 1.1, 2.8, 12), 0xf4f3ee, 4.8, 1.4, 1.2);
+  },
+  chateau(L) {
+    sol(L, 0x9fc46a);
+    put(L, cyl(1.3, 1.8, 9.5, 12), 0xe9e3d3, 0, 4.75, 0);
+    const cuve = new THREE.LatheGeometry([[1.2, 0], [4.2, 2.4], [4.4, 4.4], [4, 5.1], [.01, 5.6]].map(([x, y]) => new THREE.Vector2(x, y)), 18);
+    put(L, cuve, 0xf3eee2, 0, 9.2, 0, 0, .3);
+    put(L, cyl(4.45, 4.45, .8, 18), 0x3f9cff, 0, 12.6, 0, 0, .12);
+    put(L, boite(1.4, 1.9, .5), 0x7a5233, 0, .95, 1.75, 0, 0); arbre(L, 5, 3); arbre(L, -5.2, -2, .9);
+  },
+  reservoir(L) {
+    sol(L, 0x8fbf5a);
+    const butte = sphere(5.6, 2); butte.scale(1, .34, 1); put(L, butte, 0x86b85a, 0, 0, 0, 0, .2);
+    put(L, boite(2.2, 1, 2.2), 0xcfcac0, 0, 2, 0); put(L, boite(2.4, .25, 2.4), 0x3f9cff, 0, 2.6, 0, 0, .1);
+    put(L, cyl(.35, .35, 1.6, 6), 0xcfcac0, 2.6, 1.4, 1.6, 0, .1);
+  },
+  forage(L) {
+    sol(L, 0xb3c27a);
+    put(L, boite(3.2, 2.4, 2.8), 0xe3ddcf, -2.6, 1.2, 1.4); toit(L, 3.6, 3, 1.2, 0xc4493a, -2.6, 2.4, 1.4);
+    put(L, cyl(1.1, 1.1, 1.3, 10), 0x5c7184, 2.2, .65, -1.2);
+    for (const x of [1, 3.4]) put(L, boite(.35, 5.6, .35), 0x9aa3ad, x, 2.8, -1.2, 0, .12);
+    put(L, boite(3, .4, .4), 0x9aa3ad, 2.2, 5.6, -1.2, 0, .12);
+    const tu = cyl(.45, .45, 4, 8); tu.rotateZ(Math.PI / 2); put(L, tu, 0x3f9cff, .1, .5, -1.2, 0, .12);
+  },
+  source(L) {
+    put(L, cyl(R * .7, R * .8, .4, 6), 0x9aa77a, 0, .2, 0, 0, 0);
+    put(L, boite(4.2, 2.2, 3.2), 0xb9ad94, 0, 1.1, -1); toit(L, 4.6, 3.6, 1.3, 0x8a7a64, 0, 2.2, -1);
+    put(L, boite(.9, 1.4, .3), 0x5a4741, 0, .7, .65, 0, 0);
+    put(L, cyl(1.8, 1.8, .6, 12), 0xb9ad94, 0, .3, 3.4); put(L, cyl(1.5, 1.5, .2, 12), 0x6fd0f0, 0, .62, 3.4, 0, 0);
+  },
+  pompage(L) {
+    sol(L, 0xb8b2a2);
+    put(L, boite(5, 3, 4), 0xe8e2d4, -1.2, 1.5, 0); toit(L, 5.4, 4.4, 1.4, 0x5c6f82, -1.2, 3, 0, Math.PI / 2);
+    for (const z of [-1, 1]) { const tu = cyl(.7, .7, 5, 10); tu.rotateZ(Math.PI / 2); put(L, tu, 0x3f9cff, 3.6, .9, z * 1.3, 0, .14); }
+    put(L, sphere(1.2, 1), 0xf4f3ee, 4.6, 2.6, 0);
+  },
+  step(L) {
+    sol(L, 0xb3ad9e);
+    for (const [x, z] of [[-3.3, -3], [3, -3.2]]) { put(L, cyl(2.8, 2.8, 1.4, 18), 0xcfcac0, x, .7, z); put(L, cyl(2.45, 2.45, .2, 18), 0x8f9a5c, x, 1.42, z, 0, 0); put(L, boite(5, .25, .35), 0x6b6f75, x, 1.7, z, 0, 0); }
+    put(L, boite(7.6, 1.3, 3.2), 0xcfcac0, -1.4, .65, 3.4); put(L, boite(7, .2, 2.6), 0x7c8a52, -1.4, 1.32, 3.4, 0, 0);
+    const oeuf = sphere(1.6, 2); oeuf.scale(1, 1.6, 1); put(L, oeuf, 0xd8d2c4, 5, 2.6, 3); put(L, cyl(.25, .25, 1, 6), 0x6b6f75, 5, 5.5, 3, 0, .1);
+  },
+  lagunage(L) {
+    put(L, cyl(R * .82, R * .86, .3, 6), 0x9fbf63, 0, .15, 0, 0, 0);
+    for (const [x, z, r] of [[-3, -2.4, 3], [3.2, -1.6, 2.6], [0, 3.6, 2.8]]) { put(L, cyl(r, r + .3, .6, 9), 0x9c8b62, x, .3, z); put(L, cyl(r - .4, r - .4, .2, 9), 0x6f9a6a, x, .62, z, 0, 0); }
+    for (let i = 0; i < 7; i++) { const a = i * 2.1; put(L, cone(.3, 1.6, 4), 0x4f8a3a, Math.cos(a) * 6.6, .8, Math.sin(a) * 6.6, 0, .08); }
+  },
+  dessal(L) {
+    sol(L, 0xc9c3b2);
+    put(L, boite(8.4, 3, 4.2), 0xeef1f3, -1.4, 1.5, -1.6); put(L, boite(8.7, .45, 4.5), 0x3f9cff, -1.4, 3.2, -1.6);
+    for (let i = 0; i < 4; i++) { const tu = cyl(.45, .45, 5.6, 8); tu.rotateZ(Math.PI / 2); put(L, tu, 0xd8dde2, -1.4, .6 + (i % 2) * 1, 2 + (i >> 1) * 1.1, 0, .1); }
+    const tu = cyl(.7, .7, 6, 8); tu.rotateZ(Math.PI / 2); put(L, tu, 0x6b6f75, 5, .5, -1.6, 0, .14);
+    put(L, cyl(1.3, 1.3, 2.4, 12), 0xf4f3ee, 4.6, 1.2, 3.4);
+  },
+});
+BAT.forageP = L => { BAT.forage(L); put(L, cyl(1.5, 1.5, .5, 10), 0x3f7fb5, 2.2, .25, -1.2, 0, .1); };
+// fermes : culture sur les plaines, élevage sur les prairies
+function bFerme(L, elevage) {
+  if (elevage) {
+    put(L, boite(6, 2.2, 2.8), 0xb8453a, -1.5, 1.1, -3.4); toit(L, 6.4, 3.2, 1.3, 0x6b3a2e, -1.5, 2.2, -3.4, Math.PI / 2);
+    put(L, boite(2.6, 1.8, 2.2), 0xf3ead6, 4, .9, -3.6); toit(L, 2.9, 2.5, 1.1, 0xc4493a, 4, 1.8, -3.6);
+    for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; put(L, boite(.25, .9, .25), 0x8a6a4a, Math.cos(a) * 7.4, .45, Math.sin(a) * 7.4 + 1, 0, 0); }
+    put(L, new THREE.TorusGeometry(7.4, .1, 3, 28).rotateX(Math.PI / 2), 0x8a6a4a, 0, .75, 1, 0, 0);
+    put(L, cyl(.9, 1, 1, 8), 0xe8c56a, 2.5, .5, 3.2, 0, .12); put(L, boite(1.8, .5, .8), 0x7d8a96, -3, .25, 2.4, 0, .1);
+    return;
+  }
+  put(L, boite(3.2, 2, 2.6), 0xf3ead6, -3.4, 1, -3); toit(L, 3.6, 2.9, 1.4, 0xc4493a, -3.4, 2, -3);
+  put(L, boite(3.6, 2.8, 4), 0xb8453a, 1.2, 1.4, -3.2); toit(L, 4, 4.4, 1.8, 0x6b3a2e, 1.2, 2.8, -3.2, Math.PI / 2); put(L, boite(1.3, 1.8, .2), 0xf3ead6, 1.2, .9, -1.15, 0, 0);
+  put(L, cyl(1, 1, 4.8, 10), 0xd9d5c9, 4.3, 2.4, -1.4); put(L, new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0x8a9aa4, 4.3, 4.8, -1.4);
+  const C = [0xe3c75b, 0xd6b24a, 0xa9c457, 0x9fbf4f];
+  for (const [x, z, w, d] of [[-3.6, 2.6, 5, 3.4], [2.2, 3.4, 5.2, 2.8], [-.4, .3, 4, 1.6]]) { put(L, boite(w, .45, d), C[rnd() * 4 | 0], x, .22, z, 0, .12); for (let k = -1; k <= 1; k++) put(L, boite(w * .9, .12, .18), 0x8f7a3a, x, .5, z + k * d / 3.2, 0, 0); }
+  put(L, cyl(.8, .9, .9, 8), 0xe8c56a, -5.6, .45, -.4, 0, .12); arbre(L, 5.8, 1.6, .8);
+}
 const QBAT = {
   centre(L) {
     sol(L, 0xe5d9bb);
@@ -717,6 +840,216 @@ const kvDispo = kv => { for (const k of [400, 225, 63, 15]) if (k <= kv && KV[k]
 const ORDRE_BARRE = ['usine', 'fil', 'barrage', 'charbon', 'charbonG', 'fioul', 'tac', 'nucleaire', 'gaz', 'eolien', 'biomasse', 'solaire', 'offshore', 'batterie', 'smr', 'fusion', 'poste'];
 const dispoType = ty => { const a = annee(S.min), t = TYPES[ty]; return a >= t.an && !(t.fin && a > t.fin); };
 
+let vue = 'carte';  // vue de la carte : carte, elec ou eau
+// ============================================================ eau : captages, traitement, stockage, conduites, assainissement
+// Bilan par réseau connexe à chaque pas de 15 minutes : ressource, stocks des châteaux d'eau, fuites, qualité (6 paramètres), rejets.
+const interp = (T, a) => { if (a <= T[0][0]) return T[0][1]; for (let i = 1; i < T.length; i++) if (a <= T[i][0]) { const [a0, v0] = T[i - 1], [a1, v1] = T[i]; return v0 + (v1 - v0) * (a - a0) / (a1 - a0); } return T.at(-1)[1]; };
+const LITRES = [[1900, 40], [1930, 70], [1950, 100], [1970, 160], [1990, 165], [2010, 148], [2050, 128]];  // litres par habitant et par jour
+const K_EAU = [[1900, .2], [1950, .25], [1975, .4], [1990, .65], [2005, .9], [2020, 1]];  // prix réel de l'eau, assainissement compris, par rapport à 2020
+const PROFIL_EAU = h => (.55 + .55 * Math.exp(-(((h - 8) / 1.7) ** 2)) + .45 * Math.exp(-(((h - 19.5) / 2.2) ** 2)) + .15 * Math.exp(-(((h - 13) / 2) ** 2))) / .714;  // moyenne 1 sur la journée
+const agri = a => sstep(1950, 1990, a) * (CARTE && CARTE.id === 'plaine' ? 1.3 : 1);  // engrais et pesticides
+const indusEau = a => sstep(1955, 1985, a);
+const exigenceEau = a => clamp((a - 1905) / 55, .05, 1);  // au début du siècle, beaucoup se contentent du puits
+const kEau = (a = annee(S.min)) => interp(K_EAU, a);
+// paramètres de qualité : clé, nom, unité, norme, année d'entrée en vigueur
+const POLL = [['turb', 'Turbidité', 'NFU', 5, 1930], ['mic', 'Microbes', 'germes/mL', 1, 1902], ['org', 'Matières organiques', 'mg/L', 20, 1960], ['nitr', 'Nitrates', 'mg/L', 50, 1975], ['pest', 'Pesticides', 'indice', 10, 1990], ['micro', 'Micropolluants', 'indice', 15, 2030]];
+// étapes de potabilisation : facteur restant de chaque polluant après l'étape
+const ETAPES = {
+  sable: { nom: 'Filtre à sable et chlore', an: 1905, cout: 0, f: { turb: .05, org: .5, mic: .005 } },
+  charbon: { nom: 'Charbon actif', an: 1965, cout: 4, f: { org: .4, pest: .12, micro: .6 } },
+  ozone: { nom: 'Ozonation', an: 1980, cout: 6, f: { mic: .2, org: .6, micro: .5 } },
+  denitr: { nom: 'Dénitratation', an: 1990, cout: 8, f: { nitr: .3 } },
+  membranes: { nom: 'Ultrafiltration', an: 2000, cout: 12, f: { turb: .1, mic: .05, micro: .3 } },
+};
+// m3 : capacité en m³/j ; stock en m³ ; eh : équivalents-habitants ; kwh par m³ ; opexE en k€/an
+Object.assign(TYPES, {
+  source: { role: 'captage', qual: 'source', nom: 'Captage de source', court: 'Source', m3: 1500, capex: .4, delai: 4, opexE: 8, kwh: 0, ok: t => t.t === 'colline' || voisins(t).some(n => n.t === 'montagne'), non: 'Collines ou pied de montagne', pot: 'nappe', an: 1900 },
+  forage: { role: 'captage', qual: 'nappe', nom: 'Forage en nappe', court: 'Forage', m3: 5000, capex: 1, delai: 4, opexE: 25, kwh: .35, ok: t => t.nappe > .35 && t.t !== 'montagne', non: 'Sur une nappe (lentille Nappes)', pot: 'nappe', an: 1900 },
+  prise: { role: 'captage', qual: 'riviere', nom: 'Prise d’eau en rivière', court: 'Prise d’eau', m3: 25000, capex: 2.5, delai: 8, opexE: 40, kwh: .1, ok: t => t.dr === 1 && t.t !== 'montagne', non: 'Au bord d’une rivière', pot: 'nappe', an: 1900 },
+  potab: { role: 'traitement', nom: 'Usine de potabilisation', court: 'Potabilisation', m3: 40000, capex: 12, delai: 18, opexE: 300, kwh: .15, ok: t => plat(t) || t.t === 'colline', non: 'Terrain plat ou collines', pot: 'accept', an: 1905 },
+  chateau: { role: 'stock', nom: 'Château d’eau', court: 'Château d’eau', stock: 2500, capex: 1.5, delai: 8, opexE: 10, kwh: 0, ok: t => t.t !== 'montagne', non: 'Hors montagne', pot: 'accept', an: 1900 },
+  reservoir: { role: 'stock', nom: 'Réservoir sur colline', court: 'Réservoir', stock: 10000, capex: 3, delai: 10, opexE: 12, kwh: 0, ok: t => t.t === 'colline', non: 'Collines seulement', pot: 'accept', an: 1900 },
+  pompage: { role: 'pression', nom: 'Station de pompage', court: 'Pompage', m3: 30000, capex: 2, delai: 6, opexE: 30, kwh: .25, ok: t => t.t !== 'montagne', non: 'Hors montagne', pot: 'accept', an: 1910 },
+  lagunage: { role: 'epuration', nom: 'Lagunage', court: 'Lagunage', eh: 5000, capex: 1, delai: 6, opexE: 15, kwh: 0, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1900 },
+  forageP: { role: 'captage', qual: 'profonde', nom: 'Forage profond', court: 'Forage profond', m3: 8000, capex: 4, delai: 10, opexE: 40, kwh: .6, ok: t => t.t !== 'montagne', non: 'Hors montagne', pot: 'accept', an: 1955 },
+  step: { role: 'epuration', nom: 'Station d’épuration', court: 'Épuration', eh: 150000, capex: 30, delai: 24, opexE: 600, kwh: .4, ok: t => t.t !== 'montagne' && (t.dr === 1 || voisins(t).some(n => n.t === 'cote')), non: 'Au bord d’une rivière ou de la mer', pot: 'accept', an: 1950 },
+  dessal: { role: 'captage', qual: 'mer', nom: 'Usine de dessalement', court: 'Dessalement', m3: 20000, capex: 90, delai: 30, opexE: 900, kwh: 3.5, ok: t => voisins(t).some(n => n.t === 'cote'), non: 'Sur la côte', pot: 'accept', an: 1985 },
+});
+const ORDRE_EAU = ['source', 'forage', 'prise', 'potab', 'chateau', 'reservoir', 'pompage', 'lagunage', 'forageP', 'step', 'dessal'];
+for (const k of ORDRE_EAU) Object.assign(TYPES[k], { r: 'eau', f: null, mw: 0, groupe: 'eau' });
+const estEauU = u => TYPES[u.type]?.r === 'eau';
+const capTexte = ty => (ty.m3 ? `${nf(ty.m3)} m³/j` : ty.stock ? `${nf(ty.stock)} m³` : ty.eh ? `${nf(ty.eh)} hab.` : '');
+const ORDRE_CAPT = { source: 0, forage: 1, prise: 2, forageP: 3, dessal: 4 };  // on appelle d'abord l'eau la moins chère
+
+// ------------------------------------------------------------ conduites : graphe d'arêtes entre hexagones voisins
+const TUYAU = { brute: [0x3ad1c4, 1, 'Adduction d’eau brute'], potable: [0x3f9cff, .9, 'Conduite d’eau potable'], secondaire: [0x86c8ff, .55, 'Distribution'], usee: [0xb07f4c, .85, 'Collecteur d’eaux usées'], rejet: [0x9fe0b5, .6, 'Rejet épuré'] };
+const FAM = { brute: 'p', potable: 'p', secondaire: 'p', usee: 'a', rejet: 'a' }, RANG = { secondaire: 0, potable: 1, brute: 2, rejet: 0, usee: 1 };
+const DECAL = { p: [0, 0], a: [3.2, 2] };  // l'assainissement court à côté de l'eau potable, jamais dessus
+const COUT_TUYAU = { p: .06, a: .08 };  // M€ par hexagone
+let ARETES = new Map(), EAU_SALE = true, RESEAUX = [], EGOUTS = [];
+const cleA = (f, a, b) => f + '|' + a.k + '|' + b.k;
+const areteDe = (f, a, b) => ARETES.get(cleA(f, a, b)) || ARETES.get(cleA(f, b, a));
+const passEau = (t, a, b) => t === a || t === b || (!t.brume && !estEau(t) && t.t !== 'montagne' && !t.occ && !t.ville);
+function cheminEau(a, b, f = 'p') {  // Dijkstra : longer une conduite existante coûte moins cher, pour former des troncs communs
+  const d = new Map([[a, 0]]), prev = new Map([[a, null]]), vu = new Set();
+  for (;;) {
+    let t = null, m = Infinity; for (const [k, v] of d) if (!vu.has(k) && v < m) { m = v; t = k; }
+    if (!t || t === b) break; vu.add(t);
+    for (const n of voisins(t)) if (!vu.has(n) && passEau(n, a, b)) { const c = m + (areteDe(f, t, n) ? .3 : 1) * (n.t === 'colline' ? 1.3 : 1); if (c < (d.get(n) ?? Infinity)) { d.set(n, c); prev.set(n, t); } }
+  }
+  if (!prev.has(b)) return null;
+  const p = []; for (let t = b; t; t = prev.get(t)) p.unshift(t); return p;
+}
+function ajouteArete(a, b, type, an = annee(S.min)) {
+  const f = FAM[type], ex = areteDe(f, a, b);
+  if (ex) { if (RANG[type] > RANG[ex.type]) ex.type = type; return false; }
+  ARETES.set(cleA(f, a, b), { a, b, type, f, an, hs: 0 }); EAU_SALE = true; return true;
+}
+function poserConduite(a, b, type, p = cheminEau(a, b, FAM[type])) { if (!p) return null; for (let i = 1; i < p.length; i++) ajouteArete(p[i - 1], p[i], type); dessinerEau(); return p; }
+const noeudEau = (t, f) => [...ARETES.values()].some(e => e.f === f && (e.a === t || e.b === t));
+function finEau(t, f) {  // extrémité valable pour une conduite (f = 'p') ou un collecteur (f = 'a')
+  if (!t || t.brume || estEau(t)) return 'Une conduite part d’un hexagone de terre';
+  if (t.ville || noeudEau(t, f)) return null;
+  if (t.occ && estEauU(t.occ)) return (TYPES[t.occ.type].role === 'epuration') === (f === 'a') ? null : f === 'a' ? 'Un collecteur relie une ville à une station d’épuration' : 'Les eaux usées partent vers l’épuration avec l’outil Égout';
+  return f === 'a' ? 'Un collecteur relie une ville, une épuration ou un collecteur existant' : 'Une conduite relie un ouvrage d’eau, une ville ou une conduite existante';
+}
+// la distribution intérieure d'une ville raccordée se dessine toute seule, de quartier en quartier
+function reseauxVilles() {
+  let ajout = false;
+  for (const f of ['p', 'a']) for (const v of VILLES) {
+    const entree = v.tuiles.find(t => noeudEau(t, f)); if (!entree) continue;
+    const vu = new Set([entree]), file = [entree];
+    while (file.length) { const t = file.shift(); for (const n of voisins(t)) if (n.ville === v && !vu.has(n)) { vu.add(n); file.push(n); if (!areteDe(f, t, n)) { ajouteArete(t, n, f === 'p' ? 'secondaire' : 'usee'); ajout = true; } } }
+  }
+  return ajout;
+}
+function topoEau() {
+  EAU_SALE = false;
+  if (reseauxVilles()) dessinerEau();
+  const comps = f => {
+    const par = new Map(), find = k => { while (par.get(k) !== k) { par.set(k, par.get(par.get(k))); k = par.get(k); } return k; };
+    const add = k => { if (!par.has(k)) par.set(k, k); }, uni = (a, b) => { add(a); add(b); par.set(find(a), find(b)); };
+    for (const v of VILLES) for (const t of v.tuiles) uni(t.k, v.centre.k);  // une ville forme un seul nœud
+    for (const e of ARETES.values()) if (e.f === f && !(e.hs && e.hs > S.min)) uni(e.a.k, e.b.k);
+    const g = new Map(), de = k => { const r = find(k); if (!g.has(r)) g.set(r, { f, unites: [], villes: [], aretes: [], age: 0 }); return g.get(r); };
+    for (const u of UNITES) if (estEauU(u) && par.has(u.t.k) && (TYPES[u.type].role === 'epuration') === (f === 'a')) de(u.t.k).unites.push(u);
+    for (const v of VILLES) de(v.centre.k).villes.push(v);
+    for (const e of ARETES.values()) if (e.f === f && par.has(e.a.k)) de(e.a.k).aretes.push(e);
+    return [...g.values()].filter(c => c.unites.length && c.villes.length);
+  };
+  RESEAUX = comps('p'); EGOUTS = comps('a');
+  for (const e of ARETES.values()) e.res = null; for (const C of [...RESEAUX, ...EGOUTS]) for (const e of C.aretes) e.res = C;
+  for (const v of VILLES) { v.res = RESEAUX.find(c => c.villes.includes(v)) || null; v.egout = EGOUTS.find(c => c.villes.includes(v)) || null; v.rivI = rivProche(v.centre); }
+  for (const u of UNITES) if (estEauU(u)) { u.res = [...RESEAUX, ...EGOUTS].find(c => c.unites.includes(u)) || null; if (u.type === 'prise') u.rivI = Math.max(...voisins(u.t).filter(n => n.riviere !== undefined).map(n => n.riviere), 0); }
+}
+const rivProche = t => { let b = null, bd = 4; for (const r of RIV) if (r.riviere !== undefined) { const d = dist(r, t); if (d < bd) { bd = d; b = r.riviere; } } return b; };
+
+// ------------------------------------------------------------ qualité de l'eau brute
+function brute(u, w, a) {
+  const q = TYPES[u.type].qual, t = u.t, ag = agri(a), ind = indusEau(a), crue = w.debit > 1.25 ? 2.5 : 1;
+  if (q === 'source') return { turb: 1, mic: .02, org: 2, nitr: 12 * t.nitr * ag, pest: 2 * ag, micro: ind };
+  if (q === 'nappe') return { turb: 2 * Math.sqrt(crue), mic: .06, org: 4, nitr: 65 * t.nitr * ag, pest: 14 * t.nitr * ag, micro: 6 * ind };  // le forage est chloré sur place
+  if (q === 'profonde') return { turb: .5, mic: .01, org: 1, nitr: 4, pest: .5 * ag, micro: .5 * ind };
+  if (q === 'mer') return { turb: .2, mic: .01, org: .5, nitr: 1, pest: .1, micro: .5 };
+  const p = S.eau.pollu[u.rivI] || 0;  // rivière : les rejets non épurés en amont dégradent l'eau
+  return { turb: 30 * crue, mic: 80 * (1 + 30 * p), org: 40 + 200 * p, nitr: 35 * ag, pest: 60 * ag, micro: (50 + 300 * p) * ind };
+}
+const traiter = (v, etapes) => { const r = { ...v }; for (const e of etapes) for (const [k, f] of Object.entries(ETAPES[e].f)) r[k] *= f; return r; };
+const defauts = (q, a) => POLL.filter(([k, , , n, an]) => a >= an && q[k] > n).map(p => p[1]);
+const debitRiv = (i, w) => (.6 + 2.2 * i / Math.max(1, RIV.length)) * w.debit;  // m³/s
+const FERMES = [];  // fermes irriguées : indice de rivière le plus proche
+
+// ------------------------------------------------------------ un pas de 15 minutes
+function pasEau(m) {
+  if (EAU_SALE) topoEau();
+  for (const e of ARETES.values()) if (e.hs && e.hs <= m) { e.hs = 0; EAU_SALE = true; log(`Conduite réparée près de ${lieu(e.a)}.`, 'bon'); }
+  const E = S.eau, a = annee(m), w = meteo(m), mo = date(m).getUTCMonth(), Lj = interp(LITRES, a), K = kEau(a);
+  const chaud = 1 + clamp((w.temp - 20) / 12, 0, 1) * .3, prof = PROFIL_EAU(heure(m)), restr = E.restriction ? .85 : 1;
+  const r = { dem: 0, livre: 0, manque: 0, nc: 0, usees: 0, nonTraite: 0, ventes: 0, opex: 0, amendes: 0 };
+  for (const v of VILLES) { v.m3d = (v.hab * Lj / 1000 + v.tuiles.filter(t => t.quartier === 'industriel').length * 2500 * (.4 + .6 * indusEau(a))) / 96 * prof * chaud * restr; v.m3l = 0; v.eauMW = 0; r.dem += v.m3d; }
+  // rivière : débit, débit réservé (loi de 1984), irrigation des fermes l'été, prélèvements de l'amont vers l'aval
+  const irr = (mo >= 5 && mo <= 7 ? 1 : mo === 4 || mo === 8 ? .4 : 0) * (E.restriction ? .5 : 1), preleve = new Float64Array(RIV.length + 1);
+  for (const f of FERMES) preleve[f] += .012 * irr * 900;
+  const dispoRiv = i => { let p = 0; for (let k = 0; k <= i; k++) p += preleve[k]; return Math.max(0, debitRiv(i, w) * 900 - (a >= 1984 ? .1 * (.6 + 2.2 * i / RIV.length) * 900 : 0) - p); };
+  let pompeNappe = 0, pompeProf = 0;
+  for (const C of RESEAUX) {
+    const d = C.villes.reduce((s, v) => s + v.m3d, 0), U = C.unites.filter(u => !u.fin && !(u.panne > m));
+    C.age = C.aretes.length ? C.aretes.reduce((s, e) => s + a - e.an, 0) / C.aretes.length : 0;
+    C.fuite = .05 + .35 * clamp(C.age / 80, 0, 1);
+    const stocks = U.filter(u => TYPES[u.type].role === 'stock'), pompe = U.some(u => u.type === 'pompage'); C.pression = stocks.length > 0 || pompe;
+    const capt = U.filter(u => TYPES[u.type].role === 'captage').sort((x, y) => ORDRE_CAPT[x.type] - ORDRE_CAPT[y.type]);
+    let dispo = 0;
+    for (const u of capt) {
+      const ty = TYPES[u.type], q = ty.qual; let c = ty.m3 / 96;
+      if (q === 'source') c *= clamp(.35 + .65 * w.debit, .2, 1);
+      if (q === 'nappe') c *= clamp(E.nappe / .35, 0, 1);
+      if (q === 'profonde') c *= clamp(E.profonde / .2, 0, 1);
+      if (q === 'riviere') c = Math.min(c, dispoRiv(u.rivI));
+      u.qmax = c; dispo += c;
+    }
+    const volMax = stocks.reduce((s, u) => s + TYPES[u.type].stock, 0), vol = stocks.reduce((s, u) => s + TYPES[u.type].stock * u.niv, 0);
+    const besoin = d / (1 - C.fuite) * (C.pression ? 1 : .8), servi = Math.min(besoin, dispo + vol);
+    let reste = Math.min(dispo, servi + (volMax - vol)); const prod = reste;  // le surplus remplit les châteaux d'eau
+    for (const u of capt) { u.q = Math.min(u.qmax, reste); reste -= u.q; if (TYPES[u.type].qual === 'riviere') preleve[u.rivI] += u.q; if (TYPES[u.type].qual === 'nappe') pompeNappe += u.q; if (TYPES[u.type].qual === 'profonde') pompeProf += u.q; }
+    if (volMax) { const n = clamp((vol + prod - servi) / volMax, 0, 1); for (const u of stocks) u.niv = n; }
+    const livre = servi * (1 - C.fuite); C.taux = d > 0 ? livre / d : 1; C.dem = d; C.livre = livre; C.prod = prod; C.dispo = dispo; C.vol = vol; C.volMax = volMax;
+    for (const v of C.villes) v.m3l = v.m3d * C.taux;
+    // qualité : rivière puis nappe traitées dans la limite des usines de potabilisation, puis mélange
+    const parts = [], file = [];
+    for (const u of capt) if (u.q > 0) { const v = brute(u, w, a); (['riviere', 'nappe'].includes(TYPES[u.type].qual) ? file : parts).push([u.q, v, u]); }
+    file.sort((x, y) => (TYPES[x[2].type].qual === 'riviere' ? 0 : 1) - (TYPES[y[2].type].qual === 'riviere' ? 0 : 1));
+    let kwh = capt.reduce((s, u) => s + (u.q || 0) * TYPES[u.type].kwh, 0) + (pompe ? servi * .25 : 0);
+    for (const p of U.filter(u => u.type === 'potab')) {
+      let c = TYPES.potab.m3 / 96; p.q = 0;
+      while (c > 1e-6 && file.length) { const x = file[0], k = Math.min(c, x[0]); parts.push([k, traiter(x[1], p.etapes || ['sable'])]); x[0] -= k; c -= k; p.q += k; if (x[0] <= 1e-6) file.shift(); }
+      kwh += p.q * TYPES.potab.kwh; r.opex += p.q * .03;
+    }
+    for (const x of file) parts.push(x);  // eau brute distribuée sans traitement
+    const tot = parts.reduce((s, x) => s + x[0], 0), qual = {};
+    for (const [k] of POLL) qual[k] = tot > 0 ? parts.reduce((s, x) => s + x[0] * x[1][k], 0) / tot : 0;
+    C.qual = qual; C.defauts = tot > 0 ? defauts(qual, a) : []; C.conf = !C.defauts.length;
+    if (!C.conf) r.nc += livre;
+    for (const u of capt) if (u.type === 'dessal') r.opex += (u.q || 0) * .3;
+    const ch = C.villes[0]; if (ch) ch.eauMW += kwh / 250;
+    r.livre += livre; r.ventes += livre * E.tarif * K;
+  }
+  for (const v of VILLES) r.manque += Math.max(0, v.m3d - v.m3l);
+  // assainissement : les eaux usées des villes raccordées sont épurées dans la limite des stations
+  const rej = new Float64Array(RIV.length + 1);
+  for (const v of VILLES) { v.usees = v.m3l * .85 + (v.res ? 0 : v.m3d * .5); v.traite = 0; r.usees += v.usees; }  // sans réseau, le puits et la fosse rejettent quand même
+  for (const C of EGOUTS) {
+    const U = C.unites.filter(u => !u.fin && !(u.panne > m)), cap = U.reduce((s, u) => s + TYPES[u.type].eh, 0) * Lj / 1000 / 96, us = C.villes.reduce((s, v) => s + v.usees, 0);
+    const k = us > 0 ? Math.min(1, cap / us) : 1; C.charge = cap > 0 ? us / cap : 0;
+    for (const v of C.villes) v.traite = v.usees * k;
+    const kw = U.reduce((s, u) => s + TYPES[u.type].kwh, 0) ? us * k * .4 : 0; if (C.villes[0]) C.villes[0].eauMW += kw / 250;
+    r.opex += us * k * .05;
+  }
+  for (const v of VILLES) { const nt = v.usees - v.traite; r.nonTraite += nt; if (v.rivI !== null && v.rivI !== undefined) rej[v.rivI] += nt; }
+  // pollution de la rivière : les rejets se cumulent vers l'aval et s'auto-épurent un peu à chaque hexagone
+  let cum = 0; E.pollu = E.pollu || [];
+  for (let i = 0; i < RIV.length; i++) { cum = cum * .85 + rej[i]; E.pollu[i] = cum / Math.max(50, debitRiv(i, w) * 900); }
+  // nappes : recharge l'hiver, pompage
+  const rech = (mo <= 2 || mo >= 10 ? 1.6 : mo >= 5 && mo <= 8 ? .35 : 1) * w.debit;
+  E.nappe = clamp(E.nappe + (45000 / 96 * rech - pompeNappe) / 1.5e7, 0, 1); E.profonde = clamp(E.profonde + (1500 / 96 - pompeProf) / 3e7, 0, 1);
+  // coûts fixes : ouvrages et entretien des conduites ; amendes après la directive de 1991
+  r.opex += UNITES.reduce((s, u) => s + (estEauU(u) && !u.fin ? TYPES[u.type].opexE * 1e3 : 0), 0) / (365 * 96) + ARETES.size * 2000 / (365 * 96);
+  if (a >= 1992) r.amendes += r.nonTraite * .5;
+  if (a >= 1976) r.amendes += r.nc * .2;
+  E.taux = r.dem > 0 ? 1 - r.manque / r.dem : 1; E.conf = r.livre > 0 ? 1 - r.nc / r.livre : 1; E.epure = r.usees > 0 ? 1 - r.nonTraite / r.usees : 1;
+  return r;
+}
+// renouvellement des conduites de plus de 30 ans
+const vieilles = () => [...ARETES.values()].filter(e => annee(S.min) - e.an >= 30);
+const coutRenouv = () => vieilles().length * .1e6;
+function renouveler() { const l = vieilles(), c = coutRenouv(); if (!l.length) return 'Aucune conduite de plus de 30 ans.'; S.argent -= c; S.an.capex += c; for (const e of l) e.an = annee(S.min); EAU_SALE = true; dessinerEau(); log(`Renouvellement de ${l.length} tronçons de conduites (${nf(c / 1e6, 1)} M€) : les fuites et les casses diminuent.`, 'bon'); return null; }
+function cassesEau(m) {  // chaque nuit, une vieille conduite peut casser
+  const a = annee(m);
+  for (const e of ARETES.values()) if (!e.hs && e.type !== 'secondaire' && alea() < .000004 * Math.max(0, a - e.an) * DIFF[S.diff].evt) {
+    e.hs = m + 1440; EAU_SALE = true; S.argent -= .05e6;
+    log(`Casse d’une conduite près de ${lieu(e.a)} : réparation en 24 h (50 k€).`, 'mauvais'); toast(`Casse de conduite près de ${lieu(e.a)}.`);
+  }
+}
+
 // ============================================================ époques de la campagne
 const ERES = [
   { an: 1900, nom: 'Les pionniers', txt: 'L’électricité éclaire les rues et fait tourner les premiers ateliers. Petites usines au charbon et au fil de l’eau, réseau en 15 kV.' },
@@ -794,7 +1127,7 @@ const dateTxt = m => { const d = date(m); return `${d.getUTCDate()} ${MOIS[d.get
 const saison = m => ['Hiver', 'Hiver', 'Printemps', 'Printemps', 'Printemps', 'Été', 'Été', 'Été', 'Automne', 'Automne', 'Automne', 'Hiver'][date(m).getUTCMonth()];
 const MOIS_MIN = 30.44 * 1440;
 const DISTRIB = 45;  // €/MWh livré en basse et moyenne tension (les industriels raccordés en 63 kV n'en paient pas)
-const nouveauCumul = () => ({ ventes: 0, comb: 0, carbone: 0, opex: 0, imp: 0, exp: 0, rd: 0, prets: 0, amendes: 0, capex: 0, e: 0, co2: 0, bas: 0, ren: 0, coupure: 0, pointe: 0 });
+const nouveauCumul = () => ({ ventes: 0, comb: 0, carbone: 0, opex: 0, imp: 0, exp: 0, rd: 0, prets: 0, amendes: 0, capex: 0, e: 0, co2: 0, bas: 0, ren: 0, coupure: 0, pointe: 0, m3: 0, m3d: 0, m3m: 0, nc: 0, eu: 0, ut: 0, eauV: 0, eauO: 0 });
 let S, UNITES = [], LIGNES = [], uid = 0;
 const IMP = { id: 'imp', type: 'import', nom: 'Interconnexion avec la région voisine', p: 0, c: 0, dispo: true };
 function etatInitial(diff) {
@@ -804,6 +1137,7 @@ function etatInitial(diff) {
     ere: 0, evt: {}, hist: [], fhist: Array(200).fill(50), jour: nouveauCumul(), an: nouveauCumul(), anPrec: null, journal: [], rapports: [],
     pertes: 0, charge: 0, demServie: 0, demIlot: 0, delestage: 0, ecretement: 0, spot: 40, nimby: 0, pertesNiv: {},
     rd: { acquis: [], cours: null, avance: 0, budget: 10 }, quartiers: [], fini: false,
+    eau: { nappe: .85, profonde: 1, tarif: 3, restriction: false, pollu: [], taux: 1, conf: 1, epure: 0 },
   };
 }
 
@@ -814,6 +1148,7 @@ const delaiType = ty => Math.max(1, TYPES[ty].delai - (ty === 'nucleaire' && rd(
 function rotPour(t, type) {
   if (type === 'barrage' || type === 'fil') { const i = RIV.indexOf(t), a = RIV[i - 1] || t, b = RIV[i + 1] || t.versMer || t; return Math.atan2(-(b.z - a.z), b.x - a.x); }
   if (['eolien', 'solaire', 'offshore', 'frontiere'].includes(type)) return 0;
+  if (['prise', 'step', 'dessal'].includes(type)) { const n = voisins(t).find(n => n.riviere !== undefined) || voisins(t).find(n => n.t === 'cote' || n.t === 'mer'); if (n) return Math.atan2(-(n.z - t.z), n.x - t.x); }
   return (hache(t.q, t.r, 4) * 6 | 0) * Math.PI / 3;
 }
 function modele(t, type, mat = MAT, u = null) {
@@ -832,8 +1167,9 @@ function modele(t, type, mat = MAT, u = null) {
 function nomUnite(type, t) { const n = lieu(t); return `${TYPES[type].court} ${/^[aeiouéèh]/i.test(n) ? 'd’' : 'de '}${n}`.replace('de le ', 'du ').replace('de les ', 'des '); }
 function creerUnite(t, type, { immediat = false, nom = null, fin = 0 } = {}) {
   const ty = TYPES[type];
-  const u = { id: 'u' + (++uid), type, t, nom: nom || nomUnite(type, t), cap: ty.mw, p: 0, c: 0, dispo: true, panne: 0, fin: immediat ? 0 : fin, soc: ty.stock ? .7 : ty.mwh ? .5 : 0, mode: 'auto', debut: S.min };
-  t.occ = u; UNITES.push(u);
+  const u = { id: 'u' + (++uid), type, t, nom: nom || nomUnite(type, t), cap: ty.mw, p: 0, c: 0, dispo: true, panne: 0, fin: immediat ? 0 : fin, soc: ty.stock && !ty.r ? .7 : ty.mwh ? .5 : 0, mode: 'auto', debut: S.min };
+  if (ty.r === 'eau') { u.niv = .8; if (type === 'potab') u.etapes = ['sable']; EAU_SALE = true; }
+  t.occ = u; UNITES.push(u); retirerFerme(t);
   dessinerUnite(u, !immediat);
   return u;
 }
@@ -842,11 +1178,14 @@ function dessinerUnite(u, anim) {
   ROTORS.splice(0, ROTORS.length, ...ROTORS.filter(r => r.u !== u)); FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.u !== u));
   if (u.fin) { u.grp = modele(u.t, u.type, CHANT); const L = lot(); BAT.grue(L); u.grue = fige(L); u.grue.position.set(u.t.x, u.t.top, u.t.z); if (anim) pop(u.grue); }
   else { u.grp = modele(u.t, u.type, MAT, u); u.grue = null; if (anim) pop(u.grp); }
+  stylerU(u);
 }
+function retirerFerme(t) { if (t.grpF) { jeter(t.grpF); t.grpF = null; } t.ferme = null; }
 function terminer(u) {
   u.fin = 0; dessinerUnite(u, true);
   if (TYPES[u.type].f && !TYPES[u.type].fatal && u.type !== 'batterie') insererOrdre(u);
-  log(`${u.nom} mise en service (${nf(u.cap)} MW).`, 'bon'); toast(`${u.nom} est en service.`, 'ok');
+  if (estEauU(u)) { EAU_SALE = true; if (TYPES[u.type].role === 'epuration') { const n = voisins(u.t).find(x => x.riviere !== undefined) || voisins(u.t).find(x => x.t === 'cote'); if (n) { ajouteArete(u.t, n, 'rejet'); dessinerEau(); } } }
+  log(`${u.nom} mise en service (${estEauU(u) ? capTexte(TYPES[u.type]) : nf(u.cap) + ' MW'}).`, 'bon'); toast(`${u.nom} est en service.`, 'ok');
   majAcceptation(); dessinerMini();
 }
 function insererOrdre(u) { if (S.ordre.includes(u.id)) return; S.ordre.push(u.id); trierOrdre(); }
@@ -861,7 +1200,7 @@ function trierOrdre() { S.ordre.sort((a, b) => coutMarginal(unite(a)) - coutMarg
 function demolir(u) {
   const ls = LIGNES.filter(l => l.a === u.t || l.b === u.t), garder = u.type !== 'poste' && ls.length >= 2;  // le poste de la centrale reste en place
   if (!garder) for (const l of ls) demolirLigne(l, true);
-  jeter(u.grp); jeter(u.grue); u.eti?.remove();
+  jeter(u.grp); jeter(u.grue); jeter(u.halo); u.eti?.remove(); if (estEauU(u)) EAU_SALE = true;
   ROTORS.splice(0, ROTORS.length, ...ROTORS.filter(r => r.u !== u)); FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.u !== u));
   UNITES.splice(UNITES.indexOf(u), 1); S.ordre = S.ordre.filter(id => id !== u.id); u.t.occ = null;
   if (garder) { creerUnite(u.t, 'poste', { immediat: true, nom: `Poste ${/^[aeiouéèh]/i.test(lieu(u.t)) ? 'd’' : 'de '}${lieu(u.t)}`.replace('de le ', 'du ').replace('de les ', 'des ') }); log(`Le poste électrique de ${u.nom} est conservé : ses ${ls.length} lignes restent en service.`); }
@@ -906,6 +1245,7 @@ function finValide(t, kv) {
   if (KV[kv].an > annee(S.min)) return `Le ${KV[kv].nom} arrive en ${KV[kv].an}`;
   if (t.ville) return kv <= 63 ? null : 'Une ville se raccorde en 15 ou 63 kV, par son poste source';
   if (!t.occ) return 'Une ligne relie deux ouvrages : poste, centrale ou ville';
+  if (estEauU(t.occ)) return 'Les ouvrages d’eau se relient par conduites, dans la vue Eau';
   const ty = t.occ.type, mw = TYPES[ty].mw;
   if (ty === 'frontiere' && kv <= 63) return 'L’interconnexion se fait en 225 ou 400 kV';
   if (kv === 15 && mw > 15) return `${t.occ.nom} est trop puissante pour du 15 kV`;
@@ -967,7 +1307,7 @@ function dessinerLigne(l) {
   l.cables = new THREE.Mesh(mergeGeometries(C.g), mc); l.cables.userData.propre = true; l.grp.add(l.cables);
   l.pts = att.map(a => new THREE.Vector3(a.x, a.y - .9, a.z));
   l.long = []; let d = 0; l.pts.forEach((q, i) => { if (i) d += q.distanceTo(l.pts[i - 1]); l.long.push(d); });
-  majParticules();
+  majParticules(); stylerL(l);
 }
 function demolirLigne(l, silencieux = false) {
   jeter(l.grp); LIGNES.splice(LIGNES.indexOf(l), 1);
@@ -984,6 +1324,7 @@ function majParticules() {
 }
 const MD = new THREE.Matrix4();
 function animParticules(dt) {
+  if (PART) PART.visible = vue === 'elec'; if (vue !== 'elec') return;
   PDATA.forEach((p, i) => {
     const L = p.l, tot = L.long.at(-1) || 1, actif = !L.fin && !(L.hs > S.min) && Math.abs(L.f) > .5;
     if (!actif) { MD.makeScale(0, 0, 0); PART.setMatrixAt(i, MD); return; }
@@ -994,6 +1335,62 @@ function animParticules(dt) {
     MD.makeTranslation(VA.x, VA.y, VA.z); PART.setMatrixAt(i, MD);
   });
   if (PART) PART.instanceMatrix.needsUpdate = true;
+}
+
+// ------------------------------------------------------------ dessin des conduites et de l'eau qui circule (vue Eau)
+const EAU_G = new THREE.Group(); EAU_G.visible = false; scene.add(EAU_G);
+const MCONT_T = new THREE.MeshBasicMaterial({ color: 0x0b1410, side: THREE.BackSide }), MJONC = new THREE.MeshToonMaterial({ color: 0xe4e8ea, gradientMap: degrade });
+const posNoeud = (t, f) => new THREE.Vector3(t.x + DECAL[f][0], Math.max(t.top, -.6) + 1.1, t.z + DECAL[f][1]);
+let FLUX_EAU = [], PART_EAU = null;
+function dessinerEau() {
+  EAU_G.traverse(o => { if (o.isMesh) { o.geometry.dispose(); if (o.userData.propre) o.material.dispose(); } }); EAU_G.clear(); FLUX_EAU = [];
+  const noeuds = new Map();
+  for (const e of ARETES.values()) {
+    for (const t of [e.a, e.b]) { const k = e.f + '|' + t.k; (noeuds.get(k) || noeuds.set(k, { t, f: e.f, es: [] }).get(k)).es.push(e); }
+    const [col, ray] = TUYAU[e.type], A = posNoeud(e.a, e.f), B = posNoeud(e.b, e.f), seg = new THREE.LineCurve3(A, B);
+    e.mat = new THREE.MeshToonMaterial({ color: col, gradientMap: degrade });
+    const c = new THREE.Mesh(new THREE.TubeGeometry(seg, 1, ray, 10), e.mat); c.userData.propre = true;
+    EAU_G.add(c, new THREE.Mesh(new THREE.TubeGeometry(seg, 1, ray + .3, 10), MCONT_T));
+    const h = new THREE.Vector3(0, ray * .8, 0);
+    FLUX_EAU.push({ e, a: A.clone().add(h), b: B.clone().add(h), col: new THREE.Color(col).lerp(new THREE.Color(0xffffff), .65), v: e.type === 'secondaire' ? 7 : 11, taille: ray * .75 });
+  }
+  for (const { t, f, es } of noeuds.values()) {  // coude arrondi dans les virages, regard aux embranchements et aux extrémités
+    const P = posNoeud(t, f), gros = es.reduce((a, e) => (TUYAU[e.type][1] > TUYAU[a.type][1] ? e : a)), ray = TUYAU[gros.type][1];
+    if (es.length === 2) {
+      const [n1, n2] = es.map(e => (e.a === t ? e.b : e.a));
+      if (n1.q + n2.q === 2 * t.q && n1.r + n2.r === 2 * t.r) continue;
+      const c = new THREE.Mesh(new THREE.SphereGeometry(ray, 12, 8), gros.mat), o = new THREE.Mesh(new THREE.SphereGeometry(ray + .3, 12, 8), MCONT_T);
+      c.position.copy(P); o.position.copy(P); EAU_G.add(c, o); continue;
+    }
+    const j = new THREE.Mesh(new THREE.CylinderGeometry(ray * 1.6, ray * 1.6, ray * 2.4, 12), MJONC), o = new THREE.Mesh(new THREE.CylinderGeometry(ray * 1.6 + .3, ray * 1.6 + .3, ray * 2.4 + .6, 12), MCONT_T);
+    j.position.copy(P); o.position.copy(P); EAU_G.add(j, o);
+  }
+  // courant de la rivière
+  const pts = []; for (const t of RIV) if (t.rivPts) for (const [x, z] of t.rivPts) pts.push(new THREE.Vector3(x, t.top + .4, z));
+  for (let i = 1; i < pts.length; i++) if (i % 2 === 0) FLUX_EAU.push({ riv: true, a: pts[i - 1], b: pts[i], col: new THREE.Color(0xe8fbff), v: 6, taille: .55 });
+  if (PART_EAU) { scene.remove(PART_EAU); PART_EAU.dispose(); }
+  const n = FLUX_EAU.reduce((s, f) => s + (f.riv ? 1 : 2), 0);
+  PART_EAU = new THREE.InstancedMesh(new THREE.SphereGeometry(.55, 8, 6), new THREE.MeshBasicMaterial(), Math.max(1, n)); PART_EAU.count = n; PART_EAU.frustumCulled = false;
+  let i = 0; for (const f of FLUX_EAU) for (let k = 0, nb = f.riv ? 1 : 2; k < nb; k++) { f.s = f.s || []; f.s.push(k / nb); PART_EAU.setColorAt(i++, f.col); }
+  PART_EAU.visible = vue === 'eau'; scene.add(PART_EAU);
+  majVetuste();
+}
+function animEau(dt) {
+  if (!PART_EAU) return; PART_EAU.visible = vue === 'eau'; if (vue !== 'eau') return;
+  let i = 0;
+  for (const f of FLUX_EAU) {
+    const coule = f.riv || (!(f.e.hs && f.e.hs > S.min) && (f.e.f === 'a' || (f.e.res?.taux ?? 1) > 0));
+    for (let k = 0; k < f.s.length; k++) {
+      if (!coule || DOUX) { MD.makeScale(0, 0, 0); PART_EAU.setMatrixAt(i++, MD); continue; }
+      f.s[k] = (f.s[k] + dt * f.v / Math.max(1, f.a.distanceTo(f.b))) % 1;
+      VA.lerpVectors(f.a, f.b, f.s[k]); const e = f.taille; MD.makeScale(e, e, e).setPosition(VA.x, VA.y, VA.z); PART_EAU.setMatrixAt(i++, MD);
+    }
+  }
+  PART_EAU.instanceMatrix.needsUpdate = true;
+}
+function majVetuste() {
+  const a = annee(S.min);
+  for (const e of ARETES.values()) { if (!e.mat) continue; if (S.lentille === 'vetuste' && !mode) { CA.setHex(0x5cc46a); CB.setHex(0xe5533f); e.mat.color.lerpColors(CA, CB, clamp((a - e.an) / 70, 0, 1)); } else e.mat.color.setHex(e.hs && e.hs > S.min ? 0x8a3a30 : TUYAU[e.type][0]); }
 }
 
 // ============================================================ réseau : topologie, flux de puissance en courant continu, N-1
@@ -1122,6 +1519,7 @@ function demande(m) {
   for (const v of VILLES) {
     const c = { v, tot: 0, res: 0, ter: 0, ind: 0, crit: 0 };
     for (const t of v.tuiles) { const q = QUART[t.quartier], val = q.mw * fd * P[q.cat]; c[q.cat] += val; c.tot += val; }
+    c.ind += v.eauMW || 0; c.tot += v.eauMW || 0;  // pompage et traitement de l'eau
     D.villes.push(c); for (const k of ['res', 'ter', 'ind', 'crit', 'tot']) D[k] += c[k];
   }
   return D;
@@ -1212,12 +1610,13 @@ function pas(m, silencieux = false) {
   const pv = prixVoisin(m), imp = Math.max(0, IMP.p) * .25 * pv, exp = Math.max(0, -IMP.p) * .25 * pv * (CARTE.exportK || .7) + (rd('h2') ? S.ecretement * .25 * 45 : 0);
   const opex = UNITES.reduce((a, u) => a + (u.fin ? 0 : u.cap * (TYPES[u.type].opex || 0) * 1e3), 0) / (365 * 96) + e * 12 + eDist * DISTRIB * tarifEre(annee(m)) + LIGNES.reduce((a, l) => a + l.len * ({ 15: 4e3, 63: 20e3, 225: 40e3, 400: 70e3 }[l.kv]), 0) / (365 * 96);
   const rdc = (S.rd.cours ? S.rd.budget : 0) * 1e6 / (365 * 96), prets = S.prets.reduce((a, p) => a + p.annuite, 0) / (365 * 96);
-  const amendes = annee(m) >= 2032 && UNITES.some(u => estCharbon(u) && !u.fin && u.dispo) ? 40e6 / (365 * 96) : 0;
+  const W = pasEau(m), amendes = (annee(m) >= 2032 && UNITES.some(u => estCharbon(u) && !u.fin && u.dispo) ? 40e6 / (365 * 96) : 0) + W.amendes;
   const bas = (prod.solaire || 0) + (prod.eolien || 0) + Math.max(0, prod.hydro || 0) + (prod.nucleaire || 0) + (prod.biomasse || 0) + Math.max(0, prod.stockage || 0);
   const ren = bas - (prod.nucleaire || 0), coupure = (S.demIlot + S.delestage) / Math.max(1, S.demTot) * 15;
-  for (const c of [S.jour, S.an]) Object.assign(c, { ventes: c.ventes + ventes, comb: c.comb + comb, carbone: c.carbone + carbone, imp: c.imp + imp, exp: c.exp + exp, opex: c.opex + opex, rd: c.rd + rdc, prets: c.prets + prets, amendes: c.amendes + amendes,
+  for (const c of [S.jour, S.an]) Object.assign(c, { ventes: c.ventes + ventes + W.ventes, comb: c.comb + comb, carbone: c.carbone + carbone, imp: c.imp + imp, exp: c.exp + exp, opex: c.opex + opex + W.opex, rd: c.rd + rdc, prets: c.prets + prets, amendes: c.amendes + amendes,
+    m3: c.m3 + W.livre, m3d: c.m3d + W.dem, m3m: c.m3m + W.manque, nc: c.nc + W.nc, eu: c.eu + W.usees, ut: c.ut + W.nonTraite, eauV: c.eauV + W.ventes, eauO: c.eauO + W.opex,
     e: c.e + e, co2: c.co2 + co2 * e, bas: c.bas + bas / tot * e, ren: c.ren + ren / tot * e, coupure: c.coupure + coupure, pointe: Math.max(c.pointe, S.charge + S.pertes) });
-  S.argent += ventes + exp - comb - carbone - imp - opex - rdc - prets - amendes;
+  S.argent += ventes + W.ventes + exp - comb - carbone - imp - opex - W.opex - rdc - prets - amendes;
   if (silencieux) return;
   // surcharges : la protection déclenche une ligne restée au-delà de 130 % pendant 45 minutes
   for (const b of BR) {
@@ -1242,12 +1641,16 @@ function minuit(m) {
   // satisfaction
   const charbon = annee(m) >= 1980 ? UNITES.filter(u => estCharbon(u) && enService(u)).length : 0;  // la pollution n'est mal vue qu'à partir des années 1980
   const exigence = clamp((annee(m) - 1900) / 70, .05, 1);  // au début du siècle, les pannes faisaient partie de la vie
-  const cible = 80 - Math.min(70, S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8;
+  const ex = exigenceEau(annee(m)), E = S.eau;  // eau : pénurie, eau non conforme, rejets non épurés, prix, restrictions
+  const eauPen = Math.min(30, j.m3m / Math.max(1, j.m3d) * 100 * .8 * ex) + Math.min(20, j.nc / Math.max(1, j.m3) * 60 * ex) + (annee(m) >= 1970 ? Math.min(8, j.ut / Math.max(1, j.eu) * 8) : 0) + Math.max(0, E.tarif - 3.6) * 8 + (E.restriction ? 3 : 0);
+  const cible = 80 - Math.min(70, S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8 - eauPen;
+  S.eauPen = eauPen;
   S.sat = clamp(S.sat + (cible - S.sat) * .03, 0, 100); S.nimby *= .985;
   // recherche
   if (S.rd.cours) { S.rd.avance += S.rd.budget / 365; const r = RDI[S.rd.cours]; if (S.rd.avance >= r.cout) { S.rd.acquis.push(r.id); S.rd.cours = null; S.rd.avance = 0; log(`R&D : « ${r.nom} » acquise. ${r.effet}.`, 'bon'); toast(`Recherche terminée : ${r.nom}.`, 'ok'); majBarre(); } }
   // pannes et aléas
-  for (const u of UNITES) if (enService(u) && !TYPES[u.type].fatal && u.type !== 'poste' && u.type !== 'frontiere' && alea() < .0035 * dif.evt * (rd('maint') ? .5 : 1)) { u.panne = m + (1 + Math.floor(alea() * 4)) * 1440; log(`Panne : ${u.nom} s'arrête pour ${Math.round((u.panne - m) / 1440)} jours.`, 'mauvais'); toast(`Panne : ${u.nom} à l'arrêt (−${nf(u.p)} MW).`); }
+  cassesEau(m);
+  for (const u of UNITES) if (enService(u) && !estEauU(u) && !TYPES[u.type].fatal && u.type !== 'poste' && u.type !== 'frontiere' && alea() < .0035 * dif.evt * (rd('maint') ? .5 : 1)) { u.panne = m + (1 + Math.floor(alea() * 4)) * 1440; log(`Panne : ${u.nom} s'arrête pour ${Math.round((u.panne - m) / 1440)} jours.`, 'mauvais'); toast(`Panne : ${u.nom} à l'arrêt (−${nf(u.p)} MW).`); }
   const mo = date(m).getUTCMonth(), hiver = mo <= 1 || mo === 11, ete = mo >= 5 && mo <= 7;
   if (alea() < (hiver ? .02 : .006) * dif.evt) evenement('tempete');
   if (hiver && alea() < .012 * dif.evt) evenement('froid');
@@ -1278,7 +1681,7 @@ const NOM_EVT = { tempete: 'Tempête', froid: 'Grand froid', canicule: 'Canicule
 function nouvelAn(m) {
   const an = annee(m) - 1, a = S.an, e = Math.max(1, a.e);
   const res = a.ventes + a.exp - a.comb - a.carbone - a.imp - a.opex - a.rd - a.prets - a.amendes;
-  const r = { an, co2: a.co2 / e, bas: a.bas / e * 100, ren: a.ren / e * 100, coupure: a.coupure, res, capex: a.capex, sat: S.sat, pointe: a.pointe, e: a.e };
+  const r = { an, co2: a.co2 / e, bas: a.bas / e * 100, ren: a.ren / e * 100, coupure: a.coupure, res, capex: a.capex, sat: S.sat, pointe: a.pointe, e: a.e, ...statsAnEau(a) };
   S.rapports.push(r); S.anPrec = { ...a }; S.an = nouveauCumul();
   const nv = an + 1;
   // les villes grandissent, de nouveaux villages apparaissent
@@ -1290,11 +1693,12 @@ function nouvelAn(m) {
   const nouveaux = [...Object.entries(TYPES).filter(([, t]) => t.an === nv && !t.cache).map(([, t]) => t.nom), ...Object.values(KV).filter(k => k.an === nv).map(k => `lignes ${k.nom}`)];
   if (nouveaux.length) log(`Nouveau en ${nv} : ${nouveaux.join(', ')}.`, 'bon');
   for (const [, t] of Object.entries(TYPES)) if (t.fin === an) log(`${t.nom} : on n’en construit plus à partir de ${nv}.`, 'alerte');
-  majBarre(); trierOrdre();
+  majBarre(); trierOrdre(); if (nv === 1930 && !BANC_ON) dessinerRoutes();
   const er = ERES.find(x => x.an === nv);
   if (er) { S.ere = ERES.indexOf(er); log(`Nouvelle époque : ${er.nom}. ${er.txt}`, 'bon'); }
   rapportAnnuel(r, er);
 }
+const statsAnEau = a => ({ eauServi: 100 * (1 - a.m3m / Math.max(1, a.m3d)), eauConf: 100 * (1 - a.nc / Math.max(1, a.m3)), eauEpure: 100 * (1 - a.ut / Math.max(1, a.eu)) });
 const HAB = { centre: 30000, residentiel: 25000, affaires: 12000, industriel: 8000, hopital: 3000, village: 2500 };
 const habVille = v => v.tuiles.reduce((a, t) => a + HAB[t.quartier], 0);
 const COULEURS_V = ['#ffc94d', '#7cc0f2', '#ff9f8a', '#b8e07b', '#d9a6ff', '#ffb36b', '#8fe3d0', '#f2a1c8'];
@@ -1329,8 +1733,9 @@ function croissanceVille(v, r) {
   }
 }
 function ajouterQuartier(v, t, type, anim) {
-  Object.assign(t, { ville: v, quartier: type, t: 'ville' }); t.top = Math.max(t.top, TERR.ville.h); v.tuiles.push(t); v.hab = habVille(v);
-  dessinerQuartier(t, anim); dessinerFrontieres(); majAcceptation(); dessinerMini();
+  retirerFerme(t); Object.assign(t, { ville: v, quartier: type, t: 'ville' }); t.top = Math.max(t.top, TERR.ville.h); v.tuiles.push(t); v.hab = habVille(v);
+  dessinerQuartier(t, anim); dessinerFrontieres(); majAcceptation(); dessinerMini(); EAU_SALE = true;
+  if (v.tuiles.length === 1 && !BANC_ON) dessinerRoutes(); else if (!BANC_ON) majAmbiance();
 }
 function fonderPeutEtre(r) {
   if (VILLES.length >= 5) return;
@@ -1379,24 +1784,24 @@ const hexPlat = new THREE.CircleGeometry(R * .94, 6, Math.PI / 6); hexPlat.rotat
 const LENT = new THREE.InstancedMesh(hexPlat, new THREE.MeshBasicMaterial({ transparent: true, opacity: .66, depthWrite: false }), LISTE.length);
 LENT.renderOrder = 1; scene.add(LENT);
 const CA = new THREE.Color(), CB = new THREE.Color(), CC = new THREE.Color();
-const RAMPES = { vent: [0xe9f2f7, 0x2f6fc4], soleil: [0xfff3c4, 0xf07a1a], accept: [0xe5533f, 0x5cc46a], bon: [0xfaf6c8, 0x0f9a52] };
-const valeur = (t, k) => (k === 'vent' ? (t.vent - 3) / 7 : k === 'soleil' ? (t.soleil - 1) / 4 : k === 'eau' ? 1 : t.accept / 100);
-const LENTILLES = [['relief', 'Relief', '#86c552'], ['charge', 'Charge réseau', '#7be08a'], ['vent', 'Vent', '#4f9be0'], ['soleil', 'Soleil', '#ffb340'], ['accept', 'Acceptation', '#ff8a7a']];
+const RAMPES = { vent: [0xe9f2f7, 0x2f6fc4], soleil: [0xfff3c4, 0xf07a1a], accept: [0xe5533f, 0x5cc46a], bon: [0xfaf6c8, 0x0f9a52], nappe: [0xe6f3fb, 0x1d64b8], nitr: [0xeaf6d6, 0xb4560f] };
+const valeur = (t, k) => (k === 'vent' ? (t.vent - 3) / 7 : k === 'soleil' ? (t.soleil - 1) / 4 : k === 'eau' ? 1 : k === 'nappe' ? t.nappe : k === 'nitr' ? t.nitr : t.accept / 100);
+const TRACES = { conduite: 'p', egout: 'a' };  // outils de tracé de l'eau : famille de conduite
 let mode = null, kvMode = 225, depart = null, apercu = null;
 function majLentille() {
-  const k = mode ? (mode === 'ligne' ? null : TYPES[mode].pot) : S.lentille;
+  const k = mode ? (mode === 'ligne' || TRACES[mode] ? null : TYPES[mode].pot) : S.lentille;
   LISTE.forEach((t, i) => {
     let vis = false;
-    if (mode === 'ligne') { vis = !!apercu && apercu.includes(t); CC.setHex(0xffe27a); }
+    if (mode === 'ligne' || TRACES[mode]) { vis = !!apercu && apercu.includes(t); CC.setHex(mode === 'ligne' ? 0xffe27a : 0x7cc4ff); }
     else if (mode) { vis = !t.brume && (!estEau(t) || TYPES[mode].eau); const r = raison(t, mode); if (r) CC.setHex(0x0c0f0b); else { CA.setHex(RAMPES.bon[0]); CB.setHex(RAMPES.bon[1]); CC.lerpColors(CA, CB, .15 + .85 * valeur(t, k)); } }
     else if (RAMPES[k]) { vis = !t.brume && !estEau(t); const [a, b] = RAMPES[k]; CA.setHex(a); CB.setHex(b); CC.lerpColors(CA, CB, clamp(valeur(t, k), 0, 1)); }
     MD.makeScale(vis ? 1 : 0, 1, vis ? 1 : 0).setPosition(t.x, surf(t) - .2, t.z);
     LENT.setMatrixAt(i, MD); LENT.setColorAt(i, CC);
   });
-  LENT.instanceMatrix.needsUpdate = true; LENT.instanceColor.needsUpdate = true;
+  LENT.instanceMatrix.needsUpdate = true; LENT.instanceColor.needsUpdate = true; majVetuste();
 }
 const coulTaux = b => (b.fin ? '#8d8f96' : b.hs > S.min ? '#6b6f68' : b.taux > 1 ? '#ff5a4a' : b.taux > .8 ? '#ffc94d' : '#7be08a');
-function couleurCables() { for (const l of LIGNES) if (l.cables && !l.fin) l.cables.material.color.set(S.lentille === 'charge' && !mode ? coulTaux(l) : l.hs > S.min ? '#8a3a30' : '#2d2621'); }
+function couleurCables() { for (const l of LIGNES) if (l.cables && !l.fin) (l.cables.userData.m0 || l.cables.material).color.set(S.lentille === 'charge' && !mode ? coulTaux(l) : l.hs > S.min ? '#8a3a30' : '#2d2621'); }
 
 // ============================================================ fumées
 const BOULE = new THREE.IcosahedronGeometry(1, 1), MFUM = new THREE.MeshToonMaterial({ color: 0x8f8f8f, gradientMap: degrade }), MVAP = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: degrade });
@@ -1468,16 +1873,39 @@ const ICONES = {
   batterie: '<rect x="5" y="9" width="22" height="18" rx="3" fill="#f3f3ef" stroke="#0f130e" stroke-width="2.5"/><rect x="27" y="14" width="3" height="8" rx="1" fill="#0f130e"/><rect x="8" y="12" width="11" height="12" rx="1.5" fill="#5fbf6b"/>',
   poste: '<rect x="6" y="12" width="22" height="16" rx="3" fill="#8e9aa4" stroke="#0f130e" stroke-width="2.5"/><path d="m18 14-5 7h5l-3 6" stroke="#ffc94d" stroke-width="2.6" fill="none" stroke-linejoin="round"/><path d="M10 12V6M24 12V6M7 6h20" stroke="#0f130e" stroke-width="2.5"/>',
   ligne: '<path d="M17 3 10 31M17 3l7 28M8 10h18M11 17h12M13 24h8" stroke="#0f130e" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M2 12q7 6 6 0M26 12q6 6 6 0" stroke="#ffc94d" stroke-width="2" fill="none"/>',
+  prise: '<path d="M2 24c4-3 8 3 12 0s8-3 12 0 6 2 6 2v6H2z" fill="#46a9dd" stroke="#0f130e" stroke-width="2.2" stroke-linejoin="round"/><rect x="5" y="8" width="13" height="12" rx="2" fill="#e6e0d0" stroke="#0f130e" stroke-width="2.4"/><path d="M18 15h12" stroke="#3f9cff" stroke-width="3.4"/>',
+  forage: '<path d="M11 4h12M13 4l-3 26M21 4l3 26" stroke="#0f130e" stroke-width="2.6" fill="none"/><rect x="12" y="20" width="10" height="8" rx="2" fill="#5c7184" stroke="#0f130e" stroke-width="2.2"/><path d="M17 28v4" stroke="#3f9cff" stroke-width="3"/>',
+  source: '<path d="M3 30 13 10l6 8 4-5 8 17z" fill="#a2b65a" stroke="#0f130e" stroke-width="2.4" stroke-linejoin="round"/><path d="M17 4c3 4 4 6 4 8a4 4 0 0 1-8 0c0-2 1-4 4-8z" fill="#6fd0f0" stroke="#0f130e" stroke-width="2"/>',
+  potab: '<rect x="3" y="16" width="13" height="7" rx="1.5" fill="#6fb8a8" stroke="#0f130e" stroke-width="2.2"/><rect x="3" y="24" width="13" height="6" rx="1.5" fill="#6fb8a8" stroke="#0f130e" stroke-width="2.2"/><rect x="18" y="10" width="13" height="20" rx="2" fill="#f3efe6" stroke="#0f130e" stroke-width="2.4"/><path d="M24.5 14c2 3 3 4 3 5.5a3 3 0 0 1-6 0c0-1.5 1-2.5 3-5.5z" fill="#3f9cff"/>',
+  chateau: '<path d="M14 18h6l1 13h-8z" fill="#e9e3d3" stroke="#0f130e" stroke-width="2.2" stroke-linejoin="round"/><path d="M6 10c0-5 22-5 22 0v3c0 4-22 4-22 0z" fill="#f3eee2" stroke="#0f130e" stroke-width="2.4"/><path d="M6.5 12.5c5 2 16 2 21 0" stroke="#3f9cff" stroke-width="2.4" fill="none"/>',
+  reservoir: '<path d="M2 28c4-12 26-12 30 0z" fill="#86b85a" stroke="#0f130e" stroke-width="2.4" stroke-linejoin="round"/><rect x="13" y="14" width="8" height="5" fill="#cfcac0" stroke="#0f130e" stroke-width="2"/><path d="M13 14h8" stroke="#3f9cff" stroke-width="2.4"/>',
+  pompage: '<rect x="3" y="11" width="15" height="17" rx="2" fill="#e8e2d4" stroke="#0f130e" stroke-width="2.4"/><circle cx="10.5" cy="19.5" r="4" fill="#5c7184" stroke="#0f130e" stroke-width="2"/><path d="M18 16h13M18 23h13" stroke="#3f9cff" stroke-width="3.2"/>',
+  step: '<circle cx="11" cy="12" r="7" fill="#8f9a5c" stroke="#0f130e" stroke-width="2.4"/><circle cx="24" cy="12" r="6" fill="#8f9a5c" stroke="#0f130e" stroke-width="2.4"/><rect x="4" y="22" width="26" height="7" rx="2" fill="#7c8a52" stroke="#0f130e" stroke-width="2.4"/><path d="M5 12h12" stroke="#0f130e" stroke-width="1.6"/>',
+  lagunage: '<ellipse cx="11" cy="13" rx="8" ry="5" fill="#6f9a6a" stroke="#0f130e" stroke-width="2.2"/><ellipse cx="22" cy="24" rx="9" ry="5.5" fill="#6f9a6a" stroke="#0f130e" stroke-width="2.2"/><path d="M27 6v8M30 8v6M24 9v5" stroke="#4f8a3a" stroke-width="2.2"/>',
+  dessal: '<path d="M2 26c4-3 7 3 11 0s7-3 11 0" stroke="#1d5a86" stroke-width="3" fill="none"/><rect x="9" y="8" width="20" height="13" rx="2" fill="#eef1f3" stroke="#0f130e" stroke-width="2.4"/><path d="M12 12h14M12 16h14" stroke="#3f9cff" stroke-width="2"/>',
+  conduite: '<path d="M3 22h10c4 0 4-10 8-10h10" stroke="#0f130e" stroke-width="7.5" fill="none" stroke-linecap="round"/><path d="M3 22h10c4 0 4-10 8-10h10" stroke="#3f9cff" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="9" cy="22" r="1.6" fill="#fff"/><circle cx="24" cy="12" r="1.6" fill="#fff"/>',
+  egout: '<path d="M3 12h10c4 0 4 10 8 10h10" stroke="#0f130e" stroke-width="7.5" fill="none" stroke-linecap="round"/><path d="M3 12h10c4 0 4 10 8 10h10" stroke="#b07f4c" stroke-width="4" fill="none" stroke-linecap="round"/>',
+  forageP: '<path d="M11 4h12M13 4l-3 26M21 4l3 26" stroke="#0f130e" stroke-width="2.6" fill="none"/><rect x="12" y="20" width="10" height="8" rx="2" fill="#3f7fb5" stroke="#0f130e" stroke-width="2.2"/><path d="M17 28v4" stroke="#3f9cff" stroke-width="3"/>',
 };
+const prixM = c => nf(c, c < 10 ? 1 : 0);
 function majBarre() {
+  if (vue === 'carte') { $('#chantier').innerHTML = '<div class="vide-chantier">Pour construire, passez en vue Électricité (2) ou Eau (3).</div>'; return; }
+  if (vue === 'eau') return majBarreEau();
   const a = annee(S.min), dispo = ORDRE_BARRE.filter(k => dispoType(k)), bientot = ORDRE_BARRE.filter(k => TYPES[k].an > a).sort((x, y) => TYPES[x].an - TYPES[y].an).slice(0, 3);
   const kvs = Object.entries(KV).filter(([, v]) => v.an <= a).map(([k]) => k).join(' · ');
   $('#chantier').innerHTML = [...dispo, ...bientot].map(k => { const ty = TYPES[k], futur = ty.an > a, verrou = futur || (ty.rd && !rd(ty.rd));
     return `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" ${verrou ? 'disabled' : ''} title="${futur ? `Disponible en ${ty.an}` : ty.rd && !rd(ty.rd) ? 'Recherche : ' + RDI[ty.rd].nom : ty.nom + ' · ' + ty.non}"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k] || ICONES.charbon}</svg><b>${ty.court}</b><span>${futur ? `en ${ty.an}` : verrou ? 'R&D' : `${ty.mw ? nf(ty.mw) + ' MW · ' : ''}${nf(coutType(k))} M€`}</span></button>`; }).join('') +
     `<button type="button" class="carte-c${mode === 'ligne' ? ' actif' : ''}" data-act="mode" data-id="ligne" title="Relier deux ouvrages"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES.ligne}</svg><b>Ligne</b><span>${kvs} kV</span></button>`;
 }
+function majBarreEau() {
+  const a = annee(S.min), dispo = ORDRE_EAU.filter(k => dispoType(k)), bientot = ORDRE_EAU.filter(k => TYPES[k].an > a).sort((x, y) => TYPES[x].an - TYPES[y].an).slice(0, 2);
+  $('#chantier').innerHTML = [...dispo, ...bientot].map(k => { const ty = TYPES[k], futur = ty.an > a;
+    return `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" ${futur ? 'disabled' : ''} title="${futur ? `Disponible en ${ty.an}` : ty.nom + ' · ' + ty.non}"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k] || ICONES.forage}</svg><b>${ty.court}</b><span>${futur ? `en ${ty.an}` : `${capTexte(ty)} · ${prixM(coutType(k))} M€`}</span></button>`; }).join('') +
+    [['conduite', 'Conduite', `${nf(COUT_TUYAU.p, 2)} M€ / hex.`], ['egout', 'Égout', `${nf(COUT_TUYAU.a, 2)} M€ / hex.`]].map(([k, n, c]) => `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" title="Relier deux ouvrages"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k]}</svg><b>${n}</b><span>${c}</span></button>`).join('');
+}
 function majAide() {
   const a = $('#aide'); a.hidden = !mode;
+  if (TRACES[mode]) { a.innerHTML = `<span>${mode === 'egout' ? 'Égout : reliez une ville à une épuration.' : 'Conduite : reliez un captage, une usine ou un château d’eau à une ville.'} ${depart ? 'Cliquez sur l’arrivée.' : 'Cliquez sur le départ.'}</span><button type="button" data-act="mode" data-id="${mode}">Annuler</button>`; return; }
   if (mode === 'ligne') a.innerHTML = `<span>${depart ? `Départ : ${nomCourt(depart)}. Cliquez sur l’arrivée.` : 'Cliquez sur l’ouvrage de départ.'}</span>${Object.entries(KV).map(([k, v]) => `<button type="button" data-act="kv" data-id="${k}" class="${+k === kvMode ? 'actif' : ''}" ${v.an > annee(S.min) ? 'disabled' : ''}>${v.nom} · ${nf(v.cap)} MW</button>`).join('')}<button type="button" data-act="mode" data-id="ligne">Annuler</button>`;
   else if (mode) a.innerHTML = `<span>${TYPES[mode].nom} : posez-la sur un hexagone vert. Plus il est foncé, meilleur est le site.</span><button type="button" data-act="mode" data-id="${mode}">Annuler</button>`;
 }
@@ -1503,7 +1931,12 @@ function survoler(t, cx, cy) {
     const r = finValide(t, kvMode);
     if (depart && bout(t) !== depart) { apercu = r ? null : chemin(depart, bout(t)); majLentille(); }
     h = `<b>${nomTuile(bout(t))}</b><br>${r ? `<span class="non">✕ ${r}</span>` : depart ? (apercu ? `<span class="oui">✓ ${apercu.length - 1} hexagones · ${nf(poidsChemin(apercu) * KV[kvMode].cout, 1)} M€</span>` : '<span class="non">✕ Pas de tracé : la ligne évite l’eau, la montagne, les villes et les ouvrages</span>') : '<span class="oui">✓ Départ possible</span>'}`;
-  } else h = `<b>${nomTuile(t)}</b><br>${t.occ ? (t.occ.fin ? `Chantier ${nf(avancement(t.occ) * 100)} %` : `${nf(Math.max(0, t.occ.p))} MW`) : t.quartier ? `${nf(t.ville.dem || 0)} MW pour toute la ville` : `Vent ${nf(t.vent, 1)} m/s · Soleil ${nf(t.soleil, 1)}/5 · Acceptation ${nf(t.accept)} %`}`;
+  } else if (TRACES[mode]) {
+    const f = TRACES[mode], r = finEau(t, f);
+    if (depart && t !== depart) { apercu = r ? null : cheminEau(depart, t, f); majLentille(); }
+    h = `<b>${nomTuile(t)}</b><br>${r ? `<span class="non">✕ ${r}</span>` : depart ? (apercu ? `<span class="oui">✓ ${apercu.length - 1} hexagones · ${nf((apercu.length - 1) * COUT_TUYAU[f], 2)} M€</span>` : '<span class="non">✕ Pas de tracé : la conduite évite la mer, la montagne et les autres ouvrages</span>') : '<span class="oui">✓ Départ possible</span>'}`;
+  } else if (vue === 'eau') h = `<b>${nomTuile(t)}</b><br>${t.occ && estEauU(t.occ) ? (t.occ.fin ? `Chantier ${nf(avancement(t.occ) * 100)} %` : texteEtiEau(t.occ)[0]) : t.quartier ? `${nf((t.ville.m3d || 0) * 96)} m³/j pour toute la ville` : `Nappe ${pc(t.nappe)} · nitrates ${pc(t.nitr)}${t.ferme ? ` · ferme ${t.ferme === 'culture' ? 'céréalière' : 'd’élevage'}` : ''}`}`;
+  else h = `<b>${nomTuile(t)}</b><br>${t.occ ? (t.occ.fin ? `Chantier ${nf(avancement(t.occ) * 100)} %` : `${nf(Math.max(0, t.occ.p))} MW`) : t.quartier ? `${nf(t.ville.dem || 0)} MW pour toute la ville` : `Vent ${nf(t.vent, 1)} m/s · Soleil ${nf(t.soleil, 1)}/5 · Acceptation ${nf(t.accept)} %`}`;
   bul.innerHTML = h;
   if (cx !== undefined) { bul.hidden = false; bul.style.left = Math.min(cx + 16, innerWidth - 270) + 'px'; bul.style.top = Math.min(cy + 18, innerHeight - 80) + 'px'; }
 }
@@ -1557,6 +1990,17 @@ function cliquer(t, e) {
     toast(`Ligne ${KV[kvMode].nom} lancée (${nf(l.cout / 1e6, 1)} M€). Mise sous tension dans ${KV[kvMode].delai} mois.`, 'ok');
     choisirMode(null); selectionner(tb); return;
   }
+  if (TRACES[mode]) {
+    const f = TRACES[mode], r = finEau(t, f); if (r) return toast(r);
+    if (!depart) { depart = t; placeAnneau(depR, t); majAide(); return; }
+    if (t === depart) return;
+    const p = cheminEau(depart, t, f); if (!p) return toast('Aucun tracé possible entre ces deux hexagones.');
+    const c = (p.length - 1) * COUT_TUYAU[f] * 1e6; if (c > S.argent + 200e6) return toast('Trésorerie insuffisante.');
+    const ty = f === 'a' ? 'usee' : [depart, t].some(x => x.occ?.type === 'prise') && [depart, t].some(x => x.occ?.type === 'potab') ? 'brute' : 'potable';
+    S.argent -= c; S.an.capex += c; poserConduite(null, null, ty, p);
+    log(`${f === 'a' ? 'Collecteur d’eaux usées' : 'Conduite d’eau'} posé sur ${p.length - 1} hexagones (${nf(c / 1e6, 2)} M€).`); toast(`${f === 'a' ? 'Égout' : 'Conduite'} posé (${nf(c / 1e6, 2)} M€).`, 'ok');
+    choisirMode(null); selectionner(t); return;
+  }
   if (mode) {
     const u = acheterUnite(t, mode); if (typeof u === 'string') return toast(u);
     toast(`${u.nom} : chantier lancé, ${Math.round(u.mois)} mois.${u.recours ? ' Recours des riverains.' : ''}`, u.recours ? 'info' : 'ok');
@@ -1567,7 +2011,7 @@ function cliquer(t, e) {
 function selectionner(t) { selT = t; placeAnneau(selR, t); ouvrir('hex'); }
 
 // ============================================================ panneaux
-const TITRES = { accueil: 'Région de Valmont', dispatch: 'Dispatch Desk', construire: 'Construire', reseau: 'Réseau', meteo: 'Météo et prévisions', economie: 'Économie', rd: 'Recherche et développement', journal: 'Journal', hex: 'Hexagone' };
+const TITRES = { eau: 'Gestion de l’eau', accueil: 'Région de Valmont', dispatch: 'Dispatch Desk', construire: 'Construire', reseau: 'Réseau', meteo: 'Météo et prévisions', economie: 'Économie', rd: 'Recherche et développement', journal: 'Journal', hex: 'Hexagone' };
 function kpi(k, v, unite, part, couleur) { return `<div class="kpi"><span class="k">${k}</span><span class="v">${v} <small>${unite}</small></span><div class="jauge"><i style="width:${clamp(part, 0, 1) * 100}%;background:${couleur}"></i></div></div>`; }
 function etatFreq(f) { return f < 49 ? ['Critique · délestage', '#ff6b5a', 'critique'] : f < 49.5 || f > 50.5 ? ['Dégradé', '#ff9a4a', 'critique'] : f < 49.8 || f > 50.2 ? ['Alerte', '#ffc94d', 'alerte'] : ['Normal', '#7be08a', '']; }
 const OBJ = [
@@ -1575,8 +2019,9 @@ const OBJ = [
   ['Coupure par habitant', r => r.coupure <= (CARTE.coupureMax || 30), r => `${nf(r.coupure)} min / ${CARTE.coupureMax || 30} min par an`],
   ['Satisfaction', r => r.sat >= 50, r => `${nf(r.sat)} % / 50 %`],
   ['Trésorerie positive', () => S.argent >= 0, () => `${nf(S.argent / 1e6)} M€`],
+  ['Eau potable servie et conforme', r => (r.eauServi ?? 0) >= 97 && (r.eauConf ?? 0) >= 97, r => `${nf(r.eauServi ?? 0)} % servie · ${nf(r.eauConf ?? 0)} % conforme`],
 ];
-function anCourant() { const a = S.an, e = Math.max(1, a.e); return { bas: a.bas / e * 100, coupure: a.coupure, sat: S.sat, co2: a.co2 / e }; }
+function anCourant() { const a = S.an, e = Math.max(1, a.e); return { bas: a.bas / e * 100, coupure: a.coupure, sat: S.sat, co2: a.co2 / e, ...statsAnEau(a) }; }
 function panneauAccueil() {
   const r = anCourant(), j = S.jourPrec || S.jour, prix = S.hist.reduce((a, h) => a + h.spot, 0) / Math.max(1, S.hist.length);
   return `<div class="encart"><h3>${ere().an} · ${ere().nom}</h3><p>${ere().txt}${ERES[ERES.indexOf(ere()) + 1] ? ` Prochaine époque en ${ERES[ERES.indexOf(ere()) + 1].an} : ${ERES[ERES.indexOf(ere()) + 1].nom}.` : ''}</p></div>
@@ -1609,6 +2054,11 @@ function alertes() {
   for (const r of n1Cache().slice(0, 4)) a.push(['alerte', `N-1 : perte de « ${r.el} » → ${r.cons}.`]);
   if (annee(S.min) >= 2030 && UNITES.some(estCharbon)) a.push(['alerte', annee(S.min) >= 2032 ? 'Charbon encore en service : 40 M€ d’amende par an.' : `Sortie du charbon obligatoire avant le 1er janvier 2032.`]);
   for (const [k, f] of Object.entries(S.evt)) if (f > S.min) a.push(['alerte', `${NOM_EVT[k]} jusqu’au ${dateTxt(f)}.`]);
+  const an = annee(S.min);
+  for (const v of VILLES) if (!v.res && an >= 1920) a.push([an >= 1950 ? 'mauvais' : 'alerte', `${v.nom} n’a pas de réseau d’eau : reliez un captage avec l’outil Conduite (vue Eau).`]);
+  for (const C of RESEAUX) { if (!C.conf) a.push(['mauvais', `Eau non conforme à ${C.villes.map(v => v.nom).join(', ')} : ${C.defauts.join(', ')}.`]); if (C.taux < .95) a.push(['alerte', `Pénurie d’eau à ${C.villes.map(v => v.nom).join(', ')} : ${pc(C.taux)} des besoins servis.`]); }
+  if (S.eau.nappe < .3) a.push(['alerte', `La nappe baisse (${pc(S.eau.nappe)}) : les forages produisent moins.`]);
+  if (an >= 1970 && (S.eau.epure ?? 1) < .8) a.push(['alerte', `Seulement ${pc(S.eau.epure ?? 0)} des eaux usées sont épurées : la rivière se dégrade${an >= 1992 ? ' et les amendes tombent' : ''}.`]);
   return a;
 }
 function marge() { return UNITES.filter(u => actifU(u) && !TYPES[u.type].fatal && TYPES[u.type].mw).reduce((a, u) => a + capDispo(u) - Math.max(0, u.p), 0) + Math.max(0, (IMP.cap || 0) - IMP.p); }
@@ -1643,20 +2093,21 @@ function ligneUnite(u, i = -1) {
 let catOnglet = 'production';
 function panneauConstruire() {
   const liste = Object.entries(TYPES).filter(([, t]) => !t.cache && t.groupe === catOnglet);
-  return `<div class="onglets">${[['production', 'Production'], ['reseau', 'Réseau'], ['stockage', 'Stockage']].map(([k, n]) => `<button type="button" data-act="cat" data-id="${k}" class="${catOnglet === k ? 'actif' : ''}">${n}</button>`).join('')}</div>
-    ${liste.filter(([k, t]) => !(t.fin && annee(S.min) > t.fin)).map(([k, t]) => { const futur = t.an > annee(S.min), verrou = futur || (t.rd && !rd(t.rd)); return `<div class="ligne"><span class="pastille" style="background:${t.f ? FIL[t.f][1] : '#d6dccb'}"></span><div class="txt"><div class="t1">${t.nom}${t.mw ? ' · ' + nf(t.mw) + ' MW' : ''}</div>
+  return `<div class="onglets">${[['production', 'Production'], ['reseau', 'Réseau'], ['stockage', 'Stockage'], ['eau', 'Eau']].map(([k, n]) => `<button type="button" data-act="cat" data-id="${k}" class="${catOnglet === k ? 'actif' : ''}">${n}</button>`).join('')}</div>
+    ${liste.filter(([k, t]) => !(t.fin && annee(S.min) > t.fin)).map(([k, t]) => { const futur = t.an > annee(S.min), verrou = futur || (t.rd && !rd(t.rd)); return `<div class="ligne"><span class="pastille" style="background:${t.f ? FIL[t.f][1] : t.r === 'eau' ? '#38b6ff' : '#d6dccb'}"></span><div class="txt"><div class="t1">${t.nom}${t.mw ? ' · ' + nf(t.mw) + ' MW' : t.r === 'eau' ? ' · ' + capTexte(t) : ''}</div>
       <div class="t2">${t.non}${t.co2 !== undefined && t.mw ? ` · ${nf(t.co2)} gCO₂/kWh` : ''}${t.cout || k === 'fioul' ? ` · ${nf(prixCombustible(k, annee(S.min)))} €/MWh` : ''}${t.reseau ? ` · raccordement ${t.reseau} kV` : ''}</div>
-      <div class="t3">${nf(coutType(k))} M€ · chantier ${delaiType(k)} mois${t.opex ? ` · ${nf(t.opex)} k€/MW/an` : ''}</div></div>
+      <div class="t3">${prixM(coutType(k))} M€ · chantier ${delaiType(k)} mois${t.opex ? ` · ${nf(t.opex)} k€/MW/an` : ''}${t.opexE ? ` · ${nf(t.opexE)} k€/an` : ''}</div></div>
       ${verrou ? `<button type="button" class="btn petit" disabled>${futur ? t.an : 'R&D'}</button>` : `<button type="button" class="btn petit" data-act="placer" data-id="${k}">Placer</button>`}</div>`; }).join('')}
     ${catOnglet === 'reseau' ? Object.entries(KV).map(([k, v]) => `<div class="ligne"><span class="pastille" style="background:${k == 15 ? '#cfcabd' : k == 63 ? '#c3b0ea' : k == 225 ? '#f08a6c' : '#ff5a4a'}"></span><div class="txt"><div class="t1">Ligne ${v.nom} · ${nf(v.cap)} MW</div><div class="t2">${k == 15 ? 'Poteaux en bois : villes et petites usines proches' : k == 63 ? 'Postes 225/63 kV, villes et petites centrales' : k == 225 ? 'Centrales, postes et interconnexion' : 'Grosses centrales et grands postes'}</div><div class="t3">${nf(v.cout, 1)} M€ par hexagone · ${v.delai} mois</div></div>
-      ${v.an > annee(S.min) ? `<button type="button" class="btn petit" disabled>${v.an}</button>` : `<button type="button" class="btn petit" data-act="tracer" data-id="${k}">Tracer</button>`}</div>`).join('') + '<p class="verrou">Au début du siècle, les usines alimentent directement les villes en 15 kV. Plus tard : centrale → 225 kV → poste 225/63 kV → 63 kV → ville.</p>' : ''}`;
+      ${v.an > annee(S.min) ? `<button type="button" class="btn petit" disabled>${v.an}</button>` : `<button type="button" class="btn petit" data-act="tracer" data-id="${k}">Tracer</button>`}</div>`).join('') + '<p class="verrou">Au début du siècle, les usines alimentent directement les villes en 15 kV. Plus tard : centrale → 225 kV → poste 225/63 kV → 63 kV → ville.</p>' : ''}
+    ${catOnglet === 'eau' ? [['conduite', 'Conduite d’eau potable', 'Captage → usine → château d’eau → ville', COUT_TUYAU.p], ['egout', 'Égout', 'Ville → station d’épuration ou lagunage', COUT_TUYAU.a]].map(([k, n, d, c]) => `<div class="ligne"><span class="pastille" style="background:${k === 'egout' ? '#b07f4c' : '#3f9cff'}"></span><div class="txt"><div class="t1">${n}</div><div class="t2">${d}</div><div class="t3">${nf(c, 2)} M€ par hexagone · immédiat</div></div><button type="button" class="btn petit" data-act="placer" data-id="${k}">Tracer</button></div>`).join('') + '<p class="verrou">Une ville sans réseau boit l’eau des puits : de plus en plus mal vu au fil du siècle. La rivière doit être traitée avant d’être bue ; les eaux usées non épurées polluent l’aval.</p>' : ''}`;
 }
 function schemaReseau() {
   const xs = LISTE.filter(t => !t.brume), minX = Math.min(...xs.map(t => t.x)), maxX = Math.max(...xs.map(t => t.x)), minZ = Math.min(...xs.map(t => t.z)), maxZ = Math.max(...xs.map(t => t.z));
   const W = 400, H = W * (maxZ - minZ) / (maxX - minX) + 20, P = t => [10 + (t.x - minX) / (maxX - minX) * (W - 20), 10 + (t.z - minZ) / (maxZ - minZ) * (H - 20)], o = [];
   for (const l of LIGNES) { const pts = l.tuiles.map(P).map(p => p.join(',')).join(' '); o.push(`<polyline points="${pts}" fill="none" stroke="${coulTaux(l)}" stroke-width="${l.kv === 63 ? 2 : l.kv === 225 ? 3 : 4.5}" stroke-linejoin="round"${l.fin || l.hs > S.min ? ' stroke-dasharray="4 3"' : ''}><title>${l.nom} · ${nf(Math.abs(l.f))} MW</title></polyline>`); }
   for (const v of VILLES) { const [x, y] = P(v.centre); o.push(`<circle cx="${x}" cy="${y}" r="7" fill="${v.couleur}" stroke="#0f130e" stroke-width="2"/><text x="${x + 10}" y="${y + 3}">${v.nom}</text>`); }
-  for (const u of UNITES) { const [x, y] = P(u.t), c = TYPES[u.type].f ? FIL[TYPES[u.type].f][1] : '#d6dccb'; o.push(u.type === 'poste' || u.type === 'frontiere' ? `<rect x="${x - 5}" y="${y - 5}" width="10" height="10" fill="${u.type === 'frontiere' ? '#c3b0ea' : '#d6dccb'}" stroke="#0f130e" stroke-width="2"${u.fin ? ' opacity=".5"' : ''}/>` : `<circle cx="${x}" cy="${y}" r="5" fill="${c}" stroke="#0f130e" stroke-width="2"${u.fin ? ' opacity=".5"' : ''}><title>${u.nom}</title></circle>`); }
+  for (const u of UNITES.filter(u => !estEauU(u))) { const [x, y] = P(u.t), c = TYPES[u.type].f ? FIL[TYPES[u.type].f][1] : '#d6dccb'; o.push(u.type === 'poste' || u.type === 'frontiere' ? `<rect x="${x - 5}" y="${y - 5}" width="10" height="10" fill="${u.type === 'frontiere' ? '#c3b0ea' : '#d6dccb'}" stroke="#0f130e" stroke-width="2"${u.fin ? ' opacity=".5"' : ''}/>` : `<circle cx="${x}" cy="${y}" r="5" fill="${c}" stroke="#0f130e" stroke-width="2"${u.fin ? ' opacity=".5"' : ''}><title>${u.nom}</title></circle>`); }
   return `<svg class="schema" viewBox="0 0 ${W} ${H}" role="img" aria-label="Schéma géographique du réseau">${o.join('')}</svg>`;
 }
 function panneauReseau() {
@@ -1721,7 +2172,7 @@ function panneauHex() {
     const v = t.ville;
     h += `<div class="encart"><h3>${v.nom} · ${nf(v.hab)} habitants</h3><div class="stat"><span>Demande</span><b>${nf(v.dem || 0)} MW</b><span>Alimentation</span><b style="color:var(${v.servie ? '--vert' : '--rouge'})">${v.servie ? 'Raccordée' : 'Coupée'}</b></div>
       ${v.tuiles.map(x => `<div class="barre-l"><span style="width:auto;flex:1">${x === t ? '▸ ' : ''}${QUART[x.quartier].nom}</span><span>${nf(QUART[x.quartier].mw * facteurDemande(), 1)} MW</span></div>`).join('')}</div>
-      <p class="verrou">Les villes se raccordent en 63 kV sur leur centre. Elles s’étendent sur les hexagones libres voisins au fil des années.</p>`;
+      <p class="verrou">Les villes se raccordent en 63 kV sur leur centre. Elles s’étendent sur les hexagones libres voisins au fil des années.</p>${blocVilleEau(v)}`;
   } else if (t.occ) {
     const u = t.occ, ty = TYPES[u.type];
     h += `<div class="encart"><h3>${u.nom}</h3><div class="chips">${ty.f ? `<span class="chip" style="background:${FIL[ty.f][1]};color:var(--trait)">${FIL[ty.f][0]}</span>` : ''}<span class="chip">${u.fin ? 'Chantier' : u.panne > S.min ? 'En panne' : !u.dispo ? 'À l’arrêt' : raccordee(u) ? 'En service' : 'Non raccordée'}</span></div>
@@ -1729,7 +2180,7 @@ function panneauHex() {
       ${ty.mw ? `<div class="barre-l"><span>Puissance</span><div class="jauge"><i style="width:${clamp(Math.abs(u.p) / u.cap, 0, 1) * 100}%;background:${FIL[ty.f][1]}"></i></div><span>${nf(u.p)} / ${nf(u.cap)}</span></div>` : ''}
       <div class="stat">${ty.mw ? `<span>Coût marginal</span><b>${nf(coutMarginal(u))} €/MWh</b><span>Émissions</span><b>${nf(co2U(u))} gCO₂/kWh</b><span>Rampe</span><b>${ty.ramp >= 99 ? 'instantanée' : ty.ramp + ' MW/min'}</b>` : ''}${ty.min ? `<span>Minimum technique</span><b>${ty.min} MW</b>` : ''}${u.type === 'poste' ? '<span>Transformation</span><b>2 × 250 MVA</b>' : ''}${ty.reseau ? `<span>Raccordement conseillé</span><b>${ty.reseau} kV</b>` : ''}${u.type === 'barrage' || u.type === 'batterie' ? `<span>Réserve</span><b>${nf(u.soc * 100)} %</b>` : ''}</div></div>
       ${u.type === 'frontiere' ? '' : `<div class="btns">${ty.mw && !u.fin && !ty.fatal ? `<button type="button" class="btn ${u.dispo ? 'secondaire' : ''} petit" data-act="arret" data-id="${u.id}">${u.dispo ? 'Mettre à l’arrêt' : 'Recoupler'}</button>` : ''}
-        <button type="button" class="btn danger petit" data-act="demolir" data-id="${u.id}">${confirmer === u.id ? `Confirmer : ${estCharbon(u) ? `fermeture ${nf(Math.max(.5, u.cap * .07), 1)} M€` : 'démolir'}` : estCharbon(u) ? 'Fermer définitivement' : 'Démolir'}</button></div>`}`;
+        </div>${estEauU(u) ? blocEauHex(u) : ''}<div class="btns"><button type="button" class="btn danger petit" data-act="demolir" data-id="${u.id}">${confirmer === u.id ? `Confirmer : ${estCharbon(u) ? `fermeture ${nf(Math.max(.5, u.cap * .07), 1)} M€` : 'démolir'}` : estCharbon(u) ? 'Fermer définitivement' : 'Démolir'}</button></div>`}`;
   }
   const ls = LIGNES.filter(l => l.a === bout(t) || l.b === bout(t));
   if (ls.length) h += `<div class="section">Lignes raccordées</div>` + ls.map(l => `<div class="ligne"><span class="pastille" style="background:${coulTaux(l)}"></span><div class="txt"><div class="t1">${KV[l.kv].nom} · ${l.nom}</div><div class="t2">${l.fin ? 'chantier' : l.hs > S.min ? 'déclenchée' : `${nf(Math.abs(l.f))} MW · ${nf(l.taux * 100)} %`}</div></div><button type="button" class="btn mini secondaire" data-act="demolir-ligne" data-id="${l.id}" aria-label="Démonter">✕</button></div>`).join('');
@@ -1738,12 +2189,15 @@ function panneauHex() {
       <div class="barre-l"><span>Soleil</span><div class="jauge"><i style="width:${(t.soleil - 1) / 4 * 100}%;background:#ffb340"></i></div><span>${nf(900 + t.soleil * 110)} h</span></div>
       <div class="barre-l"><span>Vent</span><div class="jauge"><i style="width:${(t.vent - 3) / 7 * 100}%;background:#4f9be0"></i></div><span>${nf(t.vent, 1)} m/s</span></div>
       <div class="barre-l"><span>Acceptation</span><div class="jauge"><i style="width:${t.accept}%;background:${t.accept > 35 ? '#7be08a' : '#ff8a7a'}"></i></div><span>${nf(t.accept)} %</span></div>
+      <div class="barre-l"><span>Nappe</span><div class="jauge"><i style="width:${t.nappe * 100}%;background:#38b6ff"></i></div><span>${pc(t.nappe)}</span></div>
+      <div class="barre-l"><span>Nitrates</span><div class="jauge"><i style="width:${t.nitr * 100}%;background:#b4560f"></i></div><span>${t.nitr > .6 ? 'sensible' : 'faible'}</span></div>
+      ${t.ferme ? `<p class="verrou">Ferme ${t.ferme === 'culture' ? 'céréalière' : 'd’élevage'} : construire ici la fera disparaître.${t.ferme === 'culture' && t.dr <= 2 ? ' Elle irrigue l’été en prélevant dans la rivière.' : ''}</p>` : ''}
       ${recours(t) ? `<p class="verrou">${textesRecours[recours(t)]}.</p>` : ''}
-      <div class="section">Ce qu’on peut poser ici</div><div class="regles">${ORDRE_BARRE.map(k => { const r = raison(t, k); return `<div class="regle${r ? '' : ' ok'}">${r ? '✕' : '✓'} ${TYPES[k].court}${r ? `<small>${r}</small>` : ''}</div>`; }).join('')}</div>`;
+      <div class="section">Ce qu’on peut poser ici</div><div class="regles">${(vue === 'eau' ? ORDRE_EAU : vue === 'elec' ? ORDRE_BARRE : [...ORDRE_BARRE, ...ORDRE_EAU]).map(k => { const r = raison(t, k); return `<div class="regle${r ? '' : ' ok'}">${r ? '✕' : '✓'} ${TYPES[k].court}${r ? `<small>${r}</small>` : ''}</div>`; }).join('')}</div>`;
   } else if (t.brume) h += '<p class="vide">Ces terres sont hors de la région concédée.</p>';
   return h;
 }
-const PANNEAUX = { accueil: panneauAccueil, dispatch: panneauDispatch, construire: panneauConstruire, reseau: panneauReseau, meteo: panneauMeteo, economie: panneauEconomie, rd: panneauRD, journal: panneauJournal, hex: panneauHex };
+const PANNEAUX = { eau: panneauEau, accueil: panneauAccueil, dispatch: panneauDispatch, construire: panneauConstruire, reseau: panneauReseau, meteo: panneauMeteo, economie: panneauEconomie, rd: panneauRD, journal: panneauJournal, hex: panneauHex };
 function ouvrir(id, garder = false) {
   if (id === 'carte') { $('#panneau').classList.remove('ouvert'); S.onglet = 'carte'; majNav(); return; }
   if (id !== S.onglet) confirmer = null;
@@ -1808,6 +2262,7 @@ function hud() {
   const w = meteo(S.min);
   $('#date').innerHTML = `${jourTxt(S.min)} ${annee(S.min)} · ${hhmm(S.min)}<small>${ere().nom} · ${saison(S.min)} · vent ${nf(w.vent)} m/s · ${nf(w.temp)} °C · ${w.neb > .7 ? 'couvert' : w.neb > .35 ? 'nuageux' : 'dégagé'}</small>`;
   const [, , cls] = etatFreq(S.f); $('#p-freq').className = 'pill ' + cls; $('#freq').textContent = nf(S.f, 2) + ' Hz';
+  const te = S.eau.taux ?? 1, ce = S.eau.conf ?? 1; $('#p-eau').className = 'pill cache ' + (te < .8 || ce < .9 ? 'critique' : te < .97 || ce < .99 ? 'alerte' : ''); $('#eau-txt').textContent = `Eau ${pc(te)}`;
   $('#sat').textContent = nf(S.sat) + ' %'; $('#argent').textContent = nf(S.argent / 1e6, 1) + ' M€'; $('#argent').classList.toggle('neg', S.argent < 0);
   const ev = Object.entries(S.evt).filter(([, f]) => f > S.min).map(([k]) => NOM_EVT[k]); $('#p-evt').hidden = !ev.length; $('#p-evt').textContent = ev.join(' · ');
   const prod = PROD(), dem = S.charge + S.pertes, mx = Math.max(dem, prod, 1) * 1.15;
@@ -1824,22 +2279,34 @@ const ETI = $('#etiquettes');
 function majBanderoles() {
   for (const v of VILLES) {
     if (!v.el) { v.el = document.createElement('div'); v.el.className = 'ban'; v.el.style.setProperty('--c', v.couleur); ETI.appendChild(v.el); }
-    const html = `<span class="pop">${v.hab >= 1000 ? nf(v.hab / 1000) + 'k' : nf(v.hab)}</span><span class="nom">${v.nom}<small>${nf(v.dem || 0)} MW · ${v.servie ? 'alimentée' : 'non desservie'}</small></span>`;
-    if (v.el.dataset.h !== html) { v.el.innerHTML = html; v.el.dataset.h = html; v.el.classList.toggle('ko', !v.servie); }
+    const C = v.res, eauOk = C && C.taux > .95 && C.conf, ko = vue === 'eau' ? !eauOk : vue === 'elec' ? !v.servie : !v.servie || !eauOk;
+    const txt = vue === 'eau' ? `${nf((v.m3d || 0) * 96)} m³/j · ${C ? (C.conf ? pc(C.taux) + ' servi' : 'non conforme') : 'puits'}` : vue === 'elec' ? `${nf(v.dem || 0)} MW · ${v.servie ? 'alimentée' : 'non desservie'}` : `Électricité ${v.servie ? '✓' : '✕'} · Eau ${eauOk ? '✓' : C ? '!' : '✕'}`;
+    const html = `<span class="pop">${v.hab >= 1000 ? nf(v.hab / 1000) + 'k' : nf(v.hab)}</span><span class="nom">${v.nom}<small>${txt}</small></span>`;
+    if (v.el.dataset.h !== html) { v.el.innerHTML = html; v.el.dataset.h = html; v.el.classList.toggle('ko', ko); }
   }
   for (const u of UNITES) {
     const ty = TYPES[u.type];
-    if (!ty.mw && !u.fin) { u.eti?.remove(); u.eti = null; continue; }
+    if (!ty.mw && !u.fin && !estEauU(u)) { u.eti?.remove(); u.eti = null; continue; }
     if (!u.eti) { u.eti = document.createElement('div'); u.eti.className = 'eti'; ETI.appendChild(u.eti); }
-    const cls = 'eti' + (u.fin ? ' chant' : !actifU(u) ? ' arret' : ''), txt = u.fin ? `Chantier ${nf(avancement(u) * 100)} %` : !raccordee(u) ? 'Non raccordée' : u.panne > S.min ? 'Panne' : !u.dispo ? 'Arrêt' : `${nf(u.p)} MW`;
+    const ee = estEauU(u) && !u.fin ? texteEtiEau(u) : null;
+    const cls = 'eti' + (u.fin ? ' chant' : ee ? ' eau' + (ee[1] ? ' alerte' : '') : !actifU(u) ? ' arret' : ''), txt = u.fin ? `Chantier ${nf(avancement(u) * 100)} %` : ee ? ee[0] : !raccordee(u) ? 'Non raccordée' : u.panne > S.min ? 'Panne' : !u.dispo ? 'Arrêt' : `${nf(u.p)} MW`;
     if (u.eti.textContent !== txt) u.eti.textContent = txt; if (u.eti.className !== cls) u.eti.className = cls;
     u.eti.style.background = ty.f ? FIL[ty.f][1] : '#d6dccb';
   }
 }
+function texteEtiEau(u) {  // [texte, alerte]
+  const ty = TYPES[u.type], C = u.res;
+  if (!C) return ['Non relié', true];
+  if (ty.role === 'captage') return [`${nf((u.q || 0) * 96)} m³/j`, ty.qual === 'nappe' && S.eau.nappe < .3];
+  if (ty.role === 'stock') return [`${pc(u.niv ?? 0)}`, (u.niv ?? 0) < .25];
+  if (ty.role === 'traitement') return [`${nf((u.q || 0) * 96)} m³/j · ${C.conf ? 'conforme' : 'non conforme'}`, !C.conf];
+  if (ty.role === 'epuration') return [`${pc(C.charge || 0)} de charge`, (C.charge || 0) > 1];
+  return ['Pression', false];
+}
 function placerEtiquettes() {
   const s = clamp(240 / distc, .7, 1.15), proche = distc < 430;
   for (const v of VILLES) { if (!v.el) continue; VA.set(v.centre.x, v.centre.top + 19, v.centre.z).project(cam); v.el.style.transform = `translate(${(VA.x + 1) / 2 * ZW}px, ${(1 - VA.y) / 2 * ZH}px) translate(-50%, -100%) scale(${s})`; v.el.style.display = VA.z < 1 ? '' : 'none'; }
-  for (const u of UNITES) { if (!u.eti) continue; VA.set(u.t.x, Math.max(u.t.top, 0) + 17, u.t.z).project(cam); u.eti.style.display = proche && VA.z < 1 ? '' : 'none'; u.eti.style.transform = `translate(${(VA.x + 1) / 2 * ZW}px, ${(1 - VA.y) / 2 * ZH}px) translate(-50%, -100%)`; }
+  for (const u of UNITES) { if (!u.eti) continue; VA.set(u.t.x, Math.max(u.t.top, 0) + 17, u.t.z).project(cam); u.eti.style.display = proche && VA.z < 1 && reseauU(u) === vue ? '' : 'none'; u.eti.style.transform = `translate(${(VA.x + 1) / 2 * ZW}px, ${(1 - VA.y) / 2 * ZH}px) translate(-50%, -100%)`; }
 }
 const mini = $('#mini'), mctx = mini.getContext('2d'), fondMini = document.createElement('canvas'); fondMini.width = mini.width; fondMini.height = mini.height;
 const MX = OX + R * SQ3, MZ = OZ + R * 1.5, ech = Math.min(mini.width / (2 * MX), mini.height / (2 * MZ));
@@ -1850,7 +2317,12 @@ function dessinerMini() {
   for (const t of LISTE) {
     c.beginPath(); for (let i = 0; i < 6; i++) { const [x, z] = coin(t, i, 1.02), [a, b] = versMini(x, z); i ? c.lineTo(a, b) : c.moveTo(a, b); }
     c.fillStyle = t.brume ? '#6e6248' : t.ville ? t.ville.couleur : hexCss(estEau(t) ? (t.t === 'mer' ? 0x2c78ad : 0x56b2db) : TERR[t.t].col); c.fill();
-    if (t.occ) { const [a, b] = versMini(t.x, t.z); c.fillStyle = '#fff'; c.beginPath(); c.arc(a, b, 3, 0, 7); c.fill(); c.strokeStyle = '#0f130e'; c.lineWidth = 1.5; c.stroke(); }
+  }
+  if (vue === 'eau') for (const e of ARETES.values()) { c.strokeStyle = hexCss(TUYAU[e.type][0]); c.lineWidth = 2; c.beginPath(); c.moveTo(...versMini(e.a.x, e.a.z)); c.lineTo(...versMini(e.b.x, e.b.z)); c.stroke(); }
+  for (const t of LISTE) if (t.occ) {
+    const r = reseauU(t.occ), [a, b] = versMini(t.x, t.z);
+    c.fillStyle = vue === 'carte' ? '#fff' : r === vue ? (r === 'eau' ? '#38b6ff' : '#ffc94d') : '#5d6458';
+    c.beginPath(); c.arc(a, b, 3, 0, 7); c.fill(); c.strokeStyle = '#0f130e'; c.lineWidth = 1.5; c.stroke();
   }
 }
 function majMini() {
@@ -1859,7 +2331,102 @@ function majMini() {
   mctx.closePath(); mctx.stroke();
 }
 mini.addEventListener('pointerdown', e => { const r = mini.getBoundingClientRect(); cible.x = ((e.clientX - r.left) / r.width * mini.width - mini.width / 2) / ech; cible.z = ((e.clientY - r.top) / r.height * mini.height - mini.height / 2) / ech - 30; majCam(); });
-function majLentilles() { $('#lentilles').innerHTML = LENTILLES.map(([k, n, c]) => `<button type="button" data-act="lentille" data-id="${k}" class="${S.lentille === k ? 'actif' : ''}"><i style="--c:${c}"></i>${n}</button>`).join(''); }
+function majLentilles() { $('#lentilles').innerHTML = LENT_VUE[vue].map(([k, n, c]) => `<button type="button" data-act="lentille" data-id="${k}" class="${S.lentille === k ? 'actif' : ''}"><i style="--c:${c}"></i>${n}</button>`).join(''); }
+
+// ============================================================ trois vues : carte, électricité, eau
+// Dans la vue d'un réseau, ses ouvrages ont un contour coloré et un anneau, ceux de l'autre réseau deviennent des fantômes.
+const TEINTE = { carte: new THREE.Color(0xffffff), elec: new THREE.Color(0x77756c), eau: new THREE.Color(0x7a8a8f) };
+const HALO_M = { eau: new THREE.MeshBasicMaterial({ color: 0x38b6ff, transparent: true, opacity: .8, depthWrite: false, side: THREE.DoubleSide }), elec: new THREE.MeshBasicMaterial({ color: 0xffc94d, transparent: true, opacity: .8, depthWrite: false, side: THREE.DoubleSide }) };
+const GEO_HALO = (() => { const p = [], o = { x: 0, z: 0 }; for (let i = 0; i < 6; i++) { const a1 = coin(o, i, .99), b1 = coin(o, (i + 1) % 6, .99), a2 = coin(o, i, .84), b2 = coin(o, (i + 1) % 6, .84); p.push(a1[0], 0, a1[1], a2[0], 0, a2[1], b1[0], 0, b1[1], b1[0], 0, b1[1], a2[0], 0, a2[1], b2[0], 0, b2[1]); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); return g; })();
+const reseauU = u => TYPES[u.type].r || 'elec';
+function etatVue(r) { return vue === 'carte' ? 'normal' : r === vue ? 'vif' : 'fantome'; }
+function appliquer(grp, etat, r) {
+  if (!grp) return;
+  grp.traverse(m => {
+    if (!m.isMesh) return; if (m.userData.m0 === undefined) m.userData.m0 = m.material; const m0 = m.userData.m0, cont = m0 === CONT;
+    if (etat === 'fantome') { m.material = GHOST; m.visible = !cont; m.castShadow = false; }
+    else { m.visible = m.userData.cache ? false : true; m.material = cont && etat === 'vif' ? CONT_V[r] : m0; m.castShadow = m0 === MAT; }
+  });
+}
+function stylerU(u) {
+  const r = reseauU(u), e = etatVue(r);
+  appliquer(u.grp, e, r); appliquer(u.grue, e === 'vif' ? 'normal' : e, r);
+  if (!u.halo) { u.halo = new THREE.Mesh(GEO_HALO, HALO_M[r]); u.halo.renderOrder = 3; scene.add(u.halo); }
+  u.halo.position.set(u.t.x, surf(u.t) - .05, u.t.z); u.halo.visible = e === 'vif';
+}
+const stylerL = l => appliquer(l.grp, etatVue('elec') === 'fantome' ? 'fantome' : 'normal', 'elec');
+const LENT_VUE = {
+  carte: [['relief', 'Relief', '#86c552'], ['accept', 'Acceptation', '#ff8a7a']],
+  elec: [['relief', 'Réseau', '#ffc94d'], ['charge', 'Charge réseau', '#7be08a'], ['vent', 'Vent', '#4f9be0'], ['soleil', 'Soleil', '#ffb340'], ['accept', 'Acceptation', '#ff8a7a']],
+  eau: [['relief', 'Réseau', '#3f9cff'], ['nappe', 'Nappes', '#1d64b8'], ['nitr', 'Nitrates', '#b4560f'], ['vetuste', 'Vétusté des conduites', '#e5533f']],
+};
+function choisirVue(v) {
+  if (!LENT_VUE[v]) return;
+  vue = v; document.body.dataset.vue = v; if (mode) choisirMode(null);
+  document.querySelectorAll('[data-act=vue]').forEach(b => b.classList.toggle('actif', b.dataset.id === v));
+  if (!LENT_VUE[v].some(([k]) => k === S.lentille)) S.lentille = 'relief';
+  for (const u of UNITES) stylerU(u); for (const l of LIGNES) stylerL(l);
+  EAU_G.visible = v === 'eau';
+  majBarre(); majLentilles(); majLentille(); couleurCables(); majVetuste(); dessinerMini(); hud();
+  if (innerWidth >= 900 && S.enJeu) { if (v === 'eau' && S.onglet === 'dispatch') ouvrir('eau'); else if (v === 'elec' && S.onglet === 'eau') ouvrir('dispatch'); }
+}
+// ------------------------------------------------------------ panneaux de l'eau
+const pc = (x, d = 0) => nf(x * 100, d) + ' %';
+function statsEau() {
+  const j = S.jourPrec || S.jour, E = S.eau, a = annee(S.min);
+  const vol = RESEAUX.reduce((s, c) => s + (c.vol || 0), 0), dem = VILLES.reduce((s, v) => s + (v.m3d || 0), 0) * 96;
+  const ar = [...ARETES.values()].filter(e => e.f === 'p'), age = ar.length ? ar.reduce((s, e) => s + a - e.an, 0) / ar.length : 0;
+  const fuite = RESEAUX.length ? RESEAUX.reduce((s, c) => s + c.fuite * c.dem, 0) / Math.max(1, RESEAUX.reduce((s, c) => s + c.dem, 0)) : 0;
+  return { j, vol, dem, age, rend: 1 - fuite, prod: RESEAUX.reduce((s, c) => s + (c.prod || 0), 0) * 96, reserve: dem > 0 ? vol / dem : 0, prix: E.tarif * kEau(a) };
+}
+function panneauEau() {
+  const E = S.eau, st = statsEau(), a = annee(S.min), w = meteo(S.min), nm = POLL.filter(p => a >= p[4]);
+  const jours = [1, 2, 3, 4, 5, 6, 7].map(k => { const m = S.min + k * 1440 - heure(S.min) * 60, ws = [9, 15].map(h => meteo(m + h * 60)); return { m, t: Math.max(...ws.map(x => x.temp)), q: ws[0].debit }; });
+  return `<div class="kpis">
+      ${kpi('Besoins servis', pc(E.taux ?? 1), '', E.taux ?? 1, (E.taux ?? 1) > .97 ? 'var(--vert)' : 'var(--orange)')}${kpi('Eau conforme', pc(E.conf ?? 1), '', E.conf ?? 1, (E.conf ?? 1) > .97 ? 'var(--vert)' : 'var(--rouge)')}
+      ${kpi('Réserve', nf(st.reserve * 24, 1), 'h', st.reserve, 'var(--eau)')}${kpi('Rendement du réseau', pc(st.rend), '', st.rend, st.rend > .8 ? 'var(--vert)' : 'var(--orange)')}
+      ${kpi('Eaux usées épurées', pc(E.epure ?? 0), '', E.epure ?? 0, (E.epure ?? 0) > .9 ? 'var(--vert)' : 'var(--orange)')}${kpi('Âge moyen des conduites', nf(st.age), 'ans', st.age / 80, st.age > 50 ? 'var(--rouge)' : 'var(--eau)')}
+    </div>
+    <div class="encart"><h3>Ressource</h3>
+      ${RIV.length ? `<div class="barre-l"><span>Rivière</span><div class="jauge"><i style="width:${clamp(w.debit / 1.6, 0, 1) * 100}%;background:var(--eau)"></i></div><span>${nf(debitRiv(RIV.length * .6, w), 1)} m³/s</span></div>` : ''}
+      <div class="barre-l"><span>Nappe</span><div class="jauge"><i style="width:${E.nappe * 100}%;background:${E.nappe < .35 ? 'var(--orange)' : 'var(--eau)'}"></i></div><span>${pc(E.nappe)}</span></div>
+      ${a >= 1955 ? `<div class="barre-l"><span>Nappe profonde</span><div class="jauge"><i style="width:${E.profonde * 100}%;background:var(--eau)"></i></div><span>${pc(E.profonde)}</span></div>` : ''}
+      <div class="stat"><span>Production</span><b>${nf(st.prod)} m³/j</b><span>Demande</span><b>${nf(st.dem)} m³/j</b><span>Prix du m³ (eau et assainissement)</span><b>${nf(st.prix, 2)} €</b></div></div>
+    <div class="section">Prévisions à 7 jours</div>
+    <table class="tab"><thead><tr><th>Jour</th><th>Temp. max</th><th>Débit</th></tr></thead><tbody>${jours.map(j => `<tr><td>${jourTxt(j.m)}</td><td>${nf(j.t)} °C</td><td>×${nf(j.q, 2)}</td></tr>`).join('')}</tbody></table>
+    <div class="section">Réseaux d’eau potable</div>
+    ${RESEAUX.map(C => `<div class="ligne"><span class="pastille" style="background:${C.conf ? (C.taux > .97 ? 'var(--vert)' : 'var(--orange)') : 'var(--rouge)'}"></span><div class="txt"><div class="t1">${C.villes.map(v => v.nom).join(', ')}</div>
+      <div class="t2">${C.unites.length} ouvrage${C.unites.length > 1 ? 's' : ''} · ${nf((C.dispo || 0) * 96)} m³/j disponibles · fuites ${pc(C.fuite || 0)}${C.pression ? '' : ' · pression faible : construisez un château d’eau'}</div>
+      ${C.volMax ? `<div class="barre-l"><span>Stock</span><div class="jauge"><i style="width:${(C.vol / C.volMax) * 100}%;background:var(--eau)"></i></div><span>${nf(C.vol)} m³</span></div>` : ''}
+      ${C.conf ? '' : `<div class="t3" style="color:var(--rouge)">Non conforme : ${C.defauts.join(', ')}</div>`}</div><div class="val">${pc(C.taux || 0)}<small>servi</small></div></div>`).join('') || '<p class="vide">Aucun réseau : reliez un captage à une ville avec l’outil Conduite.</p>'}
+    ${VILLES.filter(v => !v.res).map(v => `<div class="journal-l ${a >= 1930 ? 'mauvais' : 'alerte'}"><span class="d">SANS RÉSEAU</span><span class="t">${v.nom} boit l’eau des puits.</span></div>`).join('')}
+    <div class="section">Normes en vigueur</div>
+    <div class="chips">${nm.map(([, n, u, v]) => `<span class="chip">${n} ≤ ${nf(v)} ${u}</span>`).join('')}${POLL.filter(p => a < p[4]).slice(0, 2).map(([, n, , , an]) => `<span class="chip" style="opacity:.6">${n} en ${an}</span>`).join('')}</div>
+    <div class="section">Gestion</div>
+    <div class="ligne"><div class="txt"><div class="t1">Prix de l’eau</div><div class="t2">Au-delà de ${nf(3.6 * kEau(a), 2)} €/m³, la satisfaction baisse</div></div><button type="button" class="btn mini secondaire" data-act="tarif-eau" data-dir="-0.1" aria-label="Baisser">−</button><span class="val">${nf(st.prix, 2)}<small>€/m³</small></span><button type="button" class="btn mini secondaire" data-act="tarif-eau" data-dir="0.1" aria-label="Augmenter">+</button></div>
+    <div class="encart"><h3>Restrictions d’usage</h3><p>Arrosage et lavage interdits : −15 % de demande, irrigation divisée par deux, mais les habitants n’aiment pas ça.</p><button type="button" class="btn ${E.restriction ? '' : 'secondaire'}" data-act="restriction">${E.restriction ? 'Lever les restrictions' : 'Imposer des restrictions'}</button></div>
+    <div class="encart"><h3>Renouvellement des conduites</h3><p>${vieilles().length} tronçons ont plus de 30 ans. Les vieilles conduites fuient et cassent plus souvent.</p><button type="button" class="btn secondaire" data-act="renouveler" ${vieilles().length ? '' : 'disabled'}>Renouveler pour ${nf(coutRenouv() / 1e6, 1)} M€</button></div>`;
+}
+function blocEauHex(u) {
+  const ty = TYPES[u.type], C = u.res, a = annee(S.min);
+  let h = `<div class="stat"><span>Capacité</span><b>${capTexte(ty)}</b>`;
+  if (ty.role === 'captage') h += `<span>Production</span><b>${nf((u.q || 0) * 96)} m³/j</b>${ty.qual === 'riviere' ? `<span>Débit de la rivière</span><b>${nf(debitRiv(u.rivI || 0, meteo(S.min)), 2)} m³/s</b>` : ''}${ty.qual === 'nappe' ? `<span>Niveau de la nappe</span><b>${pc(S.eau.nappe)}</b>` : ''}`;
+  if (ty.role === 'stock') h += `<span>Niveau</span><b>${pc(u.niv ?? 0)}</b>`;
+  if (ty.role === 'traitement') h += `<span>Eau traitée</span><b>${nf((u.q || 0) * 96)} m³/j</b>`;
+  if (ty.role === 'epuration') h += `<span>Charge</span><b>${C ? pc(C.charge || 0) : '—'}</b>`;
+  h += `<span>Réseau</span><b style="color:var(${C ? '--vert' : '--rouge'})">${C ? C.villes.map(v => v.nom).join(', ') : ty.role === 'epuration' ? 'Reliez-la à une ville avec l’outil Égout' : 'Reliez-le à une ville avec l’outil Conduite'}</b></div>`;
+  if (u.type === 'potab' && !u.fin) {
+    const et = u.etapes || ['sable'], dispo = Object.entries(ETAPES).filter(([k, e]) => !et.includes(k) && a >= e.an), futur = Object.entries(ETAPES).filter(([, e]) => a < e.an);
+    h += `<div class="section">Chaîne de traitement</div><div class="chaine">${et.map(k => `<span class="etape">${ETAPES[k].nom}</span>`).join('<span class="fleche">→</span>')}${futur.map(([, e]) => `<span class="fleche">+</span><span class="etape verrou">${e.nom} · ${e.an}</span>`).join('')}</div>
+      <div class="btns">${dispo.map(([k, e]) => `<button type="button" class="btn petit secondaire" data-act="etape" data-id="${u.id}" data-k="${k}">+ ${e.nom} · ${e.cout} M€</button>`).join('')}</div>`;
+  }
+  if (C && C.qual && ty.role !== 'epuration') h += `<div class="section">Qualité de l’eau distribuée</div>${POLL.map(([k, n, un, nor, an]) => { const v = C.qual[k], act = a >= an; return `<div class="barre-l"><span style="width:110px">${n}</span><div class="jauge"><i style="width:${clamp(v / nor / 2, 0, 1) * 100}%;background:${!act ? '#6b6f68' : v > nor ? 'var(--rouge)' : 'var(--eau)'}"></i></div><span>${act ? (v > nor ? 'hors norme' : 'conforme') : 'pas de norme'}</span></div>`; }).join('')}<p class="verrou">La barre marque la norme à mi-longueur.</p>`;
+  return h;
+}
+function blocVilleEau(v) {
+  const C = v.res;
+  return `<div class="encart"><h3>Eau de ${v.nom}</h3><div class="stat"><span>Besoin</span><b>${nf((v.m3d || 0) * 96)} m³/j</b><span>Servi</span><b style="color:var(${!C ? '--rouge' : C.taux > .97 ? '--vert' : '--orange'})">${C ? pc(C.taux || 0) : 'puits (pas de réseau)'}</b>${C ? `<span>Qualité</span><b style="color:var(${C.conf ? '--vert' : '--rouge'})">${C.conf ? 'conforme' : C.defauts.join(', ')}</b><span>Pression</span><b>${C.pression ? 'bonne' : 'faible'}</b>` : ''}<span>Eaux usées épurées</span><b>${v.usees ? pc(v.traite / v.usees) : '—'}</b></div></div>`;
+}
 
 // ============================================================ actions
 document.addEventListener('click', ev => {
@@ -1887,6 +2454,11 @@ document.addEventListener('click', ev => {
   else if (act === 'emprunt') { emprunter(+id, +b.dataset.duree); ouvrir('economie', true); }
   else if (act === 'rd') { S.rd.cours = id; S.rd.avance = 0; log(`R&D : lancement de « ${RDI[id].nom} ».`, 'bon'); ouvrir('rd', true); }
   else if (act === 'budget') { S.rd.budget = +id; ouvrir('rd', true); }
+  else if (act === 'vue') choisirVue(id);
+  else if (act === 'tarif-eau') { S.eau.tarif = clamp(Math.round((S.eau.tarif + +b.dataset.dir / kEau()) * 100) / 100, .5, 8); ouvrir('eau', true); }
+  else if (act === 'restriction') { S.eau.restriction = !S.eau.restriction; log(S.eau.restriction ? 'Restrictions d’eau : arrosage et lavage interdits.' : 'Fin des restrictions d’eau.', 'alerte'); ouvrir('eau', true); }
+  else if (act === 'renouveler') { const r = renouveler(); if (r) toast(r); else toast('Conduites renouvelées.', 'ok'); ouvrir('eau', true); }
+  else if (act === 'etape') { const r = ajouterEtape(unite(id), b.dataset.k); if (r) toast(r); ouvrir('hex', true); }
   else if (act === 'menu') menu();
   else if (act === 'fermer-modale') { $('#modale').hidden = true; if (S.enJeu && S.pauseModale) { S.pause = false; S.pauseModale = false; } hud(); }
   else if (act === 'diff') { b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('actif', x === b)); diffChoisie = id; }
@@ -1904,6 +2476,7 @@ document.addEventListener('click', ev => {
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (mode) choisirMode(null); else if (!$('#modale').hidden && S.enJeu) document.querySelector('[data-act=fermer-modale]')?.click(); }
   if (e.key === ' ' && e.target === document.body && S.enJeu) { S.pause = !S.pause; hud(); e.preventDefault(); }
+  if (['1', '2', '3'].includes(e.key) && !e.target.closest('input, textarea, select') && $('#modale').hidden) choisirVue(['carte', 'elec', 'eau'][+e.key - 1]);
 });
 let diffChoisie = 'normal', carteChoisie = 'valmont', graineAlea = 1 + Math.floor(Math.random() * 99998);
 function modale(html) { $('#modale-contenu').innerHTML = html; $('#modale').hidden = false; }
@@ -1920,6 +2493,7 @@ function menu() {
     <div class="section" style="margin-top:4px">Difficulté</div>
     <div class="choix-l">${Object.entries(DIFF).map(([k, d]) => `<button type="button" data-act="diff" data-id="${k}" class="${k === diffChoisie ? 'actif' : ''}">${d.nom}<small>${nf(d.argent)} M€ · croissance ${d.croit < 1 ? 'lente' : d.croit > 1 ? 'rapide' : 'normale'}</small></button>`).join('')}</div>
     <button type="button" class="btn ${S.enJeu || sv ? 'secondaire' : ''}" data-act="nouvelle">Nouvelle campagne · 1900 → 2050</button>
+    <div class="encart"><h3>Trois vues</h3><p>Carte (touche 1) montre toute la région. Électricité (2) montre les centrales, les lignes et le courant. Eau (3) montre les captages, les usines, les châteaux d’eau, les conduites et l’eau qui y coule. On construit dans la vue de chaque réseau.</p></div>
     <div class="encart"><h3>Comment jouer</h3><p>Posez centrales et postes sur les hexagones (barre du bas), puis reliez-les avec l’outil Ligne : centrale → 225 kV → poste 225/63 kV → 63 kV → ville. Une centrale non reliée ne produit rien. Surveillez la fréquence, la charge des lignes (lentille « Charge réseau ») et le critère N-1 dans l’onglet Réseau. Accélérez le temps en haut à gauche.</p></div>
     <button type="button" class="btn secondaire petit" data-act="banc">Banc d’équilibrage</button>
     <p class="verrou">La partie est enregistrée automatiquement dans ce navigateur chaque jour de jeu.</p>`);
@@ -1935,7 +2509,7 @@ function rapportAnnuel(r, er) {
   modale(`<h2 id="modale-titre">${fin ? (gagne ? 'Objectif 2050 atteint !' : 'Objectif 2050 manqué') : `${er.an} · ${er.nom}`}</h2>
     ${fin ? `<p>${gagne ? `${CARTE.nom} produit une électricité bas carbone, fiable et abordable. Bravo, dispatcheur.` : 'La région n’a pas atteint tous ses objectifs. Vous pouvez continuer à jouer pour les remplir.'}</p>` : `<p>${er.txt}</p>${neufs.length ? `<div class="chips">${neufs.map(n => `<span class="chip or">${n}</span>`).join('')}</div>` : ''}`}
     <div class="section" style="margin-top:0">Bilan de ${r.an}</div>
-    <div class="stat"><span>Villes</span><b>${VILLES.length} · ${nf(VILLES.reduce((a, v) => a + v.hab, 0))} habitants</b><span>Énergie livrée</span><b>${nf(r.e / 1e3, r.e < 1e4 ? 1 : 0)} GWh</b><span>Pointe</span><b>${nf(r.pointe, r.pointe < 50 ? 1 : 0)} MW</b><span>Émissions</span><b>${nf(r.co2)} gCO₂/kWh</b><span>Coupure</span><b>${nf(r.coupure)} min</b><span>Résultat</span><b class="${r.res < 0 ? 'neg' : 'pos'}">${nf(r.res / 1e6, 1)} M€</b></div>
+    <div class="stat"><span>Villes</span><b>${VILLES.length} · ${nf(VILLES.reduce((a, v) => a + v.hab, 0))} habitants</b><span>Énergie livrée</span><b>${nf(r.e / 1e3, r.e < 1e4 ? 1 : 0)} GWh</b><span>Pointe</span><b>${nf(r.pointe, r.pointe < 50 ? 1 : 0)} MW</b><span>Émissions</span><b>${nf(r.co2)} gCO₂/kWh</b><span>Coupure</span><b>${nf(r.coupure)} min</b><span>Eau servie · conforme</span><b>${nf(r.eauServi ?? 0)} % · ${nf(r.eauConf ?? 0)} %</b><span>Résultat</span><b class="${r.res < 0 ? 'neg' : 'pos'}">${nf(r.res / 1e6, 1)} M€</b></div>
     ${fin ? `<div class="section">Objectifs 2050</div>${ok.map(([n, b, v]) => `<div class="barre-l"><span style="width:auto;flex:1">${b ? '✓' : '✕'} ${n}</span><span style="width:auto;color:${b ? 'var(--vert)' : 'var(--rouge)'}">${v}</span></div>`).join('')}` : ''}
     <button type="button" class="btn" data-act="${fin ? 'continuer-apres' : 'fermer-modale'}">${fin ? 'Continuer à jouer' : 'Continuer'}</button>`);
 }
@@ -1948,7 +2522,8 @@ function finPartie(cause) {
 
 // ============================================================ nouvelle partie, sauvegarde, chargement
 function toutEffacer() {
-  for (const u of [...UNITES]) { jeter(u.grp); jeter(u.grue); u.eti?.remove(); u.t.occ = null; }
+  for (const u of [...UNITES]) { jeter(u.grp); jeter(u.grue); jeter(u.halo); u.eti?.remove(); u.t.occ = null; }
+  ARETES = new Map(); EAU_SALE = true; RESEAUX = []; EGOUTS = [];
   for (const l of [...LIGNES]) jeter(l.grp);
   UNITES = []; LIGNES = []; TRANSFOS = new Map(); ROTORS.length = 0; FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.q && f.q.ville && f.q.ville.tuiles.indexOf(f.q) < f.q.ville.base));
   for (const t of LISTE) t.npyl = 0;
@@ -1961,7 +2536,7 @@ function genererCarte(def) {
   FUMEES.length = 0; ROTORS.length = 0; jeter(FRONT); FRONT = null;
   genererTerrain(def); construirePlateau();
   for (const v of VILLES) { v.hab0 = v.hab; v.rang0 = v.rang; for (const t of v.tuiles) dessinerQuartier(t, false); }
-  dessinerFrontieres(); majAcceptation(); dessinerMini();
+  dessinerFrontieres(); majAcceptation(); ARETES = new Map(); EAU_SALE = true; dessinerEau(); dessinerRoutes(); dessinerMini();
   selT = null; placeAnneau(selR, null); placeAnneau(survolR, null);
 }
 function installationsDepart() {  // 1900 : une usine au charbon et, s'il y a une rivière, une usine au fil de l'eau, reliées en 15 kV
@@ -1974,6 +2549,12 @@ function installationsDepart() {  // 1900 : une usine au charbon et, s'il y a un
   const relier = (a, b, kv) => tracerLigne(a, b, kv, { immediat: true }) || console.warn('ligne impossible', nomCourt(a));
   relier(usine, cap, 15); relier(usine, cap, 15); if (fil) relier(fil, cap, 15);
   S.ordre = UNITES.filter(u => TYPES[u.type].f && !TYPES[u.type].fatal && u.type !== 'batterie').map(u => u.id).concat('imp'); trierOrdre();
+  // eau : un forage (ou une source) et un château d'eau reliés à la capitale
+  const v0 = VILLES[0], pres2 = (ty, d1, d2) => LISTE.filter(t => !raison(t, ty) && dist(t, cap) >= d1 && dist(t, cap) <= d2 && cheminEau(t, cap)).sort((a, b) => dist(a, cap) - dist(b, cap) || hache(a.q, a.r, 14) - hache(b.q, b.r, 14))[0];
+  const entree = t => v0.tuiles.slice().sort((a, b) => dist(a, t) - dist(b, t))[0];
+  for (const ty of ['forage', 'source', 'prise']) { const t = pres2(ty, 2, 4); if (t) { creerUnite(t, ty, { immediat: true, nom: `${TYPES[ty].court} de ${v0.nom}` }); poserConduite(t, entree(t), 'potable'); break; } }
+  const ch = pres2('chateau', 1, 3); if (ch) { creerUnite(ch, 'chateau', { immediat: true, nom: `Château d’eau de ${v0.nom}` }); poserConduite(ch, entree(ch), 'potable'); }
+  topoEau();
 }
 function prechauffer() {
   majAcceptation(); topologie();
@@ -1985,7 +2566,7 @@ function prechauffer() {
 }
 function nouvellePartie(diff, def = carteDef('valmont')) {
   toutEffacer(); genererCarte(def); S = etatInitial(diff); S.carte = def; gs = 99 + (def.graine || 0); uid = 0; IMP.cap = 0;
-  installationsDepart(); dessinerFrontieres(); prechauffer();
+  installationsDepart(); dessinerFrontieres(); dessinerRoutes(); prechauffer();
   log(`1900 · ${CARTE.nom}. ${VILLES[0].nom} compte ${nf(VILLES[0].hab)} habitants et découvre l’électricité : environ ${nf(Math.max(...S.hist.map(h => h.charge)), 1)} MW à la pointe. Votre mission : électrifier la région jusqu’en 2050.`);
   log(`${ERES[0].nom} · ${ERES[0].txt}${FRONT_T ? '' : ' Sur une île, aucune interconnexion ne viendra jamais.'}`, 'bon');
   S.enJeu = true; S.pause = false; S.vit = 1;
@@ -1999,7 +2580,8 @@ const CLE = 'gridmaster-campagne-v1';
 function sauver() {
   if (!S?.enJeu || BANC_ON) return;
   const d = { S: { ...S, hist: S.hist.slice(-96), fhist: undefined, D: undefined }, uid, gs, carte: CARTE,
-    unites: UNITES.map(u => ({ id: u.id, type: u.type, k: u.t.k, nom: u.nom, dispo: u.dispo, panne: u.panne, fin: u.fin, debut: u.debut, soc: u.soc, mode: u.mode })),
+    unites: UNITES.map(u => ({ id: u.id, type: u.type, k: u.t.k, nom: u.nom, dispo: u.dispo, panne: u.panne, fin: u.fin, debut: u.debut, soc: u.soc, mode: u.mode, niv: u.niv, etapes: u.etapes })),
+    aretes: [...ARETES.values()].map(e => [e.a.k, e.b.k, e.type, e.an]),
     lignes: LIGNES.map(l => ({ id: l.id, a: l.a.k, b: l.b.k, kv: l.kv, fin: l.fin, hs: l.hs, chemin: l.tuiles.map(t => t.k) })), villes: VILLES.map(v => ({ nom: v.nom, couleur: v.couleur, rang: v.rang, rayon: v.rayon, i: v.i, prochaine: v.prochaine, fondee: v.fondee, grace: v.grace, base: v.base, centre: v.centre.k, tuiles: v.tuiles.map(t => [t.k, t.quartier]) })) };
   try { localStorage.setItem(CLE, JSON.stringify(d)); } catch (e) { /* stockage indisponible : la partie continue sans sauvegarde */ }
 }
@@ -2015,7 +2597,9 @@ function charger() {
     for (const [k, q] of x.tuiles) { const t = T.get(k); Object.assign(t, { ville: v, quartier: q, t: 'ville' }); t.top = Math.max(t.top, TERR.ville.h); v.tuiles.push(t); dessinerQuartier(t, false); }
     v.hab = v.hab0 = habVille(v); v.rang0 = v.base ? 'capitale' : v.rang; VILLES.push(v);
   }
-  for (const s of d.unites) { const u = creerUnite(T.get(s.k), s.type, { immediat: !s.fin, nom: s.nom, fin: s.fin }); Object.assign(u, { id: s.id, dispo: s.dispo, panne: s.panne, debut: s.debut, soc: s.soc, mode: s.mode }); }
+  for (const s of d.unites) { const u = creerUnite(T.get(s.k), s.type, { immediat: !s.fin, nom: s.nom, fin: s.fin }); Object.assign(u, { id: s.id, dispo: s.dispo, panne: s.panne, debut: s.debut, soc: s.soc, mode: s.mode }); if (s.niv !== undefined) u.niv = s.niv; if (s.etapes) u.etapes = s.etapes; }
+  for (const [a, b, ty, an] of d.aretes || []) ajouteArete(T.get(a), T.get(b), ty, an);
+  dessinerEau(); dessinerRoutes(); topoEau();
   for (const s of d.lignes) { const l = tracerLigne(T.get(s.a), T.get(s.b), s.kv, { immediat: !s.fin, chemin: s.chemin.map(k => T.get(k)) }); if (l) Object.assign(l, { id: s.id, fin: s.fin, hs: s.hs }); if (l && l.fin) dessinerLigne(l); }
   dessinerFrontieres(); majAcceptation(); topologie(); dispatch(S.min); for (const u of [...UNITES, IMP]) u.p = actifU(u) ? u.c : 0; reseau();
   majBarre(); majLentilles(); majLentille(); couleurCables(); dessinerMini(); hud(); S.pause = false;
@@ -2114,13 +2698,55 @@ function reparerBot(suivi) {
   }
   suivi.clear();
 }
+// eau pour le banc : chaque ville reçoit un captage, un château d'eau, puis une épuration, et les usines suivent les normes
+function siteEau(type, v, dmax = 5) {
+  return LISTE.filter(t => !raison(t, type) && Math.min(...v.tuiles.map(x => dist(x, t))) <= dmax && cheminEau(t, v.centre, 'p'))
+    .sort((a, b) => Math.min(...v.tuiles.map(x => dist(x, a))) - Math.min(...v.tuiles.map(x => dist(x, b))) || b.accept - a.accept)[0] || null;
+}
+function acheterEau(type, v, dmax = 5) {
+  const t = siteEau(type, v, dmax); if (!t) return null;
+  const c = coutType(type) * 1e6; if (S.argent < c && !financer(c - S.argent + taillePret() * 1e6)) return null;
+  const u = acheterUnite(t, type); return typeof u === 'string' ? null : u;
+}
+function relierEau(u, v, type) { const p = cheminEau(u.t, v.tuiles.slice().sort((a, b) => dist(a, u.t) - dist(b, u.t))[0], FAM[type]); if (!p) return false; S.argent -= (p.length - 1) * COUT_TUYAU[FAM[type]] * 1e6; poserConduite(null, null, type, p); return true; }
+function botEau() {
+  const a = annee(S.min);
+  for (const v of VILLES) {
+    const C = v.res, besoin = (v.m3d || 0) * 96 * 1.35 / (1 - (C?.fuite || .1));
+    const capJ = C ? C.unites.filter(u => TYPES[u.type].role === 'captage').reduce((s, u) => s + TYPES[u.type].m3, 0) : 0;
+    const enCours = UNITES.some(u => u.fin && estEauU(u) && Math.min(...v.tuiles.map(x => dist(x, u.t))) <= 5);
+    if (capJ < besoin && !enCours) {
+      let u = null;
+      if (besoin - capJ > 6000 && dispoType('potab')) { u = acheterEau('prise', v); if (u) { const p = acheterEau('potab', v); if (p) { relierEau(u, v, 'brute'); relierEau(p, v, 'potable'); u = p; } } }
+      u = u || acheterEau('forage', v) || (dispoType('forageP') && acheterEau('forageP', v)) || acheterEau('source', v) || (dispoType('dessal') && acheterEau('dessal', v, 4));
+      if (u && u.type !== 'potab') relierEau(u, v, 'potable');
+    }
+    if (C && !C.pression && !enCours) { const s = acheterEau('chateau', v, 2); if (s) relierEau(s, v, 'potable'); }
+    if (C && C.volMax && C.volMax < besoin * .15 && !enCours) { const s = acheterEau('chateau', v, 2); if (s) relierEau(s, v, 'potable'); }
+    // assainissement : lagunage pour les petites villes, station d'épuration dès 1950
+    const E = v.egout, capE = E ? E.unites.reduce((s, u) => s + TYPES[u.type].eh, 0) : 0;
+    if (capE < v.hab * 1.2 && !UNITES.some(u => u.fin && TYPES[u.type].role === 'epuration')) {
+      const ep = (a >= 1950 && v.hab > 6000 && acheterEau('step', v)) || (a >= 1930 && acheterEau('lagunage', v, 3));
+      if (ep) relierEau(ep, v, 'usee');
+    }
+    // traitement : on ajoute l'étape qui corrige le défaut
+    if (C && !C.conf) for (const p of C.unites.filter(u => u.type === 'potab' && !u.fin)) {
+      const k = Object.keys(ETAPES).find(k => !(p.etapes || []).includes(k) && a >= ETAPES[k].an); if (k) ajouterEtape(p, k);
+    }
+  }
+  if (vieilles().length > 12 && S.argent > coutRenouv() + seuilFaillite()) renouveler();
+}
+function ajouterEtape(u, k) {
+  const e = ETAPES[k]; if (!u.etapes) u.etapes = ['sable']; if (u.etapes.includes(k) || annee(S.min) < e.an) return 'Étape indisponible.';
+  S.argent -= e.cout * 1e6; S.an.capex += e.cout * 1e6; u.etapes.push(k); log(`${u.nom} : nouvelle étape « ${e.nom} » (${e.cout} M€).`, 'bon'); return null;
+}
 function botMois(st, suivi) {
   if (!st.rd) return;
   const an = annee(S.min), mo = date(S.min).getUTCMonth();
   S.rd.budget = Math.max(1, Math.round(st.budget * pointeEstimee() / 10));  // budget de recherche proportionnel à la taille du réseau
   if (!S.rd.cours) { const r = st.rd.map(id => RDI[id]).find(r => r && rdDispo(r)); if (r) { S.rd.cours = r.id; S.rd.avance = 0; } }
   if (rd('effac')) S.effacement = S.delestage > 0 || marge() < 60;
-  reparerBot(suivi);
+  reparerBot(suivi); botEau();
   const ch = UNITES.find(estCharbon);
   if (ch && st.ferme && (an > 2031 || (an === 2031 && mo >= 6) || (an >= 2026 && capFerme(true) > pointeEstimee(1) * 1.2))) fermer(ch);
   const plusGros = Math.max(0, ...UNITES.filter(u => TYPES[u.type].mw && !TYPES[u.type].fatal).map(u => u.cap));  // on garde de quoi perdre la plus grosse centrale
@@ -2193,6 +2819,92 @@ async function lancerBanc() {
   voirBanc();
 }
 
+// ============================================================ ambiance : routes, véhicules, bateaux, oiseaux, animaux, tracteurs
+// Décor animé, sans effet sur la simulation. Tout est en instances : quelques centaines d'objets mis à jour à chaque image.
+let ROUTES = null, VEHIC = [], AMB = null;
+const cheminRoute = (a, b) => {
+  const d = new Map([[a, 0]]), prev = new Map([[a, null]]), vu = new Set();
+  const poids = t => (t.t === 'montagne' ? 6 : t.t === 'colline' ? 1.6 : t.t === 'foret' ? 1.3 : t.ville ? .6 : t.occ ? 4 : 1);
+  for (;;) {
+    let t = null, m = Infinity; for (const [k, v] of d) if (!vu.has(k) && v < m) { m = v; t = k; }
+    if (!t || t === b) break; vu.add(t);
+    for (const n of voisins(t)) if (!vu.has(n) && (n === b || (!n.brume && !estEau(n)))) { const c = m + poids(n); if (c < (d.get(n) ?? Infinity)) { d.set(n, c); prev.set(n, t); } }
+  }
+  if (!prev.has(b)) return null; const p = []; for (let t = b; t; t = prev.get(t)) p.unshift(t); return p;
+};
+function dessinerRoutes() {
+  jeter(ROUTES); ROUTES = new THREE.Group(); scene.add(ROUTES); VEHIC = [];
+  const L = lot(), liens = [];
+  VILLES.forEach((v, i) => { if (i) liens.push([v.centre, VILLES.slice(0, i).sort((x, y) => dist(x.centre, v.centre) - dist(y.centre, v.centre))[0].centre]); });
+  const bordure = LISTE.filter(t => !t.brume && !estEau(t) && t.t !== 'montagne' && voisins(t).some(n => n.brume)).sort((x, y) => dist(x, VILLES[0].centre) - dist(y, VILLES[0].centre));
+  if (FRONT_T) liens.push([VILLES[0].centre, FRONT_T]); else if (bordure[0]) liens.push([VILLES[0].centre, bordure[0]]);
+  const goudron = annee(S.min) >= 1930;
+  for (const [a, b] of liens) {
+    const p = cheminRoute(a, b); if (!p || p.length < 2) continue;
+    const pts = p.map((t, i) => [t.x + (i && i < p.length - 1 ? (hache(t.q, t.r, 17) - .5) * 3 : 0), t.z + (i && i < p.length - 1 ? (hache(t.q, t.r, 19) - .5) * 3 : 0)]);
+    const lisse = []; for (let i = 0; i < pts.length - 1; i++) for (let s = 0; s < 4; s++) { const k = s / 4; lisse.push([pts[i][0] + (pts[i + 1][0] - pts[i][0]) * k, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * k]); } lisse.push(pts.at(-1));
+    const haut = i => { const t = versHex(lisse[i][0], lisse[i][1]); return t ? Math.max(t.top, 0) : 0; };
+    for (let i = 0; i < lisse.length - 1; i++) { const y = Math.max(haut(i), haut(i + 1)) + .18; put(L, ruban([lisse[i], lisse[i + 1]], 1.15, y), goudron ? 0x6f6c66 : 0xc9a874, 0, 0, 0, 0, 0); }
+    const v3 = lisse.map((q, i) => new THREE.Vector3(q[0], haut(i) + .7, q[1])), long = [0]; for (let i = 1; i < v3.length; i++) long.push(long[i - 1] + v3[i].distanceTo(v3[i - 1]));
+    for (let k = 0, n = Math.max(1, Math.round(long.at(-1) / 30)); k < n; k++) VEHIC.push({ pts: v3, long, s: k / n, sens: k % 2 ? 1 : -1, v: 9 + hache(k, n, 3) * 6 });
+  }
+  if (L.g.length) fige(L, ROUTES, MAT_SOL);
+  majAmbiance();
+}
+// instances : un maillage par sorte d'objet
+function instances(geo, n, couleurs) {
+  const m = new THREE.InstancedMesh(geo, new THREE.MeshToonMaterial({ gradientMap: degrade }), Math.max(1, n)); m.count = n; m.frustumCulled = false; m.castShadow = true;
+  for (let i = 0; i < n; i++) m.setColorAt(i, new THREE.Color(couleurs[i % couleurs.length]));
+  scene.add(m); return m;
+}
+const geoMerge = parts => mergeGeometries(parts.map(([g, x, y, z]) => { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); g.translate(x, y, z); return g; }));
+const GEO_VOIT = geoMerge([[boite(2, .8, 1), 0, .55, 0], [boite(1.1, .6, .9), -.1, 1.2, 0]]);
+const GEO_BATEAU = geoMerge([[boite(3.2, .7, 1.2), 0, .35, 0], [cone(1.2, 3.2, 3).scale(.25, 1, 1), 0, 2.3, 0]]);
+const GEO_OISEAU = geoMerge([[boite(1.4, .12, .35).rotateZ(.35), -.6, 0, 0], [boite(1.4, .12, .35).rotateZ(-.35), .6, 0, 0]]);
+const GEO_VACHE = geoMerge([[boite(1.6, .8, .7), 0, .9, 0], [boite(.6, .55, .5), .95, 1.15, 0], [boite(.2, .5, .2), -.55, .3, .2], [boite(.2, .5, .2), .5, .3, -.2]]);
+const GEO_CERF = geoMerge([[boite(1.3, .6, .45), 0, 1, 0], [boite(.35, .8, .3), .65, 1.4, 0], [boite(.15, .7, .15), -.45, .35, 0], [boite(.15, .7, .15), .45, .35, 0], [cone(.25, .6, 3), .75, 2, 0]]);
+const GEO_TRACT = geoMerge([[boite(1.6, .9, 1.1), 0, .8, 0], [boite(.8, .8, .9), -.4, 1.6, 0], [cyl(.55, .55, .3, 8).rotateX(Math.PI / 2), -.5, .55, .6], [cyl(.55, .55, .3, 8).rotateX(Math.PI / 2), -.5, .55, -.6]]);
+function majAmbiance() {
+  if (AMB) for (const m of Object.values(AMB.m)) { scene.remove(m); m.geometry !== GEO_VOIT && m.dispose(); }
+  const mer = LISTE.filter(t => t.t === 'mer' && !voisins(t).some(n => n.brume) && voisins(t).every(n => estEau(n))), lacs = LISTE.filter(t => t.t === 'lac');
+  const bateaux = [...mer.filter((t, i) => hache(t.q, t.r, 23) < .12).slice(0, 7), ...lacs.slice(0, 1)].map((t, i) => ({ t, r: 6 + hache(t.q, t.r, 3) * 8, ph: i * 1.7, v: .05 + hache(t.q, t.r, 5) * .05 }));
+  const pres = LISTE.filter(t => t.ferme === 'elevage'), forets = LISTE.filter(t => t.t === 'foret' && !t.brume && hache(t.q, t.r, 29) < .35), champs = LISTE.filter(t => t.ferme === 'culture' && hache(t.q, t.r, 37) < .5);
+  const vaches = pres.flatMap(t => [0, 1, 2].map(k => ({ t, x: (hache(t.q, t.r, k + 40) - .5) * 9, z: (hache(t.q, t.r, k + 50) - .5) * 7 + 1, a: hache(t.q, t.r, k + 60) * 6, ph: k * 2.1 })));
+  const cerfs = forets.map((t, k) => ({ t, ph: k * 1.3, v: .25 + hache(t.q, t.r, 7) * .2 }));
+  const tracts = champs.map((t, k) => ({ t, ph: k * 2.3 }));
+  const ronde = VILLES.flatMap(v => v.tuiles.filter(t => t.quartier !== 'hopital').map((t, k) => ({ t, ph: k * 1.9 + v.nom.length, v: .35 + hache(t.q, t.r, 9) * .2 })));
+  const oiseaux = [0, 1, 2, 3].flatMap(g => [0, 1, 2, 3, 4].map(k => ({ g, k })));
+  AMB = { bateaux, vaches, cerfs, tracts, ronde, oiseaux, m: {
+    voit: instances(GEO_VOIT, VEHIC.length + ronde.length, [0xd9573b, 0x3f7fb5, 0xf2c94c, 0xf6f2ea, 0x5fae3e]), bat: instances(GEO_BATEAU, bateaux.length, [0xf6f2ea, 0xd9573b]),
+    ois: instances(GEO_OISEAU, oiseaux.length, [0x2b2b2b]), vache: instances(GEO_VACHE, vaches.length, [0xf6f2ea, 0x8a5a3a, 0x2f2c2a]), cerf: instances(GEO_CERF, cerfs.length, [0x9a6a3a]),
+    tract: instances(GEO_TRACT, tracts.length, [0xd9473a, 0x4f9a37]) } };
+}
+const QA = new THREE.Quaternion(), EU = new THREE.Euler(), SC = new THREE.Vector3(), PO = new THREE.Vector3();
+function poseI(m, i, x, y, z, ry, s = 1, cache = false) { EU.set(0, ry, 0); QA.setFromEuler(EU); SC.setScalar(cache ? 0 : s); PO.set(x, y, z); MD.compose(PO, QA, SC); m.setMatrixAt(i, MD); }
+let tAmb = 0;
+function animAmbiance(dt) {
+  if (!AMB || DOUX) return; tAmb += dt;
+  const A = AMB, ancien = annee(S.min) < 1925, nuit = soleil(S.min).el < -.05, fant = vue !== 'carte';
+  // véhicules sur les routes (charrettes avant 1925), et petite ronde dans chaque quartier
+  let i = 0;
+  for (const c of VEHIC) {
+    const tot = c.long.at(-1); c.s = ((c.s + dt * c.v * c.sens / tot) % 1 + 1) % 1; const d = c.s * tot;
+    let k = 1; while (k < c.long.length - 1 && c.long[k] < d) k++;
+    const P = c.pts[k - 1], Q = c.pts[k], u = (d - c.long[k - 1]) / ((c.long[k] - c.long[k - 1]) || 1), dx = Q.x - P.x, dz = Q.z - P.z, l = Math.hypot(dx, dz) || 1;
+    poseI(A.m.voit, i++, P.x + dx * u - dz / l * .55 * c.sens, P.y + (Q.y - P.y) * u, P.z + dz * u + dx / l * .55 * c.sens, Math.atan2(-dz * c.sens, dx * c.sens), ancien ? .8 : 1, nuit && i % 3 === 0);
+  }
+  for (const c of A.ronde) { const t = c.t, a = tAmb * c.v + c.ph; poseI(A.m.voit, i++, t.x + Math.cos(a) * 7.6, t.top + .25, t.z + Math.sin(a) * 7.6, -a - Math.PI / 2, ancien ? .7 : .85, !t.ville); }
+  A.m.voit.instanceMatrix.needsUpdate = true;
+  A.bateaux.forEach((b, j) => { const a = tAmb * b.v + b.ph; poseI(A.m.bat, j, b.t.x + Math.cos(a) * b.r, -.85 + Math.sin(tAmb * 1.3 + j) * .12, b.t.z + Math.sin(a) * b.r, -a, 1); }); A.m.bat.instanceMatrix.needsUpdate = true;
+  A.oiseaux.forEach((o, j) => { const g = o.g, L = OX * 2.2, x = ((tAmb * (6 + g) + g * 170) % L) - L / 2, ang = .4 + g * 1.3, row = o.k - 2;
+    EU.set(0, -ang, Math.sin(tAmb * 9 + o.k) * .35); QA.setFromEuler(EU); SC.setScalar(nuit ? 0 : 1.4); PO.set(x * Math.cos(ang) - (g - 1.5) * 60 * Math.sin(ang) - Math.abs(row) * 3, 48 + g * 4 + Math.abs(row), x * Math.sin(ang) + (g - 1.5) * 60 * Math.cos(ang) + row * 3); MD.compose(PO, QA, SC); A.m.ois.setMatrixAt(j, MD); });
+  A.m.ois.instanceMatrix.needsUpdate = true;
+  A.vaches.forEach((c, j) => { const t = c.t, a = c.a + Math.sin(tAmb * .2 + c.ph) * .8; poseI(A.m.vache, j, t.x + c.x + Math.sin(tAmb * .15 + c.ph) * .8, t.top, t.z + c.z, a, .9, !!(t.occ || t.ville) || fant); }); A.m.vache.instanceMatrix.needsUpdate = true;
+  A.cerfs.forEach((c, j) => { const t = c.t, a = tAmb * c.v + c.ph, saut = Math.max(0, Math.sin(tAmb * 3 + c.ph)) * .5; poseI(A.m.cerf, j, t.x + Math.cos(a) * 4.5, t.top + saut, t.z + Math.sin(a * 1.3) * 3.5, -a, .9, !!t.occ || nuit || fant); }); A.m.cerf.instanceMatrix.needsUpdate = true;
+  const mo = date(S.min).getUTCMonth(), saisonT = mo >= 2 && mo <= 8 && !nuit && annee(S.min) >= 1930;
+  A.tracts.forEach((c, j) => { const t = c.t, u = Math.sin(tAmb * .25 + c.ph), sens = Math.cos(tAmb * .25 + c.ph) > 0 ? 0 : Math.PI; poseI(A.m.tract, j, t.x + u * 4.5, t.top + .2, t.z + 2.6, sens, .8, !saisonT || !!(t.occ || t.ville) || fant); }); A.m.tract.instanceMatrix.needsUpdate = true;
+}
+
 // ============================================================ boucle
 S = etatInitial('normal');
 genererCarte(carteDef('valmont'));
@@ -2216,7 +2928,9 @@ function tic(maintenant) {
   const sl = soleil(S.min), el = Math.max(.12, sl.el), jourK = clamp(sl.el / .35 + .55, .55, 1);
   soleilL.position.set(-Math.sin(sl.az) * 300 * Math.cos(el), 300 * Math.sin(el) + 60, Math.cos(sl.az) * 300 * Math.cos(el));
   soleilL.intensity = 2.6 * jourK; ciel.intensity = .7 + .8 * jourK;
-  animParticules(dt); animFumees(dt); placerEtiquettes();
+  const kt = Math.min(1, dt * 6); MAT_SOL.color.lerp(TEINTE[vue], kt); MAT_RIV.color.lerp(vue === 'elec' ? TEINTE.elec : TEINTE.carte, kt);
+  HALO_M.eau.opacity = HALO_M.elec.opacity = DOUX ? .8 : .55 + Math.sin(maintenant / 330) * .3;
+  animParticules(dt); animEau(dt); animAmbiance(dt); animFumees(dt); placerEtiquettes();
   if (image++ % 8 === 0) majMini();
   if ((rafraichi += dt) > .25) {
     rafraichi = 0; hud(); couleurCables();
@@ -2228,7 +2942,7 @@ majBarre(); majLentilles(); majLentille();
 cible.set(VILLES[0].centre.x + 30, 0, VILLES[0].centre.z + 20); majCam(); redim();
 requestAnimationFrame(tic);
 menu();
-window.GM = { bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
+window.GM = { topoEau, get ARETES() { return ARETES; }, get RESEAUX() { return RESEAUX; }, choisirVue, poserConduite, cheminEau, botEau, pasEau, bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
 </script>
 
 </body>
