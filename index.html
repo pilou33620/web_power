@@ -931,7 +931,7 @@ function topoEau() {
     const add = k => { if (!par.has(k)) par.set(k, k); }, uni = (a, b) => { add(a); add(b); par.set(find(a), find(b)); };
     for (const v of VILLES) for (const t of v.tuiles) uni(t.k, v.centre.k);  // une ville forme un seul nœud
     for (const e of ARETES.values()) if (e.f === f && !(e.hs && e.hs > S.min)) uni(e.a.k, e.b.k);
-    const g = new Map(), de = k => { const r = find(k); if (!g.has(r)) g.set(r, { f, unites: [], villes: [], aretes: [], age: 0 }); return g.get(r); };
+    const g = new Map(), de = k => { const r = find(k); if (!g.has(r)) g.set(r, { f, unites: [], villes: [], aretes: [], age: 0, conf: true, defauts: [], taux: 1, fuite: .05, dem: 0, charge: 0, pression: true }); return g.get(r); };
     for (const u of UNITES) if (estEauU(u) && par.has(u.t.k) && (TYPES[u.type].role === 'epuration') === (f === 'a')) de(u.t.k).unites.push(u);
     for (const v of VILLES) de(v.centre.k).villes.push(v);
     for (const e of ARETES.values()) if (e.f === f && par.has(e.a.k)) de(e.a.k).aretes.push(e);
@@ -2699,9 +2699,9 @@ function reparerBot(suivi) {
   suivi.clear();
 }
 // eau pour le banc : chaque ville reçoit un captage, un château d'eau, puis une épuration, et les usines suivent les normes
-function siteEau(type, v, dmax = 5) {
-  return LISTE.filter(t => !raison(t, type) && Math.min(...v.tuiles.map(x => dist(x, t))) <= dmax && cheminEau(t, v.centre, 'p'))
-    .sort((a, b) => Math.min(...v.tuiles.map(x => dist(x, a))) - Math.min(...v.tuiles.map(x => dist(x, b))) || b.accept - a.accept)[0] || null;
+function siteEau(type, v, dmax = 5) {  // on laisse libre la couronne autour de la ville pour qu'elle puisse grandir
+  const d = t => Math.min(...v.tuiles.map(x => dist(x, t))), cout = t => (d(t) < 2 ? 10 : d(t)) + (SITES.includes(t) ? 20 : 0);
+  return LISTE.filter(t => !raison(t, type) && d(t) <= dmax && cheminEau(t, v.centre, 'p')).sort((a, b) => cout(a) - cout(b) || b.accept - a.accept)[0] || null;
 }
 function acheterEau(type, v, dmax = 5) {
   const t = siteEau(type, v, dmax); if (!t) return null;
@@ -2717,7 +2717,7 @@ function botEau() {
     const enCours = UNITES.some(u => u.fin && estEauU(u) && Math.min(...v.tuiles.map(x => dist(x, u.t))) <= 5);
     if (capJ < besoin && !enCours) {
       let u = null;
-      if (besoin - capJ > 6000 && dispoType('potab')) { u = acheterEau('prise', v); if (u) { const p = acheterEau('potab', v); if (p) { relierEau(u, v, 'brute'); relierEau(p, v, 'potable'); u = p; } } }
+      if (besoin - capJ > 4000 && dispoType('potab')) { u = acheterEau('prise', v); if (u) { const p = acheterEau('potab', v); if (p) { relierEau(u, v, 'brute'); relierEau(p, v, 'potable'); u = p; } } }
       u = u || acheterEau('forage', v) || (dispoType('forageP') && acheterEau('forageP', v)) || acheterEau('source', v) || (dispoType('dessal') && acheterEau('dessal', v, 4));
       if (u && u.type !== 'potab') relierEau(u, v, 'potable');
     }
@@ -2725,8 +2725,8 @@ function botEau() {
     if (C && C.volMax && C.volMax < besoin * .15 && !enCours) { const s = acheterEau('chateau', v, 2); if (s) relierEau(s, v, 'potable'); }
     // assainissement : lagunage pour les petites villes, station d'épuration dès 1950
     const E = v.egout, capE = E ? E.unites.reduce((s, u) => s + TYPES[u.type].eh, 0) : 0;
-    if (capE < v.hab * 1.2 && !UNITES.some(u => u.fin && TYPES[u.type].role === 'epuration')) {
-      const ep = (a >= 1950 && v.hab > 6000 && acheterEau('step', v)) || (a >= 1930 && acheterEau('lagunage', v, 3));
+    if (capE < v.hab * 1.1 && !UNITES.some(u => u.fin && TYPES[u.type].role === 'epuration')) {  // avant 1950, seuls les petits villages ont un lagunage
+      const ep = a >= 1950 && v.hab > 8000 ? acheterEau('step', v) : v.hab <= 8000 && !capE ? acheterEau('lagunage', v, 3) : null;
       if (ep) relierEau(ep, v, 'usee');
     }
     // traitement : on ajoute l'étape qui corrige le défaut
@@ -2869,7 +2869,7 @@ function majAmbiance() {
   const mer = LISTE.filter(t => t.t === 'mer' && !voisins(t).some(n => n.brume) && voisins(t).every(n => estEau(n))), lacs = LISTE.filter(t => t.t === 'lac');
   const bateaux = [...mer.filter((t, i) => hache(t.q, t.r, 23) < .12).slice(0, 7), ...lacs.slice(0, 1)].map((t, i) => ({ t, r: 6 + hache(t.q, t.r, 3) * 8, ph: i * 1.7, v: .05 + hache(t.q, t.r, 5) * .05 }));
   const pres = LISTE.filter(t => t.ferme === 'elevage'), forets = LISTE.filter(t => t.t === 'foret' && !t.brume && hache(t.q, t.r, 29) < .35), champs = LISTE.filter(t => t.ferme === 'culture' && hache(t.q, t.r, 37) < .5);
-  const vaches = pres.flatMap(t => [0, 1, 2].map(k => ({ t, x: (hache(t.q, t.r, k + 40) - .5) * 9, z: (hache(t.q, t.r, k + 50) - .5) * 7 + 1, a: hache(t.q, t.r, k + 60) * 6, ph: k * 2.1 })));
+  const vaches = pres.flatMap(t => [0, 1, 2].map(k => ({ t, x: (hache(t.q, t.r, k + 40) - .5) * 8, z: (hache(t.q, t.r, k + 50) - .5) * 5 + 2, a: hache(t.q, t.r, k + 60) * 6, ph: k * 2.1 })));
   const cerfs = forets.map((t, k) => ({ t, ph: k * 1.3, v: .25 + hache(t.q, t.r, 7) * .2 }));
   const tracts = champs.map((t, k) => ({ t, ph: k * 2.3 }));
   const ronde = VILLES.flatMap(v => v.tuiles.filter(t => t.quartier !== 'hopital').map((t, k) => ({ t, ph: k * 1.9 + v.nom.length, v: .35 + hache(t.q, t.r, 9) * .2 })));
@@ -2891,18 +2891,18 @@ function animAmbiance(dt) {
     const tot = c.long.at(-1); c.s = ((c.s + dt * c.v * c.sens / tot) % 1 + 1) % 1; const d = c.s * tot;
     let k = 1; while (k < c.long.length - 1 && c.long[k] < d) k++;
     const P = c.pts[k - 1], Q = c.pts[k], u = (d - c.long[k - 1]) / ((c.long[k] - c.long[k - 1]) || 1), dx = Q.x - P.x, dz = Q.z - P.z, l = Math.hypot(dx, dz) || 1;
-    poseI(A.m.voit, i++, P.x + dx * u - dz / l * .55 * c.sens, P.y + (Q.y - P.y) * u, P.z + dz * u + dx / l * .55 * c.sens, Math.atan2(-dz * c.sens, dx * c.sens), ancien ? .8 : 1, nuit && i % 3 === 0);
+    poseI(A.m.voit, i++, P.x + dx * u - dz / l * .55 * c.sens, P.y + (Q.y - P.y) * u, P.z + dz * u + dx / l * .55 * c.sens, Math.atan2(-dz * c.sens, dx * c.sens), ancien ? 1.3 : 1.5);
   }
-  for (const c of A.ronde) { const t = c.t, a = tAmb * c.v + c.ph; poseI(A.m.voit, i++, t.x + Math.cos(a) * 7.6, t.top + .25, t.z + Math.sin(a) * 7.6, -a - Math.PI / 2, ancien ? .7 : .85, !t.ville); }
+  for (const c of A.ronde) { const t = c.t, a = tAmb * c.v + c.ph; poseI(A.m.voit, i++, t.x + Math.cos(a) * 7.6, t.top + .25, t.z + Math.sin(a) * 7.6, -a - Math.PI / 2, ancien ? 1.1 : 1.3, !t.ville); }
   A.m.voit.instanceMatrix.needsUpdate = true;
-  A.bateaux.forEach((b, j) => { const a = tAmb * b.v + b.ph; poseI(A.m.bat, j, b.t.x + Math.cos(a) * b.r, -.85 + Math.sin(tAmb * 1.3 + j) * .12, b.t.z + Math.sin(a) * b.r, -a, 1); }); A.m.bat.instanceMatrix.needsUpdate = true;
+  A.bateaux.forEach((b, j) => { const a = tAmb * b.v + b.ph; poseI(A.m.bat, j, b.t.x + Math.cos(a) * b.r, -.85 + Math.sin(tAmb * 1.3 + j) * .12, b.t.z + Math.sin(a) * b.r, -a, 2.2); }); A.m.bat.instanceMatrix.needsUpdate = true;
   A.oiseaux.forEach((o, j) => { const g = o.g, L = OX * 2.2, x = ((tAmb * (6 + g) + g * 170) % L) - L / 2, ang = .4 + g * 1.3, row = o.k - 2;
-    EU.set(0, -ang, Math.sin(tAmb * 9 + o.k) * .35); QA.setFromEuler(EU); SC.setScalar(nuit ? 0 : 1.4); PO.set(x * Math.cos(ang) - (g - 1.5) * 60 * Math.sin(ang) - Math.abs(row) * 3, 48 + g * 4 + Math.abs(row), x * Math.sin(ang) + (g - 1.5) * 60 * Math.cos(ang) + row * 3); MD.compose(PO, QA, SC); A.m.ois.setMatrixAt(j, MD); });
+    EU.set(0, -ang, Math.sin(tAmb * 9 + o.k) * .35); QA.setFromEuler(EU); SC.setScalar(nuit ? 0 : 2.2); PO.set(x * Math.cos(ang) - (g - 1.5) * 60 * Math.sin(ang) - Math.abs(row) * 3, 48 + g * 4 + Math.abs(row), x * Math.sin(ang) + (g - 1.5) * 60 * Math.cos(ang) + row * 3); MD.compose(PO, QA, SC); A.m.ois.setMatrixAt(j, MD); });
   A.m.ois.instanceMatrix.needsUpdate = true;
-  A.vaches.forEach((c, j) => { const t = c.t, a = c.a + Math.sin(tAmb * .2 + c.ph) * .8; poseI(A.m.vache, j, t.x + c.x + Math.sin(tAmb * .15 + c.ph) * .8, t.top, t.z + c.z, a, .9, !!(t.occ || t.ville) || fant); }); A.m.vache.instanceMatrix.needsUpdate = true;
-  A.cerfs.forEach((c, j) => { const t = c.t, a = tAmb * c.v + c.ph, saut = Math.max(0, Math.sin(tAmb * 3 + c.ph)) * .5; poseI(A.m.cerf, j, t.x + Math.cos(a) * 4.5, t.top + saut, t.z + Math.sin(a * 1.3) * 3.5, -a, .9, !!t.occ || nuit || fant); }); A.m.cerf.instanceMatrix.needsUpdate = true;
+  A.vaches.forEach((c, j) => { const t = c.t, a = c.a + Math.sin(tAmb * .2 + c.ph) * .8; poseI(A.m.vache, j, t.x + c.x + Math.sin(tAmb * .15 + c.ph) * .8, t.top, t.z + c.z, a, 1.7, !!(t.occ || t.ville) || fant); }); A.m.vache.instanceMatrix.needsUpdate = true;
+  A.cerfs.forEach((c, j) => { const t = c.t, a = tAmb * c.v + c.ph, saut = Math.max(0, Math.sin(tAmb * 3 + c.ph)) * .5; poseI(A.m.cerf, j, t.x + Math.cos(a) * 4.5, t.top + saut, t.z + Math.sin(a * 1.3) * 3.5, -a, 1.7, !!t.occ || nuit || fant); }); A.m.cerf.instanceMatrix.needsUpdate = true;
   const mo = date(S.min).getUTCMonth(), saisonT = mo >= 2 && mo <= 8 && !nuit && annee(S.min) >= 1930;
-  A.tracts.forEach((c, j) => { const t = c.t, u = Math.sin(tAmb * .25 + c.ph), sens = Math.cos(tAmb * .25 + c.ph) > 0 ? 0 : Math.PI; poseI(A.m.tract, j, t.x + u * 4.5, t.top + .2, t.z + 2.6, sens, .8, !saisonT || !!(t.occ || t.ville) || fant); }); A.m.tract.instanceMatrix.needsUpdate = true;
+  A.tracts.forEach((c, j) => { const t = c.t, u = Math.sin(tAmb * .25 + c.ph), sens = Math.cos(tAmb * .25 + c.ph) > 0 ? 0 : Math.PI; poseI(A.m.tract, j, t.x + u * 4.5, t.top + .2, t.z + 2.6, sens, 1.6, !saisonT || !!(t.occ || t.ville) || fant); }); A.m.tract.instanceMatrix.needsUpdate = true;
 }
 
 // ============================================================ boucle
@@ -2942,7 +2942,7 @@ majBarre(); majLentilles(); majLentille();
 cible.set(VILLES[0].centre.x + 30, 0, VILLES[0].centre.z + 20); majCam(); redim();
 requestAnimationFrame(tic);
 menu();
-window.GM = { topoEau, get ARETES() { return ARETES; }, get RESEAUX() { return RESEAUX; }, choisirVue, poserConduite, cheminEau, botEau, pasEau, bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
+window.GM = { get AMB() { return AMB; }, __cam(t, d) { cible.set(t.x, 0, t.z + 12); distc = d; majCam(); }, topoEau, get ARETES() { return ARETES; }, get RESEAUX() { return RESEAUX; }, choisirVue, poserConduite, cheminEau, botEau, pasEau, bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
 </script>
 
 </body>
