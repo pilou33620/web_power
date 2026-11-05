@@ -33,6 +33,12 @@ Le jeu tient dans un seul fichier, `index.html`, sans installation ni serveur ob
 
 La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu : chaque appareil a donc sa propre partie, et le serveur ne stocke rien.
 
+## Écrans
+
+- **Ordinateur et tablette (iPad)** : format paysage, avec la carte à gauche et le panneau de gestion à droite. Une fenêtre d'ordinateur étroite (moins de 900 px) passe en portrait.
+- **Téléphone (iPhone)** : format portrait, avec la carte en haut et le panneau qui monte du bas.
+- Si l'appareil est tenu dans l'autre sens, un écran demande de le tourner. Le bouton « Continuer ainsi » passe outre.
+
 ## Trois vues
 
 - **Carte** (touche 1) : toute la région, les deux réseaux à la fois, sans les flux.

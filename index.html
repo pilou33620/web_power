@@ -4,6 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GridMaster</title>
+<script>
+// appareil : le téléphone se joue en portrait, la tablette et l'ordinateur en paysage
+(function () {
+  const d = document.documentElement, plat = navigator.platform || navigator.userAgent;
+  const tactile = matchMedia('(pointer: coarse)').matches || (/Mac/.test(plat) && navigator.maxTouchPoints > 1);  // l'iPad se déclare « Mac »
+  d.dataset.appareil = tactile && Math.min(screen.width, screen.height) < 600 ? 'telephone' : tactile ? 'tablette' : 'pc';
+  window.majFormat = () => {
+    const tel = d.dataset.appareil === 'telephone', pays = matchMedia('(orientation: landscape)').matches;
+    d.dataset.format = tel || innerWidth < 900 ? 'portrait' : 'paysage';  // un ordinateur en fenêtre étroite passe aussi en portrait
+    d.dataset.tourner = d.dataset.ignorer ? '' : tel && pays ? 'portrait' : d.dataset.appareil === 'tablette' && !pays ? 'paysage' : '';
+  };
+  majFormat(); addEventListener('resize', majFormat);
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -186,25 +200,28 @@ body[data-vue="elec"] .barre { border-bottom-color: #6b5520; } body[data-vue="ea
 .etape { padding: 3px 8px; border-radius: 9px; background: #23465e; border: 2px solid var(--bord); font-size: 12px; font-weight: 800; }
 .etape.verrou { background: var(--fond); color: var(--gris); border-style: dashed; }
 .fleche { color: var(--gris); font-weight: 800; }
+#tourner { display: none; position: fixed; inset: 0; z-index: 60; background: var(--fond); flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center; }
+html[data-tourner="portrait"] #tourner, html[data-tourner="paysage"] #tourner { display: flex; }
+#tourner h2 { margin: 0; font-family: var(--titre); font-size: 24px; color: var(--or); } #tourner p { margin: 0; color: var(--pale); max-width: 340px; }
+#tourner svg { width: 96px; height: 96px; animation: tourner 2.4s ease-in-out infinite; }
+html[data-tourner="portrait"] #tourner svg { animation-direction: reverse; } html[data-tourner="paysage"] .t-portrait, html[data-tourner="portrait"] .t-paysage { display: none; }
+@keyframes tourner { 0%, 25% { transform: rotate(0); } 55%, 100% { transform: rotate(90deg); } }
+@media (prefers-reduced-motion: reduce) { #tourner svg { animation: none; } }
 .vide-chantier { padding: 8px 14px; font-size: 13px; font-weight: 800; color: var(--doux); white-space: nowrap; }
 
-@media (min-width: 900px) {
-  #app { grid-template-columns: minmax(0, 1fr) 420px; grid-template-rows: calc(60px + env(safe-area-inset-top, 0px)) minmax(0, 1fr) 62px; }
-  .barre { grid-column: 1 / -1; }
-  main { grid-row: 2 / 4; grid-column: 1; }
-  #panneau { display: flex; position: relative; left: auto; right: auto; bottom: auto; height: auto; grid-row: 2; grid-column: 2; border-radius: 0; border: 0; border-left: 3px solid var(--bord); box-shadow: none; z-index: 5; }
-  #panneau .fermer { display: none; }
-  .nav { grid-row: 3; grid-column: 2; border-left: 3px solid var(--bord); padding-bottom: 0; }
-  .nav button { font-size: 10.5px; } .nav button svg { width: 19px; height: 19px; }
-}
+html[data-format="paysage"] #app { grid-template-columns: minmax(0, 1fr) 420px; grid-template-rows: calc(60px + env(safe-area-inset-top, 0px)) minmax(0, 1fr) 62px; }
+html[data-format="paysage"] .barre { grid-column: 1 / -1; }
+html[data-format="paysage"] main { grid-row: 2 / 4; grid-column: 1; }
+html[data-format="paysage"] #panneau { display: flex; position: relative; left: auto; right: auto; bottom: auto; height: auto; grid-row: 2; grid-column: 2; border-radius: 0; border: 0; border-left: 3px solid var(--bord); box-shadow: none; z-index: 5; }
+html[data-format="paysage"] #panneau .fermer { display: none; }
+html[data-format="paysage"] .nav { grid-row: 3; grid-column: 2; border-left: 3px solid var(--bord); padding-bottom: 0; }
+html[data-format="paysage"] .nav button { font-size: 10.5px; } html[data-format="paysage"] .nav button svg { width: 19px; height: 19px; }
 @media (max-width: 1250px) { .minicarte { display: none; } }
-@media (max-width: 899px) {
-  main { grid-row: 2; }
-  .nav { grid-row: 3; }
-  .carte-eq { display: none; }
-  .lentilles { top: auto; bottom: 108px; flex-direction: row; flex-wrap: wrap; max-width: calc(100% - 24px); }
-  .aide { bottom: auto; top: 60px; }
-}
+html[data-format="portrait"] main { grid-row: 2; }
+html[data-format="portrait"] .nav { grid-row: 3; }
+html[data-format="portrait"] .carte-eq { display: none; }
+html[data-format="portrait"] .lentilles { top: auto; bottom: 108px; flex-direction: row; flex-wrap: wrap; max-width: calc(100% - 24px); }
+html[data-format="portrait"] .aide { bottom: auto; top: 60px; }
 @media (max-width: 1100px) { .vues button span { display: none; } .vues button { padding: 0 9px; } }
 @media (max-width: 640px) {
   .pill.cache { display: none; } .titre-date { font-size: 15px; } .argent { font-size: 17px; } .etiquette { font-size: 9px; letter-spacing: 1px; }
@@ -217,6 +234,12 @@ body[data-vue="elec"] .barre { border-bottom-color: #6b5520; } body[data-vue="ea
 </style>
 </head>
 <body>
+<div id="tourner" role="dialog" aria-modal="true" aria-labelledby="tourner-titre">
+  <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="14" y="4" width="20" height="40" rx="4" fill="#253021" stroke="#ffc94d" stroke-width="3"/><circle cx="24" cy="38" r="2" fill="#ffc94d"/></svg>
+  <h2 id="tourner-titre"><span class="t-paysage">Tournez la tablette en paysage</span><span class="t-portrait">Tournez le téléphone en portrait</span></h2>
+  <p><span class="t-paysage">Sur tablette, la carte et le panneau de gestion tiennent côte à côte en format paysage.</span><span class="t-portrait">Sur téléphone, GridMaster se joue en portrait : la carte en haut, le panneau en bas.</span></p>
+  <button type="button" class="btn secondaire petit" onclick="document.documentElement.dataset.ignorer = 1; majFormat();">Continuer ainsi</button>
+</div>
 
 <div id="app">
   <header class="barre">
@@ -280,6 +303,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + 
 const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const euros = n => (Math.abs(n) >= 1e6 ? nf(n / 1e6, 1) + ' M€' : nf(n / 1e3, 0) + ' k€');
 const DOUX = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const portrait = () => document.documentElement.dataset.format === 'portrait';
 const R = 10, SQ3 = Math.sqrt(3), COLS = 30, ROWS = 21; let GRAINE = 7;
 function hache(x, y, s = GRAINE) { let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 1442695041)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
 function bruit(x, y) {
@@ -2456,7 +2480,7 @@ function choisirVue(v) {
   for (const u of UNITES) stylerU(u); for (const l of LIGNES) stylerL(l);
   EAU_G.visible = v === 'eau';
   majBarre(); majLentilles(); majLentille(); couleurCables(); majVetuste(); dessinerMini(); hud();
-  if (innerWidth >= 900 && S.enJeu) { if (v === 'eau' && S.onglet === 'dispatch') ouvrir('eau'); else if (v === 'elec' && S.onglet === 'eau') ouvrir('dispatch'); }
+  if (!portrait() && S.enJeu) { if (v === 'eau' && S.onglet === 'dispatch') ouvrir('eau'); else if (v === 'elec' && S.onglet === 'eau') ouvrir('dispatch'); }
 }
 // ------------------------------------------------------------ panneaux de l'eau
 const pc = (x, d = 0) => nf(x * 100, d) + ' %';
@@ -2525,13 +2549,13 @@ function blocVilleEau(v) {
 document.addEventListener('click', ev => {
   const b = ev.target.closest('[data-act]'); if (!b) return;
   const { act, id } = b.dataset;
-  if (act === 'onglet') ouvrir(id === S.onglet && innerWidth < 900 ? 'carte' : id);
+  if (act === 'onglet') ouvrir(id === S.onglet && portrait() ? 'carte' : id);
   else if (act === 'vitesse') { const i = +id; if (i === 0) S.pause = !S.pause; else { S.pause = false; S.vit = i; } hud(); }
   else if (act === 'lentille') { S.lentille = id; majLentilles(); majLentille(); couleurCables(); }
-  else if (act === 'mode') { choisirMode(mode === id ? null : id); if (innerWidth < 900 && mode) ouvrir('carte'); }
+  else if (act === 'mode') { choisirMode(mode === id ? null : id); if (portrait() && mode) ouvrir('carte'); }
   else if (act === 'kv') { kvMode = +id; depart = null; depR.visible = false; apercu = null; majAide(); majLentille(); }
-  else if (act === 'placer') { choisirMode(id); if (innerWidth < 900) ouvrir('carte'); }
-  else if (act === 'tracer') { kvMode = +id; choisirMode('ligne'); if (innerWidth < 900) ouvrir('carte'); }
+  else if (act === 'placer') { choisirMode(id); if (portrait()) ouvrir('carte'); }
+  else if (act === 'tracer') { kvMode = +id; choisirMode('ligne'); if (portrait()) ouvrir('carte'); }
   else if (act === 'cat') { catOnglet = id; ouvrir('construire', true); }
   else if (act === 'ordre') { S.ordreManuel = true; const i = S.ordre.indexOf(id), j = i + +b.dataset.dir; [S.ordre[i], S.ordre[j]] = [S.ordre[j], S.ordre[i]]; dispatch(S.min); ouvrir('dispatch', true); }
   else if (act === 'trier') { S.ordreManuel = false; trierOrdre(); dispatch(S.min); ouvrir('dispatch', true); }
@@ -2710,7 +2734,7 @@ function nouvellePartie(diff, def = carteDef('valmont')) {
   S.enJeu = true; S.pause = false; S.vit = 1;
   if (BANC_ON) return;
   majBarre(); majLentilles(); majLentille(); couleurCables(); dessinerMini(); hud();
-  ouvrir(innerWidth >= 900 ? 'accueil' : 'carte');
+  ouvrir(!portrait() ? 'accueil' : 'carte');
   cible.set(VILLES[0].centre.x + 30, 0, VILLES[0].centre.z + 20); distc = 330; majCam();
   sauver();
 }
@@ -2741,7 +2765,7 @@ function charger() {
   for (const s of d.lignes) { const l = tracerLigne(T.get(s.a), T.get(s.b), s.kv, { immediat: !s.fin, chemin: s.chemin.map(k => T.get(k)) }); if (l) Object.assign(l, { id: s.id, fin: s.fin, hs: s.hs }); if (l && l.fin) dessinerLigne(l); }
   dessinerFrontieres(); majAcceptation(); topologie(); dispatch(S.min); for (const u of [...UNITES, IMP]) u.p = actifU(u) ? u.c : 0; reseau();
   majBarre(); majLentilles(); majLentille(); couleurCables(); dessinerMini(); hud(); S.pause = false;
-  ouvrir(innerWidth >= 900 ? 'accueil' : 'carte'); cible.set(VILLES[0].centre.x + 30, 0, VILLES[0].centre.z + 20); majCam();
+  ouvrir(!portrait() ? 'accueil' : 'carte'); cible.set(VILLES[0].centre.x + 30, 0, VILLES[0].centre.z + 20); majCam();
   toast(`Partie reprise au ${dateTxt(S.min)}.`, 'ok'); return true;
 }
 
