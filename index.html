@@ -263,7 +263,7 @@ let gs = 99; const alea = () => ((gs = (gs * 16807) % 2147483647) / 2147483647);
 // ============================================================ grille hexagonale (pointe en haut, coordonnées axiales)
 const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
 const cle = (q, r) => q + ',' + r;
-let T = new Map(), LISTE = [], RIV = [], VILLES = [], FRONT_T = null, BARRAGE_T = null, CARTE = null;
+let T = new Map(), LISTE = [], RIV = [], VILLES = [], SITES = [], FRONT_T = null, BARRAGE_T = null, CARTE = null;
 const OX = R * SQ3 * ((COLS - 1) / 2 + .25), OZ = R * 1.5 * (ROWS - 1) / 2;
 function nouvelleGrille() {
   T = new Map(); LISTE = [];
@@ -302,12 +302,12 @@ const estEau = t => TERR[t.t].eau;
 // Relief : e = amp·bruit + gu·u + gv·v + base − ile·(distance au centre). Les proportions de mer, collines, montagnes, forêts et plaines
 // sont des quantiles, ce qui garantit des cartes jouables quelle que soit la graine (Valmont garde ses seuils d'origine).
 const CARTES = {
-  valmont: { nom: 'Vallée de Valmont', sous: 'Montagnes, rivière et crêtes ventées', graine: 7, amp: .85, freq: .17, gu: .95, gv: -.18, base: -.12, abs: { mer: .36, coll: 1.03, mont: 1.2, foret: .6, plaine: .43 }, front: 'est', villes: ['Valmont', 'Bréhal', 'Saint-Aure'] },
-  littoral: { nom: 'Côte d’Émeraude', sous: 'Longue côte, vent de mer, éolien en mer', graine: 21, amp: .7, freq: .16, gu: .25, gv: -1, base: 0, mer: .3, coll: .15, mont: .04, foret: .25, plaine: .35, front: 'auto', villes: ['Port-Émeraude', 'Lannevez', 'Kerbihan', 'Ploumor'] },
-  plaine: { nom: 'Grande plaine agricole', sous: 'Soleil, cultures et biomasse, peu de relief', graine: 33, amp: .55, freq: .14, gu: .2, gv: .15, base: 0, mer: .04, coll: .1, mont: .02, foret: .13, plaine: .6, front: 'auto', villes: ['Champvert', 'Blémont', 'Les Trois-Moulins', 'Vauxbrie'] },
-  ile: { nom: 'Île de Kerlann', sous: 'Sans interconnexion, tarifs majorés de 45 % par la péréquation', graine: 45, amp: .55, freq: .2, gu: 0, gv: 0, base: 0, ile: 1.6, mer: .42, coll: .14, mont: .06, foret: .25, plaine: .35, front: null, tarifK: 1.45, villes: ['Kerlann', 'Port-Tudy', 'Lanvaux'] },
-  industrie: { nom: 'Bassin de Forgeval', sous: 'Usines exigeantes : 10 minutes de coupure par an au plus', graine: 58, amp: .7, freq: .18, gu: .7, gv: .2, base: 0, mer: .12, coll: .16, mont: .06, foret: .2, plaine: .45, front: 'auto', industriel: true, coupureMax: 10, demande: 1.2, villes: ['Forgeval', 'Acier-sur-Lys', 'Vernay'] },
-  marche: { nom: 'Carrefour des frontières', sous: 'Marché ouvert : gros échanges, prix volatils', graine: 64, amp: .6, freq: .15, gu: -.5, gv: .3, base: 0, mer: .14, coll: .14, mont: .04, foret: .22, plaine: .4, front: 'auto', prixVol: 1.8, exportK: .85, frontLignes: 2, villes: ['Trois-Frontières', 'Hallange', 'Lauterbourg'] },
+  valmont: { nom: 'Vallée de Valmont', sous: 'Montagnes, rivière et crêtes ventées', graine: 7, amp: .85, freq: .17, gu: .95, gv: -.18, base: -.12, abs: { mer: .36, coll: 1.03, mont: 1.2, foret: .6, plaine: .43 }, front: 'est', villes: ['Valmont', 'Bréhal', 'Saint-Aure', 'Montclair', 'Les Aubiers', 'Roquefeuil', 'Sainte-Gemme'] },
+  littoral: { nom: 'Côte d’Émeraude', sous: 'Longue côte, vent de mer, éolien en mer', graine: 21, amp: .7, freq: .16, gu: .25, gv: -1, base: 0, mer: .3, coll: .15, mont: .04, foret: .25, plaine: .35, front: 'auto', villes: ['Port-Émeraude', 'Lannevez', 'Kerbihan', 'Ploumor', 'Trégastel-sur-Mer', 'Locmaria', 'Penhir'] },
+  plaine: { nom: 'Grande plaine agricole', sous: 'Soleil, cultures et biomasse, peu de relief', graine: 33, amp: .55, freq: .14, gu: .2, gv: .15, base: 0, mer: .04, coll: .1, mont: .02, foret: .13, plaine: .6, front: 'auto', villes: ['Champvert', 'Blémont', 'Les Trois-Moulins', 'Vauxbrie', 'Saint-Fiacre', 'Orgemont', 'Beaumarais'] },
+  ile: { nom: 'Île de Kerlann', sous: 'Sans interconnexion, tarifs majorés de 45 % par la péréquation', graine: 45, amp: .55, freq: .2, gu: 0, gv: 0, base: 0, ile: 1.6, mer: .42, coll: .14, mont: .06, foret: .25, plaine: .35, front: null, tarifK: 1.45, villes: ['Kerlann', 'Port-Tudy', 'Lanvaux', 'Kervillec', 'Pors-Hir', 'Le Stang', 'Kerdual'] },
+  industrie: { nom: 'Bassin de Forgeval', sous: 'Usines exigeantes : 10 minutes de coupure par an au plus', graine: 58, amp: .7, freq: .18, gu: .7, gv: .2, base: 0, mer: .12, coll: .16, mont: .06, foret: .2, plaine: .45, front: 'auto', industriel: true, coupureMax: 10, demande: 1.2, villes: ['Forgeval', 'Acier-sur-Lys', 'Vernay', 'Hautcrassier', 'Saint-Éloi', 'Fonderie-les-Bains', 'Ferrières'] },
+  marche: { nom: 'Carrefour des frontières', sous: 'Marché ouvert : gros échanges, prix volatils', graine: 64, amp: .6, freq: .15, gu: -.5, gv: .3, base: 0, mer: .14, coll: .14, mont: .04, foret: .22, plaine: .4, front: 'auto', prixVol: 1.8, exportK: .85, frontLignes: 2, villes: ['Trois-Frontières', 'Hallange', 'Lauterbourg', 'Sarrelinde', 'Rosselange', 'Wissenberg', 'Florange-le-Haut'] },
 };
 const NOMS_VILLES = ['Montrevel', 'Aubrac-le-Haut', 'Sainte-Lune', 'Belcastel', 'Ravenel', 'Port-Lys', 'Vallauris-sur-Orne', 'Givrac', 'Morteau-les-Bains', 'Clairefont', 'Rochebrune', 'Lormont', 'Saint-Cyrille', 'Vernoux', 'Hautefage', 'Brassac'];
 function carteAleatoire(graine = 1 + Math.floor(Math.random() * 99998)) {
@@ -315,7 +315,7 @@ function carteAleatoire(graine = 1 + Math.floor(Math.random() * 99998)) {
   const noms = [...NOMS_VILLES].sort((a, b) => hache(graine, NOMS_VILLES.indexOf(a), 5) - hache(graine, NOMS_VILLES.indexOf(b), 5));
   return { id: 'aleatoire', nom: `Terres de ${noms[0]}`, sous: `Carte aléatoire · graine ${graine}`, graine, amp: .5 + h(4) * .4, freq: .13 + h(5) * .07, gu: ile ? 0 : gr * Math.cos(th), gv: ile ? 0 : gr * Math.sin(th), base: 0,
     ile: ile ? 1.2 + h(6) * .6 : 0, tarifK: ile ? 1.45 : 1, mer: ile ? .38 + h(7) * .08 : .05 + h(7) * .27, coll: .1 + h(8) * .12, mont: .02 + h(9) * .06, foret: .15 + h(10) * .17, plaine: .25 + h(11) * .25,
-    front: ile ? null : 'auto', villes: noms.slice(0, h(12) < .5 ? 3 : 4) };
+    front: ile ? null : 'auto', villes: noms.slice(0, 8) };
 }
 const carteDef = (id, graine) => (id === 'aleatoire' ? carteAleatoire(graine) : { id, ...CARTES[id] });
 const quantile = (vals, q) => { const s = [...vals].sort((a, b) => a - b); return s[clamp(Math.floor(q * (s.length - 1)), 0, s.length - 1)]; };
@@ -326,12 +326,12 @@ const QUART = {
 const libre = t => t && !t.brume && !estEau(t) && t.riviere === undefined && !t.ville && t.t !== 'montagne';
 const plat = t => t.t === 'prairie' || t.t === 'plaine';
 const proche = (liste, x, z) => liste.sort((a, b) => Math.hypot(a.col - x, a.row - z) - Math.hypot(b.col - x, b.row - z))[0];
-function fonderVille(nom, centre, types, couleur, hab, rayon, croit, cycle, k = 1) {
-  const v = { nom, centre, couleur, hab, rayon, tuiles: [], croit, cycle, i: 0, servie: true, k };
+function fonderVille(nom, centre, types, couleur, rang) {
+  const v = { nom, centre, couleur, tuiles: [], rang, rayon: rang === 'village' ? 1 : 2, i: 0, servie: true, fondee: 1900, prochaine: 1905 };
   v.tuiles.push(centre); Object.assign(centre, { ville: v, quartier: types[0], t: 'ville' });
   const autour = voisins(centre).filter(libre).sort((a, b) => voisins(b).filter(libre).length - voisins(a).filter(libre).length);
   types.slice(1).forEach((type, i) => { const t = autour[i]; if (t) { Object.assign(t, { ville: v, quartier: type, t: 'ville' }); v.tuiles.push(t); } });
-  v.base = v.tuiles.length; VILLES.push(v); return v;
+  v.base = v.tuiles.length; v.hab = v.tuiles.reduce((a, t) => a + ({ centre: 30000, residentiel: 25000, industriel: 8000, village: 2500 }[t.quartier] || 10000), 0); VILLES.push(v); return v;
 }
 function genererTerrain(def) {
   CARTE = def; GRAINE = def.graine; nouvelleGrille(); RIV = []; VILLES = []; FRONT_T = null; BARRAGE_T = null;
@@ -361,26 +361,24 @@ function genererTerrain(def) {
   }
   RIV.forEach((r, i) => { r.riviere = i; if (!estEau(r)) r.t = r.t === 'plaine' ? 'plaine' : 'prairie'; });
   if (RIV.length >= 7) { RIV[1].t = RIV[2].t = 'lac'; RIV[1].riviere = RIV[2].riviere = undefined; BARRAGE_T = RIV[3]; }
-  // villes : capitale au bord de la rivière, ville côtière (ou lointaine), village, et parfois une quatrième ville
-  const nbl = x => voisins(x).filter(libre).length, couleurs = ['#ffc94d', '#7cc0f2', '#ff9f8a', '#b8e07b'];
-  const ind = def.industriel;
+  // en 1900, une seule ville au bord de la rivière ; les emplacements des futures villes sont réservés (SITES)
+  const nbl = x => voisins(x).filter(libre).length;
   const k = RIV.length >= 5 ? RIV[Math.floor(RIV.length * .55)] : null;
   const cand = LISTE.filter(x => libre(x) && plat(x) && Math.min(x.col, x.row, COLS - 1 - x.col, ROWS - 1 - x.row) >= 4);
   const c1 = (k ? LISTE.filter(x => libre(x) && dist(x, k) <= 2 && dist(x, k) >= 1) : []).sort((a, b) => nbl(b) - nbl(a) || dist(a, k) - dist(b, k))[0]
     || cand.sort((a, b) => nbl(b) - nbl(a) || Math.hypot(a.col - COLS / 2, a.row - ROWS / 2) - Math.hypot(b.col - COLS / 2, b.row - ROWS / 2))[0];
-  const dem = def.demande || 1;
-  fonderVille(def.villes[0], c1, ind ? ['centre', 'industriel', 'industriel', 'residentiel', 'affaires', 'hopital'] : ['centre', 'residentiel', 'affaires', 'residentiel', 'industriel', 'hopital'], couleurs[0], 182000, 2, 4, ind ? ['industriel', 'residentiel', 'industriel', 'affaires'] : ['residentiel', 'affaires', 'residentiel', 'industriel'], dem);
-  const loin = d => LISTE.filter(x => libre(x) && x.t !== 'colline' && Math.min(x.col, x.row, COLS - 1 - x.col, ROWS - 1 - x.row) >= 3 && VILLES.every(v => dist(x, v.centre) >= d));
-  const cotes = loin(6).filter(x => voisins(x).some(n => n.t === 'cote'));
-  const c2 = (def.abs ? proche(cotes, COLS * .22, ROWS * .72) : cotes.sort((a, b) => nbl(b) - nbl(a))[0]) || loin(6).sort((a, b) => nbl(b) - nbl(a))[0] || loin(4)[0];
-  if (c2) fonderVille(def.villes[1], c2, ind ? ['centre', 'industriel', 'industriel'] : ['centre', 'residentiel', 'industriel'], couleurs[1], 54000, 2, 6, ['residentiel', 'industriel', 'residentiel'], .6 * dem);
-  const c3 = def.abs ? proche(loin(5).filter(plat), COLS * .5, ROWS * .14) : loin(5).filter(plat).sort((a, b) => hache(a.q, a.r, 11) - hache(b.q, b.r, 11))[0];
-  if (c3) fonderVille(def.villes[2], c3, ['village'], couleurs[2], 3200, 1, 9, ['residentiel'], dem);
-  if (def.villes[3]) { const c4 = loin(5).filter(plat).sort((a, b) => nbl(b) - nbl(a))[0]; if (c4) fonderVille(def.villes[3], c4, ['centre', 'residentiel'], couleurs[3], 31000, 1, 7, ['residentiel', 'industriel'], .45 * dem); }
+  fonderVille(def.villes[0], c1, def.industriel ? ['centre', 'industriel', 'residentiel', 'industriel'] : ['centre', 'residentiel', 'residentiel', 'industriel'], '#ffc94d', 'capitale');
+  SITES = [];
+  const okSite = x => libre(x) && plat(x) && Math.min(x.col, x.row, COLS - 1 - x.col, ROWS - 1 - x.row) >= 3 && [...VILLES.map(v => v.centre), ...SITES].every(c => dist(x, c) >= 5);
+  for (let n = 0; n < 6; n++) {
+    const l = LISTE.filter(okSite); if (!l.length) break;
+    const cote = l.filter(x => voisins(x).some(y => y.t === 'cote' || y.riviere !== undefined));
+    SITES.push((n % 2 === 0 && cote.length ? cote : l).sort((a, b) => nbl(b) - nbl(a) || hache(a.q, a.r, 11) - hache(b.q, b.r, 11))[0]);
+  }
   // interconnexion : sur le bord qui a le plus de terre (à l'est pour Valmont), aucune sur une île
   if (def.front) {
     const bords = { est: x => COLS - 1 - x.col, ouest: x => x.col, nord: x => x.row, sud: x => ROWS - 1 - x.row };
-    const ok = x => libre(x) && !x.ville && x.t !== 'colline' && VILLES.every(v => dist(x, v.centre) >= 3);
+    const ok = x => libre(x) && !x.ville && x.t !== 'colline' && [...VILLES.map(v => v.centre), ...SITES].every(c => dist(x, c) >= 3);
     let cote = def.front;
     if (cote === 'auto') cote = Object.keys(bords).sort((a, b) => LISTE.filter(x => ok(x) && bords[b](x) < 5).length - LISTE.filter(x => ok(x) && bords[a](x) < 5).length)[0];
     FRONT_T = LISTE.filter(x => ok(x) && (def.abs ? x.row > ROWS * .4 && x.row < ROWS * .8 : true)).sort((a, b) => bords[cote](a) - bords[cote](b) || Math.abs(a.row - ROWS / 2) + Math.abs(a.col - COLS / 2) - Math.abs(b.row - ROWS / 2) - Math.abs(b.col - COLS / 2))[0] || null;
@@ -394,7 +392,7 @@ function majAcceptation() {
     t.vent = clamp(4.2 + ({ colline: 2.3, montagne: 2.9, foret: -.9, cote: 2.6, mer: 3 }[t.t] || 0) + (mer ? 1.5 : 0) + bruit(t.col * .25 + 7, t.row * .25) * 1.6, 3, 10);
     const dv = Math.min(...VILLES.map(c => Math.min(...c.tuiles.map(x => dist(t, x)))));
     let a = 22 + 16 * Math.min(dv, 4) + (hache(t.q, t.r, 9) - .5) * 14 - (t.t === 'foret' ? 9 : 0);
-    for (const u of UNITES) if (['charbon', 'nucleaire', 'gaz'].includes(u.type) && dist(u.t, t) <= 2 && u.t !== t) a -= 12;
+    for (const u of UNITES) if ((estCharbon(u) || ['nucleaire', 'gaz', 'fioul'].includes(u.type)) && dist(u.t, t) <= 2 && u.t !== t) a -= 12;
     t.accept = clamp(a, 5, 96);
   }
 }
@@ -612,6 +610,34 @@ const BAT = {
     for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2, b = boite(7.6, 1.2, .3); put(L, b, i % 2 ? 0xffffff : 0xff8a3a, Math.cos(a + Math.PI / 6) * 7.3, .6, Math.sin(a + Math.PI / 6) * 7.3, -(a + Math.PI / 6) + Math.PI / 2, .1); }
   },
 };
+// modèles des époques anciennes ; la grande centrale à charbon reprend le modèle d'origine
+BAT.charbonG = BAT.charbon;
+Object.assign(BAT, {
+  usine(L, ex) {
+    sol(L, 0xa9a394);
+    put(L, boite(5.4, 3.4, 4), 0xa8553c, -1, 1.7, .4); toit(L, 5.7, 4.3, 1.6, 0x5a4741, -1, 3.4, .4, Math.PI / 2);
+    for (let k = 0; k < 3; k++) put(L, boite(.8, 1.2, .1), 0xf2d27a, -2.6 + k * 1.6, 1.8, 2.45, 0, 0);
+    put(L, cyl(.55, .8, 10, 8), 0x8a3f2c, 3.2, 5, 2.4); put(L, cyl(.7, .7, .5, 8), 0x5a2f24, 3.2, 10, 2.4); ex.fum.push([3.2, 10.6, 2.4, false]);
+    put(L, cone(1.8, 1.6, 7), 0x2f2c2a, 3.4, .8, -3.4);
+  },
+  fil(L) {  // l'eau coule vers +x local
+    put(L, boite(1.4, 1.6, 13), 0xbcb7aa, 0, .4, 0);
+    put(L, boite(3.6, 2.8, 3.6), 0xd8cbb0, 2.2, 1.4, 3.6); toit(L, 4, 4, 1.3, 0x7a5a44, 2.2, 2.8, 3.6, Math.PI / 2);
+    const d = boite(2.4, .4, 8); d.rotateZ(-.5); put(L, d, 0xe9f6fb, 1.4, .5, -2, 0, .1);
+  },
+  charbon(L, ex) {
+    sol(L, 0xa9a394);
+    put(L, boite(6, 4, 4.4), 0xb7634a, -1, 2, .6); put(L, boite(6.4, .5, 4.8), 0x5a4741, -1, 4.2, .6); put(L, boite(3, 6, 3), 0x9ea2a8, 3.2, 3, .2);
+    put(L, cyl(.95, 1.1, 5, 10), 0xd9573b, 4.2, 2.5, 4); put(L, cyl(.85, .95, 5.5, 10), 0xf6f2ea, 4.2, 7.75, 4); ex.fum.push([4.2, 10.8, 4, false]);
+    put(L, cone(2.4, 2.2, 7), 0x2f2c2a, -4.4, 1.1, -3.6);
+  },
+  fioul(L, ex) {
+    sol(L, 0xb0ab9d);
+    for (const z of [-3.6, .4]) { put(L, cyl(2.1, 2.1, 3, 14), 0xe9e6dd, -4, 1.5, z); put(L, cyl(2.15, 2.15, .3, 14), 0xa07850, -4, 3, z, 0, .1); }
+    put(L, boite(5, 3.6, 3.8), 0xd8d4c8, 2, 1.8, -.4); put(L, boite(5.3, .4, 4.1), 0x6b4f3a, 2, 3.8, -.4);
+    put(L, cyl(.75, .95, 11, 10), 0xc9c4b6, 3.4, 5.5, 4); put(L, cyl(.78, .78, 1, 10), 0xd9573b, 3.4, 10.5, 4, 0, .1); ex.fum.push([3.4, 11.4, 4, false]);
+  },
+});
 const QBAT = {
   centre(L) {
     sol(L, 0xe5d9bb);
@@ -659,67 +685,104 @@ function dessinerQuartier(t, anim) {
 function pop(grp) { grp.scale.y = .01; ANIMS.push({ grp, t0: performance.now() }); }
 
 // ============================================================ catalogue des installations
-const FIL = { hydro: ['Hydraulique', '#4f8fe0'], nucleaire: ['Nucléaire', '#ff86c8'], charbon: ['Charbon', '#8d8f96'], biomasse: ['Biomasse', '#a0703f'], gaz: ['Gaz', '#f08a6c'], eolien: ['Éolien', '#7cc0f2'], solaire: ['Solaire', '#ffc94d'], stockage: ['Batteries', '#7be08a'], import: ['Import', '#c3b0ea'], tac: ['TAC', '#e0607e'] };
+const FIL = { hydro: ['Hydraulique', '#4f8fe0'], nucleaire: ['Nucléaire', '#ff86c8'], charbon: ['Charbon', '#8d8f96'], fioul: ['Fioul', '#a07850'], biomasse: ['Biomasse', '#a0703f'], gaz: ['Gaz', '#f08a6c'], eolien: ['Éolien', '#7cc0f2'], solaire: ['Solaire', '#ffc94d'], stockage: ['Batteries', '#7be08a'], import: ['Import', '#c3b0ea'], tac: ['TAC', '#e0607e'] };
 const bordEau = t => voisins(t).some(n => estEau(n) || n.riviere !== undefined);
 // mw : puissance ; capex M€ ; delai mois ; opex k€/MW/an ; cout €/MWh hors CO₂ ; co2 g/kWh ; ramp MW/min ; min MW
+const hydroLibre = t => t.riviere !== undefined && !UNITES.some(u => (u.type === 'barrage' || u.type === 'fil') && u.t !== t && dist(u.t, t) <= 2);
+// an : première année de construction possible ; fin : dernière année (technologie dépassée)
 const TYPES = {
-  solaire: { nom: 'Ferme solaire', court: 'Solaire', f: 'solaire', mw: 35, capex: 32, delai: 4, opex: 15, cout: 0, co2: 0, ramp: 99, fatal: true, ok: t => plat(t) || t.t === 'colline', non: 'Prairie, plaine ou collines', reseau: 63, pot: 'soleil', groupe: 'production' },
-  eolien: { nom: 'Parc éolien', court: 'Éolien', f: 'eolien', mw: 60, capex: 85, delai: 9, opex: 40, cout: 0, co2: 0, ramp: 99, fatal: true, ok: t => plat(t) || t.t === 'colline' || t.t === 'foret', non: 'Terrain dégagé ou forêt', reseau: 63, pot: 'vent', groupe: 'production' },
-  offshore: { nom: 'Éolien en mer', court: 'Éolien en mer', f: 'eolien', mw: 300, capex: 900, delai: 30, opex: 80, cout: 0, co2: 0, ramp: 99, fatal: true, ok: t => t.t === 'cote' && voisins(t).some(n => !estEau(n) && !n.brume), non: 'Sur la côte, près du rivage', reseau: 225, pot: 'vent', rd: 'offshore', groupe: 'production', eau: true },
-  barrage: { nom: 'Barrage', court: 'Barrage', f: 'hydro', mw: 180, capex: 420, delai: 36, opex: 20, cout: 2, co2: 0, ramp: 40, ok: t => t.riviere !== undefined && !UNITES.some(u => u.type === 'barrage' && u.t !== t && dist(u.t, t) <= 2), non: 'Sur une rivière, à 3 hexagones d’un autre barrage', reseau: 225, pot: 'eau', groupe: 'production', stock: 25000 },
-  biomasse: { nom: 'Centrale biomasse', court: 'Biomasse', f: 'biomasse', mw: 40, capex: 120, delai: 18, opex: 60, cout: 55, co2: 50, ramp: 2, min: 12, ok: t => plat(t) || t.t === 'foret', non: 'Plaine ou forêt', reseau: 63, pot: 'accept', rd: 'locales', groupe: 'production' },
-  tac: { nom: 'Turbine à combustion', court: 'TAC', f: 'tac', mw: 120, capex: 70, delai: 6, opex: 15, cout: 135, co2: 620, ramp: 20, ok: plat, non: 'Terrain plat', reseau: 63, pot: 'accept', groupe: 'production' },
-  gaz: { nom: 'Cycle combiné gaz', court: 'CCG', f: 'gaz', mw: 430, capex: 380, delai: 18, opex: 25, cout: 70, co2: 370, ramp: 8, min: 140, ok: plat, non: 'Terrain plat', reseau: 225, pot: 'accept', groupe: 'production' },
-  charbon: { nom: 'Centrale à charbon', court: 'Charbon', f: 'charbon', mw: 450, capex: 0, delai: 0, opex: 35, cout: 38, co2: 980, ramp: 2, min: 180, cache: true, reseau: 225, groupe: 'production' },
-  nucleaire: { nom: 'Réacteur nucléaire', court: 'Nucléaire', f: 'nucleaire', mw: 1300, capex: 6500, delai: 84, opex: 90, cout: 10, co2: 6, ramp: 15, min: 650, ok: t => plat(t) && bordEau(t), non: 'Plat, au bord de l’eau', reseau: 400, pot: 'accept', groupe: 'production' },
-  smr: { nom: 'Petit réacteur modulaire', court: 'SMR', f: 'nucleaire', mw: 170, capex: 1100, delai: 48, opex: 110, cout: 12, co2: 6, ramp: 10, min: 60, ok: t => plat(t) && bordEau(t), non: 'Plat, au bord de l’eau', reseau: 225, pot: 'accept', rd: 'smr', groupe: 'production' },
-  fusion: { nom: 'Centrale à fusion', court: 'Fusion', f: 'nucleaire', mw: 600, capex: 4000, delai: 60, opex: 120, cout: 5, co2: 0, ramp: 20, min: 200, ok: plat, non: 'Terrain plat', reseau: 400, pot: 'accept', rd: 'fusion', groupe: 'production' },
-  batterie: { nom: 'Batteries', court: 'Batteries', f: 'stockage', mw: 100, capex: 90, delai: 3, opex: 8, cout: 0, co2: 0, ramp: 99, ok: plat, non: 'Terrain plat', reseau: 63, pot: 'accept', rd: 'li', groupe: 'stockage', mwh: 200 },
-  poste: { nom: 'Poste 225/63 kV', court: 'Poste', f: null, mw: 0, capex: 25, delai: 4, opex: 0, ok: t => t.t !== 'montagne', non: 'Hors montagne', pot: 'accept', groupe: 'reseau' },
-  frontiere: { nom: 'Interconnexion Région Est', court: 'Frontière', f: null, mw: 0, cache: true, groupe: 'reseau' },
+  usine: { nom: 'Usine électrique au charbon', court: 'Usine', f: 'charbon', mw: 10, capex: 14, delai: 8, opex: 40, cout: 45, co2: 1250, ramp: 1, min: 3, ok: t => plat(t) || t.t === 'colline', non: 'Prairie, plaine ou collines', reseau: 15, pot: 'accept', groupe: 'production', an: 1900, fin: 1960 },
+  fil: { nom: 'Usine au fil de l’eau', court: 'Fil de l’eau', f: 'hydro', mw: 6, capex: 9, delai: 12, opex: 15, cout: 0, co2: 0, ramp: 99, fatal: true, ok: hydroLibre, non: 'Sur une rivière, à 3 hexagones d’une autre usine hydraulique', reseau: 15, pot: 'eau', groupe: 'production', an: 1900 },
+  barrage: { nom: 'Barrage', court: 'Barrage', f: 'hydro', mw: 180, capex: 420, delai: 36, opex: 20, cout: 2, co2: 0, ramp: 40, ok: hydroLibre, non: 'Sur une rivière, à 3 hexagones d’une autre usine hydraulique', reseau: 225, pot: 'eau', groupe: 'production', stock: 25000, an: 1922 },
+  charbon: { nom: 'Centrale à charbon', court: 'Charbon', f: 'charbon', mw: 150, capex: 190, delai: 30, opex: 35, cout: 40, co2: 1050, ramp: 2, min: 50, ok: t => plat(t) || t.t === 'colline', non: 'Prairie, plaine ou collines', reseau: 63, pot: 'accept', groupe: 'production', an: 1925, fin: 1975 },
+  charbonG: { nom: 'Grande centrale à charbon', court: 'Grand charbon', f: 'charbon', mw: 450, capex: 560, delai: 42, opex: 35, cout: 38, co2: 980, ramp: 2, min: 180, ok: plat, non: 'Terrain plat', reseau: 225, pot: 'accept', groupe: 'production', an: 1955, fin: 2000 },
+  fioul: { nom: 'Centrale au fioul', court: 'Fioul', f: 'fioul', mw: 250, capex: 230, delai: 24, opex: 30, cout: 0, co2: 800, ramp: 6, min: 80, ok: plat, non: 'Terrain plat', reseau: 225, pot: 'accept', groupe: 'production', an: 1952, fin: 1985 },
+  tac: { nom: 'Turbine à combustion', court: 'TAC', f: 'tac', mw: 120, capex: 70, delai: 6, opex: 15, cout: 135, co2: 620, ramp: 20, ok: plat, non: 'Terrain plat', reseau: 63, pot: 'accept', groupe: 'production', an: 1965 },
+  nucleaire: { nom: 'Réacteur nucléaire 900 MW', court: 'Nucléaire', f: 'nucleaire', mw: 900, capex: 3800, delai: 72, opex: 90, cout: 10, co2: 6, ramp: 12, min: 450, ok: t => plat(t) && bordEau(t), non: 'Plat, au bord de l’eau', reseau: 400, pot: 'accept', groupe: 'production', an: 1974 },
+  gaz: { nom: 'Cycle combiné gaz', court: 'CCG', f: 'gaz', mw: 430, capex: 380, delai: 18, opex: 25, cout: 70, co2: 370, ramp: 8, min: 140, ok: plat, non: 'Terrain plat', reseau: 225, pot: 'accept', groupe: 'production', an: 1992 },
+  eolien: { nom: 'Parc éolien', court: 'Éolien', f: 'eolien', mw: 60, capex: 85, delai: 9, opex: 40, cout: 0, co2: 0, ramp: 99, fatal: true, ok: t => plat(t) || t.t === 'colline' || t.t === 'foret', non: 'Terrain dégagé ou forêt', reseau: 63, pot: 'vent', groupe: 'production', an: 1996 },
+  biomasse: { nom: 'Centrale biomasse', court: 'Biomasse', f: 'biomasse', mw: 40, capex: 120, delai: 18, opex: 60, cout: 55, co2: 50, ramp: 2, min: 12, ok: t => plat(t) || t.t === 'foret', non: 'Plaine ou forêt', reseau: 63, pot: 'accept', rd: 'locales', groupe: 'production', an: 1998 },
+  solaire: { nom: 'Ferme solaire', court: 'Solaire', f: 'solaire', mw: 35, capex: 32, delai: 4, opex: 15, cout: 0, co2: 0, ramp: 99, fatal: true, ok: t => plat(t) || t.t === 'colline', non: 'Prairie, plaine ou collines', reseau: 63, pot: 'soleil', groupe: 'production', an: 2006 },
+  offshore: { nom: 'Éolien en mer', court: 'Éolien en mer', f: 'eolien', mw: 300, capex: 900, delai: 30, opex: 80, cout: 0, co2: 0, ramp: 99, fatal: true, ok: t => t.t === 'cote' && voisins(t).some(n => !estEau(n) && !n.brume), non: 'Sur la côte, près du rivage', reseau: 225, pot: 'vent', rd: 'offshore', groupe: 'production', eau: true, an: 2012 },
+  batterie: { nom: 'Batteries', court: 'Batteries', f: 'stockage', mw: 100, capex: 90, delai: 3, opex: 8, cout: 0, co2: 0, ramp: 99, ok: plat, non: 'Terrain plat', reseau: 63, pot: 'accept', rd: 'li', groupe: 'stockage', mwh: 200, an: 2012 },
+  smr: { nom: 'Petit réacteur modulaire', court: 'SMR', f: 'nucleaire', mw: 170, capex: 1100, delai: 48, opex: 110, cout: 12, co2: 6, ramp: 10, min: 60, ok: t => plat(t) && bordEau(t), non: 'Plat, au bord de l’eau', reseau: 225, pot: 'accept', rd: 'smr', groupe: 'production', an: 2030 },
+  fusion: { nom: 'Centrale à fusion', court: 'Fusion', f: 'nucleaire', mw: 600, capex: 4000, delai: 60, opex: 120, cout: 5, co2: 0, ramp: 20, min: 200, ok: plat, non: 'Terrain plat', reseau: 400, pot: 'accept', rd: 'fusion', groupe: 'production', an: 2042 },
+  poste: { nom: 'Poste 225/63 kV', court: 'Poste', f: null, mw: 0, capex: 25, delai: 4, opex: 0, ok: t => t.t !== 'montagne', non: 'Hors montagne', pot: 'accept', groupe: 'reseau', an: 1935 },
+  frontiere: { nom: 'Interconnexion avec la région voisine', court: 'Frontière', f: null, mw: 0, cache: true, groupe: 'reseau', an: 1938 },
 };
-const KV = { 63: { nom: '63 kV', cap: 150, cout: .5, x: .05, delai: 2 }, 225: { nom: '225 kV', cap: 450, cout: 1.2, x: .004, delai: 3 }, 400: { nom: '400 kV', cap: 1600, cout: 2.1, x: .00125, delai: 5, rd: 'tht' } };
-const ORDRE_BARRE = ['solaire', 'eolien', 'offshore', 'barrage', 'biomasse', 'tac', 'gaz', 'smr', 'nucleaire', 'fusion', 'batterie', 'poste'];
+const estCharbon = u => TYPES[u.type]?.f === 'charbon';
+// lignes : 15 kV (distribution des débuts), 63 kV, 225 kV, 400 kV
+const KV = { 15: { nom: '15 kV', cap: 15, cout: .12, x: .6, delai: 1, an: 1900 }, 63: { nom: '63 kV', cap: 150, cout: .5, x: .05, delai: 2, an: 1920 }, 225: { nom: '225 kV', cap: 450, cout: 1.2, x: .004, delai: 3, an: 1935 }, 400: { nom: '400 kV', cap: 1600, cout: 2.1, x: .00125, delai: 5, an: 1960 } };
+const kvDispo = kv => { for (const k of [400, 225, 63, 15]) if (k <= kv && KV[k].an <= annee(S.min)) return k; return 15; };
+const ORDRE_BARRE = ['usine', 'fil', 'barrage', 'charbon', 'charbonG', 'fioul', 'tac', 'nucleaire', 'gaz', 'eolien', 'biomasse', 'solaire', 'offshore', 'batterie', 'smr', 'fusion', 'poste'];
+const dispoType = ty => { const a = annee(S.min), t = TYPES[ty]; return a >= t.an && !(t.fin && a > t.fin); };
+
+// ============================================================ époques de la campagne
+const ERES = [
+  { an: 1900, nom: 'Les pionniers', txt: 'L’électricité éclaire les rues et fait tourner les premiers ateliers. Petites usines au charbon et au fil de l’eau, réseau en 15 kV.' },
+  { an: 1920, nom: 'L’entre-deux-guerres', txt: 'Le 63 kV relie les vallées et les premiers grands barrages sortent de terre.' },
+  { an: 1935, nom: 'Le réseau régional', txt: 'Le 225 kV et les postes de transformation arrivent. L’interconnexion avec la région voisine ouvre en 1938.' },
+  { an: 1946, nom: 'La reconstruction', txt: 'Après la guerre, la demande s’envole : grandes centrales au charbon, fioul et barrages.' },
+  { an: 1960, nom: 'Les Trente Glorieuses', txt: 'La consommation double tous les dix ans. Le 400 kV et les turbines à combustion font leur apparition.' },
+  { an: 1974, nom: 'Le choc pétrolier', txt: 'Le prix du fioul quadruple. Le programme nucléaire est lancé.' },
+  { an: 1990, nom: 'Le marché', txt: 'Cycles combinés au gaz, échanges entre régions et premiers parcs éoliens.' },
+  { an: 2005, nom: 'Le climat', txt: 'La taxe carbone arrive ; le solaire et l’éolien se développent.' },
+  { an: 2020, nom: 'La transition', txt: 'Le charbon doit fermer avant 2032. Batteries et éolien en mer.' },
+  { an: 2035, nom: 'Le futur', txt: 'Petits réacteurs, hydrogène, et peut-être la fusion.' },
+];
+const ere = (a = annee(S.min)) => [...ERES].reverse().find(e => a >= e.an) || ERES[0];
+// électrification : demande par quartier, en fraction de celle de 2027
+const ELEC = [[1900, .02], [1920, .045], [1935, .075], [1946, .11], [1955, .19], [1965, .36], [1975, .58], [1985, .76], [1995, .88], [2010, .97], [2027, 1], [2040, 1.12], [2050, 1.25]];
+function elec(a) { for (let i = 1; i < ELEC.length; i++) if (a <= ELEC[i][0]) { const [a0, v0] = ELEC[i - 1], [a1, v1] = ELEC[i]; return v0 + (v1 - v0) * (a - a0) / (a1 - a0); } return ELEC.at(-1)[1]; }
+const facteurDemande = (m = S.min) => elec(annee(m) + jourAn(m) / 365) * DIFF[S.diff].k * ((CARTE && CARTE.demande) || 1);
+// prix de l'électricité en euros constants : un luxe au début du siècle
+// prix réel de l'électricité (euros constants) : cher au début du siècle, au plus bas vers 1975, en hausse avec la transition
+const TARIF_ERE = [[1900, 1.45], [1946, 1.1], [1960, .88], [1975, .78], [1990, .84], [2005, .95], [2020, 1]];
+const tarifEre = (a = annee(S.min)) => { for (let i = 1; i < TARIF_ERE.length; i++) if (a <= TARIF_ERE[i][0]) { const [a0, v0] = TARIF_ERE[i - 1], [a1, v1] = TARIF_ERE[i]; return v0 + (v1 - v0) * (a - a0) / (a1 - a0); } return 1; };
+function prixCombustible(type, a) {
+  if (type === 'fioul') return a < 1974 ? 20 : a < 1986 ? 85 : a < 2004 ? 45 : 75;
+  return TYPES[type].cout;
+}
 
 // ============================================================ R&D (4 branches, 5 niveaux)
 const BRANCHES = ['Production', 'Réseau et transport', 'Stockage et flexibilité', 'Gestion et smart grid'];
 const RD = [
-  { id: 'locales', b: 0, niv: 1, nom: 'Filières locales', cout: 8, effet: 'Débloque la centrale biomasse' },
-  { id: 'pales', b: 0, niv: 1, nom: 'Pales composites', cout: 6, effet: '+8 % de production éolienne' },
-  { id: 'offshore', b: 0, niv: 2, nom: 'Éolien en mer posé', cout: 20, effet: 'Débloque l’éolien en mer (300 MW)', pre: ['pales'] },
-  { id: 'ccga', b: 0, niv: 2, nom: 'Cycles combinés améliorés', cout: 15, effet: '−10 % de combustible et de CO₂ pour le gaz', pre: ['locales'] },
-  { id: 'bifacial', b: 0, niv: 3, nom: 'Solaire bifacial', cout: 25, effet: '+15 % de production solaire', pre: ['offshore', 'ccga'] },
-  { id: 'epr', b: 0, niv: 3, nom: 'Nucléaire optimisé', cout: 40, effet: 'Réacteur −20 % de coût, −2 ans de chantier', pre: ['ccga'] },
-  { id: 'smr', b: 0, niv: 4, nom: 'Petits réacteurs modulaires', cout: 60, effet: 'Débloque le SMR de 170 MW', pre: ['epr', 'bifacial'] },
-  { id: 'fusion', b: 0, niv: 5, nom: 'Fusion nucléaire', cout: 150, effet: 'Débloque la centrale à fusion', pre: ['smr'] },
-  { id: 'tht', b: 1, niv: 1, nom: 'Très haute tension 400 kV', cout: 10, effet: 'Débloque les lignes 400 kV' },
-  { id: 'compens', b: 1, niv: 1, nom: 'Compensation série', cout: 8, effet: '+10 % de capacité en 225 et 400 kV' },
-  { id: 'htls', b: 1, niv: 2, nom: 'Conducteurs HTLS', cout: 18, effet: '+30 % de capacité de toutes les lignes', pre: ['tht', 'compens'] },
-  { id: 'scada', b: 1, niv: 2, nom: 'Supervision SCADA', cout: 14, effet: '−15 % de pertes en ligne', pre: ['compens'] },
-  { id: 'dlr', b: 1, niv: 3, nom: 'Capacité dynamique des lignes', cout: 30, effet: '+15 % de capacité quand il fait froid ou venteux', pre: ['htls', 'scada'] },
-  { id: 'hvdc', b: 1, niv: 4, nom: 'Liaison HVDC avec l’Est', cout: 60, effet: '+600 MW d’échanges avec la région voisine', pre: ['dlr'] },
-  { id: 'gridf', b: 1, niv: 4, nom: 'Onduleurs grid-forming', cout: 50, effet: 'Fréquence beaucoup plus stable', pre: ['dlr'] },
-  { id: 'li', b: 2, niv: 1, nom: 'Batteries lithium-ion', cout: 8, effet: 'Débloque les batteries (100 MW, 2 h)' },
-  { id: 'volants', b: 2, niv: 1, nom: 'Volants d’inertie', cout: 10, effet: 'Écarts de fréquence −25 %' },
-  { id: 'b4h', b: 2, niv: 2, nom: 'Batteries 4 heures', cout: 18, effet: 'Capacité des batteries doublée', pre: ['li'] },
-  { id: 'reversible', b: 2, niv: 2, nom: 'Turbines réversibles', cout: 22, effet: 'Les barrages pompent les surplus', pre: ['li', 'volants'] },
-  { id: 'sodium', b: 2, niv: 3, nom: 'Sodium-ion', cout: 30, effet: 'Batteries −30 % de coût', pre: ['b4h'] },
-  { id: 'v2g', b: 2, niv: 4, nom: 'Véhicule vers réseau', cout: 45, effet: 'Pointe du soir −6 %', pre: ['sodium'] },
-  { id: 'h2', b: 2, niv: 5, nom: 'Hydrogène vert', cout: 100, effet: 'Les surplus sont vendus à 45 €/MWh', pre: ['v2g'] },
-  { id: 'compteurs', b: 3, niv: 1, nom: 'Compteurs intelligents', cout: 6, effet: 'Demande −2 %' },
-  { id: 'maint', b: 3, niv: 1, nom: 'Maintenance prédictive', cout: 10, effet: 'Pannes de centrales divisées par deux' },
-  { id: 'effac', b: 3, niv: 2, nom: 'Effacement industriel', cout: 12, effet: 'Débloque l’effacement (−8 % industrie)', pre: ['compteurs'] },
-  { id: 'tarifs', b: 3, niv: 2, nom: 'Heures creuses dynamiques', cout: 15, effet: 'Pointe du soir −4 %', pre: ['compteurs', 'maint'] },
-  { id: 'previ', b: 3, niv: 3, nom: 'Prévisions météo fines', cout: 20, effet: 'Incertitude des prévisions −50 %', pre: ['effac', 'tarifs'] },
-  { id: 'ia', b: 3, niv: 5, nom: 'Pilotage par IA', cout: 80, effet: 'Pertes −10 %, demande −3 %', pre: ['previ'] },
+  { id: 'locales', an: 1995, b: 0, niv: 1, nom: 'Filières locales', cout: 8, effet: 'Débloque la centrale biomasse' },
+  { id: 'pales', an: 1990, b: 0, niv: 1, nom: 'Pales composites', cout: 6, effet: '+8 % de production éolienne' },
+  { id: 'offshore', an: 2008, b: 0, niv: 2, nom: 'Éolien en mer posé', cout: 20, effet: 'Débloque l’éolien en mer (300 MW)', pre: ['pales'] },
+  { id: 'ccga', an: 1998, b: 0, niv: 2, nom: 'Cycles combinés améliorés', cout: 15, effet: '−10 % de combustible et de CO₂ pour le gaz', pre: ['locales'] },
+  { id: 'bifacial', an: 2016, b: 0, niv: 3, nom: 'Solaire bifacial', cout: 25, effet: '+15 % de production solaire', pre: ['offshore', 'ccga'] },
+  { id: 'epr', an: 2000, b: 0, niv: 3, nom: 'Nucléaire optimisé', cout: 40, effet: 'Réacteur −20 % de coût, −2 ans de chantier', pre: ['ccga'] },
+  { id: 'smr', an: 2026, b: 0, niv: 4, nom: 'Petits réacteurs modulaires', cout: 60, effet: 'Débloque le SMR de 170 MW', pre: ['epr', 'bifacial'] },
+  { id: 'fusion', an: 2040, b: 0, niv: 5, nom: 'Fusion nucléaire', cout: 150, effet: 'Débloque la centrale à fusion', pre: ['smr'] },
+  { id: 'compens', an: 1965, b: 1, niv: 1, nom: 'Compensation série', cout: 8, effet: '+10 % de capacité en 225 et 400 kV' },
+  { id: 'htls', an: 1995, b: 1, niv: 2, nom: 'Conducteurs HTLS', cout: 18, effet: '+30 % de capacité de toutes les lignes', pre: ['compens'] },
+  { id: 'scada', an: 1985, b: 1, niv: 2, nom: 'Supervision SCADA', cout: 14, effet: '−15 % de pertes en ligne', pre: ['compens'] },
+  { id: 'dlr', an: 2008, b: 1, niv: 3, nom: 'Capacité dynamique des lignes', cout: 30, effet: '+15 % de capacité quand il fait froid ou venteux', pre: ['htls', 'scada'] },
+  { id: 'hvdc', an: 1998, b: 1, niv: 4, nom: 'Liaison HVDC avec l’Est', cout: 60, effet: '+600 MW d’échanges avec la région voisine', pre: ['dlr'] },
+  { id: 'gridf', an: 2022, b: 1, niv: 4, nom: 'Onduleurs grid-forming', cout: 50, effet: 'Fréquence beaucoup plus stable', pre: ['dlr'] },
+  { id: 'li', an: 2008, b: 2, niv: 1, nom: 'Batteries lithium-ion', cout: 8, effet: 'Débloque les batteries (100 MW, 2 h)' },
+  { id: 'volants', an: 1995, b: 2, niv: 1, nom: 'Volants d’inertie', cout: 10, effet: 'Écarts de fréquence −25 %' },
+  { id: 'b4h', an: 2018, b: 2, niv: 2, nom: 'Batteries 4 heures', cout: 18, effet: 'Capacité des batteries doublée', pre: ['li'] },
+  { id: 'reversible', an: 1965, b: 2, niv: 2, nom: 'Turbines réversibles', cout: 22, effet: 'Les barrages pompent les surplus', pre: ['li', 'volants'] },
+  { id: 'sodium', an: 2022, b: 2, niv: 3, nom: 'Sodium-ion', cout: 30, effet: 'Batteries −30 % de coût', pre: ['b4h'] },
+  { id: 'v2g', an: 2028, b: 2, niv: 4, nom: 'Véhicule vers réseau', cout: 45, effet: 'Pointe du soir −6 %', pre: ['sodium'] },
+  { id: 'h2', an: 2030, b: 2, niv: 5, nom: 'Hydrogène vert', cout: 100, effet: 'Les surplus sont vendus à 45 €/MWh', pre: ['v2g'] },
+  { id: 'compteurs', an: 2005, b: 3, niv: 1, nom: 'Compteurs intelligents', cout: 6, effet: 'Demande −2 %' },
+  { id: 'maint', an: 1995, b: 3, niv: 1, nom: 'Maintenance prédictive', cout: 10, effet: 'Pannes de centrales divisées par deux' },
+  { id: 'effac', an: 1980, b: 3, niv: 2, nom: 'Effacement industriel', cout: 12, effet: 'Débloque l’effacement (−8 % industrie)', pre: ['compteurs'] },
+  { id: 'tarifs', an: 1975, b: 3, niv: 2, nom: 'Heures creuses dynamiques', cout: 15, effet: 'Pointe du soir −4 %', pre: ['compteurs', 'maint'] },
+  { id: 'previ', an: 2012, b: 3, niv: 3, nom: 'Prévisions météo fines', cout: 20, effet: 'Incertitude des prévisions −50 %', pre: ['effac', 'tarifs'] },
+  { id: 'ia', an: 2028, b: 3, niv: 5, nom: 'Pilotage par IA', cout: 80, effet: 'Pertes −10 %, demande −3 %', pre: ['previ'] },
 ];
 const RDI = Object.fromEntries(RD.map(r => [r.id, r]));
 const rd = id => S.rd.acquis.includes(id);
-const rdDispo = r => !rd(r.id) && (r.pre || []).every(rd);
+const rdDispo = r => !rd(r.id) && annee(S.min) >= (r.an || 0) && (r.pre || []).every(rd);
 
 // ============================================================ état de la partie
-const DIFF = { facile: { nom: 'Facile', argent: 1400, croiss: .012, evt: .5, sat: 80 }, normal: { nom: 'Normal', argent: 800, croiss: .02, evt: 1, sat: 72 }, difficile: { nom: 'Difficile', argent: 400, croiss: .028, evt: 1.6, sat: 64 } };
-const DEBUT = Date.UTC(2027, 0, 1, 0, 0) / 60000 + 8 * 60;
+// argent en M€ ; k : demande ; croit : rythme de croissance des villes (plus de croissance = plus difficile)
+const DIFF = { facile: { nom: 'Facile', argent: 40, k: .95, croit: .8, evt: .5, sat: 80 }, normal: { nom: 'Normal', argent: 20, k: 1, croit: 1, evt: 1, sat: 72 }, difficile: { nom: 'Difficile', argent: 10, k: 1.08, croit: 1.25, evt: 1.6, sat: 64 } };
+const DEBUT = Date.UTC(1900, 0, 1, 0, 0) / 60000 + 8 * 60;
 const date = m => new Date((DEBUT + m) * 60000);
 const heure = m => { const d = date(m); return d.getUTCHours() + d.getUTCMinutes() / 60; };
 const annee = m => date(m).getUTCFullYear();
@@ -738,7 +801,7 @@ function etatInitial(diff) {
   return {
     diff, min: 0, vit: 1, pause: true, enJeu: false, f: 50, imb: 0, onglet: 'dispatch', lentille: 'relief', ordre: [],
     argent: DIFF[diff].argent * 1e6, dette: 0, prets: [], sat: DIFF[diff].sat, tarif: { res: 168, ter: 142, ind: 96 }, effacement: false,
-    croissance: 1, evt: {}, hist: [], fhist: Array(200).fill(50), jour: nouveauCumul(), an: nouveauCumul(), anPrec: null, journal: [], rapports: [],
+    ere: 0, evt: {}, hist: [], fhist: Array(200).fill(50), jour: nouveauCumul(), an: nouveauCumul(), anPrec: null, journal: [], rapports: [],
     pertes: 0, charge: 0, demServie: 0, demIlot: 0, delestage: 0, ecretement: 0, spot: 40, nimby: 0, pertesNiv: {},
     rd: { acquis: [], cours: null, avance: 0, budget: 10 }, quartiers: [], fini: false,
   };
@@ -749,7 +812,7 @@ const unite = id => (id === 'imp' ? IMP : UNITES.find(u => u.id === id));
 const coutType = ty => TYPES[ty].capex * (ty === 'nucleaire' && rd('epr') ? .8 : ty === 'batterie' && rd('sodium') ? .7 : 1);
 const delaiType = ty => Math.max(1, TYPES[ty].delai - (ty === 'nucleaire' && rd('epr') ? 24 : 0));
 function rotPour(t, type) {
-  if (type === 'barrage') { const i = RIV.indexOf(t), a = RIV[i - 1] || t, b = RIV[i + 1] || t.versMer || t; return Math.atan2(-(b.z - a.z), b.x - a.x); }
+  if (type === 'barrage' || type === 'fil') { const i = RIV.indexOf(t), a = RIV[i - 1] || t, b = RIV[i + 1] || t.versMer || t; return Math.atan2(-(b.z - a.z), b.x - a.x); }
   if (['eolien', 'solaire', 'offshore', 'frontiere'].includes(type)) return 0;
   return (hache(t.q, t.r, 4) * 6 | 0) * Math.PI / 3;
 }
@@ -789,7 +852,7 @@ function terminer(u) {
 function insererOrdre(u) { if (S.ordre.includes(u.id)) return; S.ordre.push(u.id); trierOrdre(); }
 function coutMarginal(u) {
   if (u === IMP) return prixVoisin(S.min);
-  const ty = TYPES[u.type]; let c = ty.cout * (S.evt.gaz > S.min && (u.type === 'gaz' || u.type === 'tac') ? 1.6 : 1) * (u.type === 'gaz' && rd('ccga') ? .9 : 1);
+  const ty = TYPES[u.type]; let c = prixCombustible(u.type, annee(S.min)) * (S.evt.gaz > S.min && (u.type === 'gaz' || u.type === 'tac') ? 1.6 : 1) * (u.type === 'gaz' && rd('ccga') ? .9 : 1);
   if (u.type === 'barrage') c = 4 + 150 * (1 - u.soc) ** 2;  // valeur de l'eau : plus le lac se vide, plus on la garde
   return c + co2U(u) * prixCO2() / 1000;
 }
@@ -806,28 +869,32 @@ function demolir(u) {
 }
 function raison(t, type) {
   if (!t || t.brume) return 'Terres inexplorées';
-  const ty = TYPES[type];
+  const ty = TYPES[type], a = annee(S.min);
+  if (a < ty.an) return `Disponible en ${ty.an}`;
+  if (ty.fin && a > ty.fin) return `Technologie dépassée depuis ${ty.fin}`;
   if (ty.rd && !rd(ty.rd)) return `Recherche nécessaire : ${RDI[ty.rd].nom}`;
   if (estEau(t) && !ty.eau) return 'Hexagone d’eau';
   if (t.ville) return `Quartier de ${t.ville.nom}`;
   if (t.occ) return `Déjà occupé : ${t.occ.nom}`;
-  if (type !== 'barrage' && t.riviere !== undefined) return 'Rivière : barrage seulement';
+  if (t === FRONT_T && type !== 'frontiere') return `Réservé à l’interconnexion (${TYPES.frontiere.an})`;
+  if (type !== 'barrage' && type !== 'fil' && t.riviere !== undefined) return 'Rivière : usine hydraulique seulement';
   if (t.npyl > 0 && type !== 'poste') return 'Des pylônes passent ici';
   if (!ty.ok(t)) return ty.non;
   return null;
 }
-const recours = t => (t.accept < 20 ? 2 : t.accept < 35 ? 1 : 0);
+const recours = t => (annee(S.min) < 1970 ? 0 : t.accept < 20 ? 2 : t.accept < 35 ? 1 : 0);  // les recours des riverains apparaissent dans les années 1970
 
 // ============================================================ lignes électriques
 // tracé au moindre coût : la montagne et la traversée d'un bras de mer peu profond coûtent plus cher, la haute mer est interdite
 const poidsHex = t => (t.t === 'montagne' ? 3 : t.t === 'cote' || t.t === 'lac' ? 2.5 : t.t === 'colline' ? 1.4 : t.t === 'foret' ? 1.2 : 1);
-const passable = (t, a, b) => t === a || t === b || (!t.brume && t.t !== 'mer' && !t.occ && (!t.ville || t.ville === a.ville || t.ville === b.ville));  // dans sa propre ville, la ligne passe en souterrain
+const passable = (t, a, b) => t === a || t === b || (!t.brume && t.t !== 'mer' && !t.occ && t !== FRONT_T && (!t.ville || t.ville === a.ville || t.ville === b.ville));  // dans sa propre ville, la ligne passe en souterrain
 function chemin(a, b) {
-  const d = new Map([[a, 0]]), prev = new Map([[a, null]]), fait = new Set();
-  for (;;) {
-    let t = null, dm = Infinity; for (const [x, v] of d) if (!fait.has(x) && v < dm) { dm = v; t = x; }
-    if (!t || t === b) break; fait.add(t);
-    for (const n of voisins(t)) if (passable(n, a, b)) { const v = dm + poidsHex(n); if (v < (d.get(n) ?? Infinity)) { d.set(n, v); prev.set(n, t); } }
+  const d = new Map([[a, 0]]), prev = new Map([[a, null]]), fait = new Set(), tas = [[0, a]];  // tas binaire : file de priorité
+  const pousser = e => { tas.push(e); let i = tas.length - 1; while (i) { const p = (i - 1) >> 1; if (tas[p][0] <= tas[i][0]) break; [tas[p], tas[i]] = [tas[i], tas[p]]; i = p; } };
+  const tirer = () => { const h = tas[0], f = tas.pop(); if (tas.length) { tas[0] = f; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < tas.length && tas[l][0] < tas[m][0]) m = l; if (r < tas.length && tas[r][0] < tas[m][0]) m = r; if (m === i) break; [tas[m], tas[i]] = [tas[i], tas[m]]; i = m; } } return h; };
+  while (tas.length) {
+    const [dm, t] = tirer(); if (fait.has(t)) continue; if (t === b) break; fait.add(t);
+    for (const n of voisins(t)) if (passable(n, a, b)) { const v = dm + poidsHex(n); if (v < (d.get(n) ?? Infinity)) { d.set(n, v); prev.set(n, t); pousser([v, n]); } }
   }
   if (!prev.has(b)) return null;
   const p = []; for (let t = b; t; t = prev.get(t)) p.unshift(t); return p;
@@ -836,10 +903,12 @@ const poidsChemin = p => p.slice(1).reduce((a, t) => a + poidsHex(t), 0);
 const bout = t => (t.ville ? t.ville.centre : t);
 function finValide(t, kv) {
   t = bout(t);
-  if (t.ville) return kv === 63 ? null : 'Une ville se raccorde en 63 kV, par son poste source';
+  if (KV[kv].an > annee(S.min)) return `Le ${KV[kv].nom} arrive en ${KV[kv].an}`;
+  if (t.ville) return kv <= 63 ? null : 'Une ville se raccorde en 15 ou 63 kV, par son poste source';
   if (!t.occ) return 'Une ligne relie deux ouvrages : poste, centrale ou ville';
   const ty = t.occ.type, mw = TYPES[ty].mw;
-  if (ty === 'frontiere' && kv === 63) return 'L’interconnexion se fait en 225 ou 400 kV';
+  if (ty === 'frontiere' && kv <= 63) return 'L’interconnexion se fait en 225 ou 400 kV';
+  if (kv === 15 && mw > 15) return `${t.occ.nom} est trop puissante pour du 15 kV`;
   if (kv === 63 && mw > 150) return `${t.occ.nom} est trop puissante pour du 63 kV`;
   if (kv === 400 && !['poste', 'frontiere'].includes(ty) && mw < 400) return 'Le 400 kV est réservé aux postes et aux grosses centrales';
   return null;
@@ -850,7 +919,8 @@ function capLigne(l) {
   return KV[l.kv].cap * k;
 }
 function pylone(L, x, y, z, ry, kv) {
-  const m = lot(), s = kv === 63 ? .58 : kv === 225 ? .78 : 1;
+  const m = lot(), s = kv === 15 ? .8 : kv === 63 ? .58 : kv === 225 ? .78 : 1;
+  if (kv === 15) { put(m, cyl(.28, .36, 8.4, 6), 0x7a5a3a, 0, 4.2, 0, 0, .16); put(m, boite(6.8, .35, .35), 0x7a5a3a, 0, 8.2, 0, 0, .14); transfere(m, L, x, y, z, ry, s); return; }  // poteau en bois
   const f = cyl(.45, 1.5, 9.4, 4); f.rotateY(Math.PI / 4); put(m, f, 0x99a2ac, 0, 4.7, 0, 0, .2);
   put(m, boite(7.2, .45, .55), 0x99a2ac, 0, 8.4, 0, 0, .18);
   if (kv !== 63) put(m, boite(kv === 400 ? 9 : 4.4, .4, .5), 0x99a2ac, 0, 6.6, 0, 0, .18);
@@ -868,7 +938,7 @@ function tracerLigne(a, b, kv, { immediat = false, chemin: p0 = null } = {}) {
 const nomCourt = t => (t.ville ? t.ville.nom : t.occ ? (t.occ.type === 'poste' ? `Poste ${t.occ.nom.replace(/^Poste /, '')}` : t.occ.type === 'frontiere' ? 'Frontière' : t.occ.nom) : TERR[t.t].nom);
 function dessinerLigne(l) {
   jeter(l.grp);
-  const p = l.tuiles, L = lot(), att = [], s = l.kv === 63 ? .58 : l.kv === 225 ? .78 : 1;
+  const p = l.tuiles, L = lot(), att = [], s = l.kv === 15 ? .8 : l.kv === 63 ? .58 : l.kv === 225 ? .78 : 1;
   l.pyl = [];
   p.forEach((t, i) => {
     const pr = p[Math.max(0, i - 1)], nx = p[Math.min(p.length - 1, i + 1)];
@@ -890,7 +960,7 @@ function dessinerLigne(l) {
         pts.push(new THREE.Vector3(A.x + A.px * ea * k + (B.x + B.px * eb * k - A.x - A.px * ea * k) * u, A.y + (B.y - A.y) * u - 1.8 * 4 * u * (1 - u), A.z + A.pz * ea * k + (B.z + B.pz * eb * k - A.z - A.pz * ea * k) * u));
       }
     }
-    put(C, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 2, l.kv === 63 ? .14 : .19, 4), 0xffffff, 0, 0, 0, 0, 0);
+    put(C, new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 2, l.kv === 15 ? .1 : l.kv === 63 ? .14 : .19, 4), 0xffffff, 0, 0, 0, 0, 0);
   }
   l.grp = fige(L, scene, l.fin ? CHANT : MAT);
   const mc = new THREE.MeshBasicMaterial({ color: 0x2d2621, transparent: !!l.fin, opacity: l.fin ? .4 : 1 }); mc.userData = {};
@@ -928,7 +998,7 @@ function animParticules(dt) {
 
 // ============================================================ réseau : topologie, flux de puissance en courant continu, N-1
 // Jeux de barres : un par ouvrage ; un poste en a deux (225/400 kV « H » et 63 kV « B ») reliés par ses 2 autotransformateurs.
-const busDe = (t, kv) => (t.occ && t.occ.type === 'poste' ? t.k + (kv === 63 ? ':B' : ':H') : t.k);
+const busDe = (t, kv) => (t.occ && t.occ.type === 'poste' ? t.k + (kv <= 63 ? ':B' : ':H') : t.k);
 let BR = [], TRANSFOS = new Map();
 const actifB = (b, exclu) => b !== exclu && !(b.hs > S.min) && !b.fin;
 function branches() {
@@ -939,7 +1009,7 @@ function branches() {
     Object.assign(tr, { ba: u.t.k + ':H', bb: u.t.k + ':B', cap: 500, x: .12 * 100 / 500, nom: `Autotransformateurs 225/63 kV · ${u.nom}` }); BR.push(tr);
   }
 }
-const busFront = () => (FRONT_T ? FRONT_T.k : null);
+const busFront = () => (FRONT_T && FRONT_T.occ ? FRONT_T.k : null);  // l'interconnexion n'existe qu'à partir de 1938
 // Composantes connexes : une île est alimentée si elle contient l'interconnexion ou une centrale en service.
 // Chaque île a son nœud bilan : l'interconnexion, sinon sa plus grosse centrale.
 function iles(exclu = null) {
@@ -966,7 +1036,7 @@ function topologie() {
   for (const v of VILLES) v.servie = COMP.has(v.centre.k);
 }
 const raccordee = u => COMP.has(busU(u));
-const actifU = u => (u === IMP ? !!FRONT_T && COMP.has(busFront()) : enService(u) && raccordee(u));
+const actifU = u => (u === IMP ? !!busFront() && COMP.has(busFront()) : enService(u) && raccordee(u));
 let INJ = new Map();
 function injections() {
   INJ = new Map(); const add = (k, v) => INJ.set(k, (INJ.get(k) || 0) + v);
@@ -1048,10 +1118,10 @@ function profils(m) {
   };
 }
 function demande(m) {
-  const P = profils(m), D = { res: 0, ter: 0, ind: 0, crit: 0, tot: 0, villes: [] };
+  const P = profils(m), fd = facteurDemande(m), D = { res: 0, ter: 0, ind: 0, crit: 0, tot: 0, villes: [] };
   for (const v of VILLES) {
     const c = { v, tot: 0, res: 0, ter: 0, ind: 0, crit: 0 };
-    for (const t of v.tuiles) { const q = QUART[t.quartier], val = q.mw * v.k * S.croissance * P[q.cat]; c[q.cat] += val; c.tot += val; }
+    for (const t of v.tuiles) { const q = QUART[t.quartier], val = q.mw * fd * P[q.cat]; c[q.cat] += val; c.tot += val; }
     D.villes.push(c); for (const k of ['res', 'ter', 'ind', 'crit', 'tot']) D[k] += c[k];
   }
   return D;
@@ -1059,16 +1129,18 @@ function demande(m) {
 const courbeEol = v => (v < 3 || v > 25 ? 0 : v > 12 ? 1 : ((v - 3) / 9) ** 3);
 function fatale(u, w, s) {
   const ty = TYPES[u.type];
+  if (u.type === 'fil') return u.cap * clamp(.3 + .5 * w.debit, 0, 1);
   if (ty.f === 'solaire') return u.cap * clamp(Math.sin(s.el) / .62, 0, 1) ** 1.2 * (1 - .8 * w.neb) * (.6 + u.t.soleil * .1) * (rd('bifacial') ? 1.15 : 1);
   if (ty.f === 'eolien') return u.cap * courbeEol(w.vent * u.t.vent / 6.2 * (u.type === 'offshore' ? 1.15 : 1)) * (rd('pales') ? 1.08 : 1) * (w.vent > 25 ? 0 : 1);
   return 0;
 }
-const prixVoisin = m => 82 + ((CARTE && CARTE.prixVol) || 1) * (22 * Math.cos(2 * Math.PI * (jourAn(m) - 15) / 365) + 18 * Math.sin(m / 900)) + 30 * Math.exp(-((((heure(m) - 19 + 36) % 24 - 12) / 2) ** 2)) + (S.evt.froid > m ? 70 : 0) + (S.evt.gaz > m ? 45 : 0) + .25 * (8 * (annee(m) - 2027));  // le voisin émet ~250 g/kWh : son prix suit le CO₂
-const prixCO2 = () => 85 + 8 * (annee(S.min) - 2027);
-const capImport = () => !FRONT_T || !COMP.has(busFront()) ? 0 : BR.filter(b => b.type === 'L' && actifB(b) && (b.ba === busFront() || b.bb === busFront())).reduce((a, b) => a + b.cap, 0) + (rd('hvdc') ? 600 : 0);
+const co2An = a => (a < 2005 ? 0 : a < 2027 ? 20 + (a - 2005) * 65 / 22 : 85 + 8 * (a - 2027));  // quotas européens à partir de 2005
+const prixCO2 = () => co2An(annee(S.min));
+const prixVoisin = m => (60 + ((CARTE && CARTE.prixVol) || 1) * (22 * Math.cos(2 * Math.PI * (jourAn(m) - 15) / 365) + 18 * Math.sin(m / 900)) + 30 * Math.exp(-((((heure(m) - 19 + 36) % 24 - 12) / 2) ** 2)) + (S.evt.froid > m ? 70 : 0) + (S.evt.gaz > m ? 45 : 0) + .25 * co2An(annee(m))) * tarifEre(annee(m)) ** .5;  // le voisin émet ~250 g/kWh
+const capImport = () => !busFront() || !COMP.has(busFront()) ? 0 : BR.filter(b => b.type === 'L' && actifB(b) && (b.ba === busFront() || b.bb === busFront())).reduce((a, b) => a + b.cap, 0) + (rd('hvdc') ? 600 : 0);
 function capDispo(u) {
   const ty = TYPES[u.type]; let c = u.cap;
-  if (S.evt.canicule > S.min && ['charbon', 'gaz', 'nucleaire', 'smr', 'biomasse'].includes(u.type)) c *= .72;
+  if (S.evt.canicule > S.min && ['usine', 'charbon', 'charbonG', 'fioul', 'gaz', 'nucleaire', 'smr', 'biomasse'].includes(u.type)) c *= .72;
   if (u.type === 'barrage') c = u.soc > .02 ? c : Math.min(c, 85 * meteo(S.min).debit);
   return c;
 }
@@ -1079,7 +1151,7 @@ function dispatch(m) {
   topologie();
   for (const c of D.villes) c.v.dem = c.tot;
   const servie = D.villes.filter(c => c.v.servie).reduce((a, c) => a + c.tot, 0);
-  S.demTot = D.tot; S.demServie = servie; S.demIlot = D.tot - servie; S.D = D;
+  S.demTot = D.tot; S.demServie = servie; S.demIlot = D.villes.filter(c => !c.v.servie && !(c.v.grace > m)).reduce((a, c) => a + c.tot, 0); S.D = D;  // une ville nouvelle a un an pour être raccordée
   let reste = servie + S.pertes;
   for (const u of UNITES) { u.c = 0; if (actifU(u) && TYPES[u.type].fatal) { u.c = fatale(u, w, s); reste -= u.c; } }
   // batteries : charge la nuit ou quand il y a du surplus, décharge à la pointe du soir
@@ -1134,23 +1206,23 @@ function pas(m, silencieux = false) {
   S.hist.push({ m, prod, charge: S.charge + S.pertes, dem: S.demTot + S.pertes, co2, spot: S.spot }); if (S.hist.length > 96) S.hist.shift();
   // économie du pas (0,25 h)
   const kd = S.demServie > 0 ? clamp(1 - S.delestage / S.demServie, 0, 1) : 0, sv = c => D.villes.filter(x => x.v.servie).reduce((a, x) => a + x[c], 0) * kd;
-  const e = S.charge * .25, eDist = .25 * (sv('res') + sv('ter') + sv('crit')), ventes = .25 * (sv('res') * S.tarif.res + (sv('ter') + sv('crit')) * S.tarif.ter + sv('ind') * S.tarif.ind) * (CARTE.tarifK || 1);
-  const comb = UNITES.reduce((a, u) => a + (actifU(u) && u.p > 0 ? u.p * .25 * (u.type === 'barrage' ? 2 : TYPES[u.type].cout * (S.evt.gaz > m && (u.type === 'gaz' || u.type === 'tac') ? 1.6 : 1) * (u.type === 'gaz' && rd('ccga') ? .9 : 1)) : 0), 0);
+  const e = S.charge * .25, eDist = .25 * (sv('res') + sv('ter') + sv('crit')), ventes = .25 * (sv('res') * S.tarif.res + (sv('ter') + sv('crit')) * S.tarif.ter + sv('ind') * S.tarif.ind) * (CARTE.tarifK || 1) * tarifEre(annee(m));
+  const comb = UNITES.reduce((a, u) => a + (actifU(u) && u.p > 0 ? u.p * .25 * (u.type === 'barrage' ? 2 : prixCombustible(u.type, annee(m)) * (S.evt.gaz > m && (u.type === 'gaz' || u.type === 'tac') ? 1.6 : 1) * (u.type === 'gaz' && rd('ccga') ? .9 : 1)) : 0), 0);
   const carbone = UNITES.reduce((a, u) => a + (actifU(u) ? Math.max(0, u.p) * .25 * co2U(u) / 1e3 : 0), 0) * prixCO2();
   const pv = prixVoisin(m), imp = Math.max(0, IMP.p) * .25 * pv, exp = Math.max(0, -IMP.p) * .25 * pv * (CARTE.exportK || .7) + (rd('h2') ? S.ecretement * .25 * 45 : 0);
-  const opex = UNITES.reduce((a, u) => a + (u.fin ? 0 : u.cap * (TYPES[u.type].opex || 0) * 1e3), 0) / (365 * 96) + 800 + eDist * DISTRIB + LIGNES.reduce((a, l) => a + l.len * ({ 63: 20e3, 225: 40e3, 400: 70e3 }[l.kv]), 0) / (365 * 96);
+  const opex = UNITES.reduce((a, u) => a + (u.fin ? 0 : u.cap * (TYPES[u.type].opex || 0) * 1e3), 0) / (365 * 96) + e * 12 + eDist * DISTRIB * tarifEre(annee(m)) + LIGNES.reduce((a, l) => a + l.len * ({ 15: 4e3, 63: 20e3, 225: 40e3, 400: 70e3 }[l.kv]), 0) / (365 * 96);
   const rdc = (S.rd.cours ? S.rd.budget : 0) * 1e6 / (365 * 96), prets = S.prets.reduce((a, p) => a + p.annuite, 0) / (365 * 96);
-  const amendes = annee(m) >= 2032 && UNITES.some(u => u.type === 'charbon' && !u.fin && u.dispo) ? 40e6 / (365 * 96) : 0;
+  const amendes = annee(m) >= 2032 && UNITES.some(u => estCharbon(u) && !u.fin && u.dispo) ? 40e6 / (365 * 96) : 0;
   const bas = (prod.solaire || 0) + (prod.eolien || 0) + Math.max(0, prod.hydro || 0) + (prod.nucleaire || 0) + (prod.biomasse || 0) + Math.max(0, prod.stockage || 0);
   const ren = bas - (prod.nucleaire || 0), coupure = (S.demIlot + S.delestage) / Math.max(1, S.demTot) * 15;
   for (const c of [S.jour, S.an]) Object.assign(c, { ventes: c.ventes + ventes, comb: c.comb + comb, carbone: c.carbone + carbone, imp: c.imp + imp, exp: c.exp + exp, opex: c.opex + opex, rd: c.rd + rdc, prets: c.prets + prets, amendes: c.amendes + amendes,
     e: c.e + e, co2: c.co2 + co2 * e, bas: c.bas + bas / tot * e, ren: c.ren + ren / tot * e, coupure: c.coupure + coupure, pointe: Math.max(c.pointe, S.charge + S.pertes) });
   S.argent += ventes + exp - comb - carbone - imp - opex - rdc - prets - amendes;
   if (silencieux) return;
-  // surcharges : la protection déclenche une ligne restée au-delà de 115 % pendant 45 minutes
+  // surcharges : la protection déclenche une ligne restée au-delà de 130 % pendant 45 minutes
   for (const b of BR) {
     if (!actifB(b)) continue;
-    if (b.taux > 1.15) { b.sur += 15; if (b.sur >= 45) { b.hs = m + 240; b.sur = 0; log(`Surcharge : ${b.type === 'T' ? b.nom : 'ligne ' + b.nom} déclenchée par ses protections (${nf(b.taux * 100)} %). Réparation en 4 h.`, 'mauvais'); toast(`Déclenchement par surcharge : ${b.type === 'T' ? b.nom : 'ligne ' + b.nom}.`); } }
+    if (b.taux > 1.3) { b.sur += 15; if (b.sur >= 45) { b.hs = m + 240; b.sur = 0; log(`Surcharge : ${b.type === 'T' ? b.nom : 'ligne ' + b.nom} déclenchée par ses protections (${nf(b.taux * 100)} %). Réparation en 4 h.`, 'mauvais'); toast(`Déclenchement par surcharge : ${b.type === 'T' ? b.nom : 'ligne ' + b.nom}.`); } }
     else b.sur = 0;
   }
   if (S.delestage > 1 && !S.delestOn) { S.delestOn = true; log(`Délestage : ${nf(S.delestage)} MW coupés faute de production disponible.`, 'mauvais'); toast(`Délestage de ${nf(S.delestage)} MW : il manque de la production.`); }
@@ -1168,9 +1240,10 @@ function minuit(m) {
   log(`Bilan du jour : ${nf(j.e)} MWh livrés, ${nf(j.co2 / Math.max(1, j.e))} gCO₂/kWh, ${nf(j.bas / Math.max(1, j.e) * 100)} % bas carbone${j.coupure > .5 ? `, ${nf(j.coupure)} min de coupure` : ''}.`);
   S.jourPrec = { ...j }; S.jour = nouveauCumul();
   // satisfaction
-  const charbon = UNITES.filter(u => u.type === 'charbon' && enService(u)).length;
-  const cible = 80 - Math.min(35, S.an.coupure * .25) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - charbon * 5 - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8;
-  S.sat = clamp(S.sat + (cible - S.sat) * .06, 0, 100); S.nimby *= .985;
+  const charbon = annee(m) >= 1980 ? UNITES.filter(u => estCharbon(u) && enService(u)).length : 0;  // la pollution n'est mal vue qu'à partir des années 1980
+  const exigence = clamp((annee(m) - 1900) / 70, .05, 1);  // au début du siècle, les pannes faisaient partie de la vie
+  const cible = 80 - Math.min(70, S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8;
+  S.sat = clamp(S.sat + (cible - S.sat) * .03, 0, 100); S.nimby *= .985;
   // recherche
   if (S.rd.cours) { S.rd.avance += S.rd.budget / 365; const r = RDI[S.rd.cours]; if (S.rd.avance >= r.cout) { S.rd.acquis.push(r.id); S.rd.cours = null; S.rd.avance = 0; log(`R&D : « ${r.nom} » acquise. ${r.effet}.`, 'bon'); toast(`Recherche terminée : ${r.nom}.`, 'ok'); majBarre(); } }
   // pannes et aléas
@@ -1181,10 +1254,13 @@ function minuit(m) {
   if (ete && alea() < .015 * dif.evt) evenement('canicule');
   if (ete && alea() < .006 * dif.evt) evenement('secheresse');
   if (alea() < .002 * dif.evt) evenement('gaz');
+  // événements historiques
+  const d = date(m), HIST = { 1956: [1, 1, 'froid'], 1985: [0, 5, 'froid'], 1999: [11, 26, 'tempete'], 2003: [7, 1, 'canicule'], 2022: [8, 1, 'gaz'] }, hh = HIST[d.getUTCFullYear()];
+  if (hh && hh[0] === d.getUTCMonth() && hh[1] === d.getUTCDate()) evenement(hh[2]);
   // fin d'année
-  const d = date(m); if (d.getUTCMonth() === 0 && d.getUTCDate() === 1) nouvelAn(m);
-  if (S.argent < -300e6 && !S.fini) finPartie('faillite');
-  else if (S.sat < 15 && !S.fini) finPartie('revocation');
+  if (d.getUTCMonth() === 0 && d.getUTCDate() === 1) nouvelAn(m);
+  if (S.argent < -seuilFaillite() && !S.fini) finPartie('faillite');
+  else if (!S.fini) { S.joursColere = S.sat < 15 ? (S.joursColere || 0) + 1 : 0; if (S.joursColere === 30) { log('La population gronde : la satisfaction est sous 15 %. Sans amélioration dans trois mois, la concession vous sera retirée.', 'mauvais'); toast('Satisfaction sous 15 % : vous avez trois mois pour redresser la situation.'); } if (S.joursColere >= 120) finPartie('revocation'); }
   sauver();
 }
 function evenement(k) {
@@ -1204,24 +1280,68 @@ function nouvelAn(m) {
   const res = a.ventes + a.exp - a.comb - a.carbone - a.imp - a.opex - a.rd - a.prets - a.amendes;
   const r = { an, co2: a.co2 / e, bas: a.bas / e * 100, ren: a.ren / e * 100, coupure: a.coupure, res, capex: a.capex, sat: S.sat, pointe: a.pointe, e: a.e };
   S.rapports.push(r); S.anPrec = { ...a }; S.an = nouveauCumul();
-  S.croissance *= 1 + DIFF[S.diff].croiss;
-  for (const v of VILLES) if ((an + 1 - 2027) % v.croit === 0) croissanceVille(v);
+  const nv = an + 1;
+  // les villes grandissent, de nouveaux villages apparaissent
+  for (const v of [...VILLES]) if (nv >= v.prochaine) croissanceVille(v, r);
+  fonderPeutEtre(r);
   for (const p of S.prets) p.reste--; S.prets = S.prets.filter(p => p.reste > 0); S.dette = S.prets.reduce((s, p) => s + p.capital * p.reste / p.duree, 0);
-  if (an + 1 === 2032 && UNITES.some(u => u.type === 'charbon')) log('Loi de sortie du charbon : chaque année de fonctionnement coûte désormais 40 M€ d’amende.', 'alerte');
-  trierOrdre();
-  rapportAnnuel(r);
+  if (nv === 2032 && UNITES.some(estCharbon)) log('Loi de sortie du charbon : chaque année de fonctionnement coûte désormais 40 M€ d’amende.', 'alerte');
+  if (nv === TYPES.frontiere.an && FRONT_T && !FRONT_T.occ) { creerUnite(FRONT_T, 'frontiere', { immediat: true, nom: 'Interconnexion avec la région voisine' }); log('La région voisine ouvre une interconnexion : tirez une ligne 225 kV jusqu’à la frontière pour importer et exporter.', 'bon'); toast('Nouvelle interconnexion avec la région voisine.', 'info'); dessinerMini(); }
+  const nouveaux = [...Object.entries(TYPES).filter(([, t]) => t.an === nv && !t.cache).map(([, t]) => t.nom), ...Object.values(KV).filter(k => k.an === nv).map(k => `lignes ${k.nom}`)];
+  if (nouveaux.length) log(`Nouveau en ${nv} : ${nouveaux.join(', ')}.`, 'bon');
+  for (const [, t] of Object.entries(TYPES)) if (t.fin === an) log(`${t.nom} : on n’en construit plus à partir de ${nv}.`, 'alerte');
+  majBarre(); trierOrdre();
+  const er = ERES.find(x => x.an === nv);
+  if (er) { S.ere = ERES.indexOf(er); log(`Nouvelle époque : ${er.nom}. ${er.txt}`, 'bon'); }
+  rapportAnnuel(r, er);
 }
-function croissanceVille(v) {
-  const cand = LISTE.filter(t => libre(t) && plat(t) && !t.occ && t.npyl === 0 && v.tuiles.some(x => dist(x, t) === 1)).sort((a, b) => dist(a, v.centre) - dist(b, v.centre) || hache(a.q, a.r, 8) - hache(b.q, b.r, 8));
-  const t = cand[0]; if (!t) { log(`${v.nom} manque de place pour s'étendre : sa demande augmente sur place.`, 'alerte'); S.croissance *= 1.004; return; }
-  const type = v.cycle[v.i++ % v.cycle.length];
+const HAB = { centre: 30000, residentiel: 25000, affaires: 12000, industriel: 8000, hopital: 3000, village: 2500 };
+const habVille = v => v.tuiles.reduce((a, t) => a + HAB[t.quartier], 0);
+const COULEURS_V = ['#ffc94d', '#7cc0f2', '#ff9f8a', '#b8e07b', '#d9a6ff', '#ffb36b', '#8fe3d0', '#f2a1c8'];
+function intervalle(v, r) {
+  const a = annee(S.min), base = { capitale: 5, ville: 7, village: 10 }[v.rang], boom = a >= 1946 && a < 1975 ? .6 : a < 1946 ? 1.1 : a >= 2000 ? 1.2 : 1;
+  const mauvais = r && (r.coupure > 120 || S.sat < 45);  // une ville mal servie grandit moins vite
+  return Math.max(2, Math.round(base * boom / DIFF[S.diff].croit + (mauvais ? 3 : 0)));
+}
+function typeQuartier(v) {
+  const a = annee(S.min);
+  if (v.rang === 'village') return 'residentiel';
+  if (a >= 1930 && v.tuiles.length >= 4 && !v.tuiles.some(t => t.quartier === 'hopital')) return 'hopital';
+  const cyc = a >= 1960 ? ['residentiel', 'industriel', 'affaires', 'residentiel'] : ['residentiel', 'industriel', 'residentiel'];
+  if (CARTE.industriel) cyc.splice(1, 0, 'industriel');
+  return cyc[v.i++ % cyc.length];
+}
+const placeLibre = t => libre(t) && plat(t) && !t.occ && t.npyl === 0 && t !== FRONT_T;
+function croissanceVille(v, r) {
+  v.prochaine = annee(S.min) + intervalle(v, r);
+  const cand = LISTE.filter(t => placeLibre(t) && v.tuiles.some(x => dist(x, t) === 1)).sort((a, b) => dist(a, v.centre) - dist(b, v.centre) || hache(a.q, a.r, 8) - hache(b.q, b.r, 8));
+  const t = cand[0]; if (!t) { log(`${v.nom} manque de place pour s’étendre.`, 'alerte'); return; }
+  const type = typeQuartier(v);
   ajouterQuartier(v, t, type, true);
-  S.quartiers.push({ k: t.k, ville: v.nom, type });
-  log(`${v.nom} s'agrandit : nouveau ${QUART[type].nom.toLowerCase()} (+${nf(QUART[type].mw * S.croissance)} MW).`, 'bon');
+  log(`${v.nom} s’agrandit : nouveau ${QUART[type].nom.toLowerCase()} (+${nf(QUART[type].mw * facteurDemande(), 1)} MW).`, 'bon');
+  if (v.rang === 'village' && v.tuiles.length >= 3) {  // le village devient une ville : son cœur devient un centre-ville
+    const c = v.tuiles.find(x => x.quartier === 'village') || v.centre;
+    c.quartier = 'centre'; jeter(c.grpQ); FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.q !== c)); dessinerQuartier(c, true);
+    v.rang = 'ville'; v.rayon = 2; v.hab = habVille(v); dessinerFrontieres();
+    log(`${v.nom} devient une ville (${nf(v.hab)} habitants).`, 'bon'); toast(`${v.nom} devient une ville.`, 'info');
+  }
 }
 function ajouterQuartier(v, t, type, anim) {
-  Object.assign(t, { ville: v, quartier: type, t: 'ville' }); t.top = Math.max(t.top, TERR.ville.h); v.tuiles.push(t); v.hab = Math.round(v.hab * 1.12);
+  Object.assign(t, { ville: v, quartier: type, t: 'ville' }); t.top = Math.max(t.top, TERR.ville.h); v.tuiles.push(t); v.hab = habVille(v);
   dessinerQuartier(t, anim); dessinerFrontieres(); majAcceptation(); dessinerMini();
+}
+function fonderPeutEtre(r) {
+  if (VILLES.length >= 7) return;
+  const a = annee(S.min), base = a < 1920 ? .08 : a < 1946 ? .09 : a < 1975 ? .15 : a < 1990 ? .08 : .05;
+  const bon = S.sat > 50 && (!r || r.coupure < 60);
+  if (!(VILLES.length === 1 && a >= 1915) && alea() > base * (bon ? 1 : .4)) return;
+  const loinDe = t => VILLES.every(v => v.tuiles.every(x => dist(x, t) >= 4)) && UNITES.every(u => dist(u.t, t) >= 2);
+  const t = SITES.find(x => placeLibre(x) && loinDe(x)) || LISTE.filter(x => placeLibre(x) && loinDe(x) && Math.min(x.col, x.row, COLS - 1 - x.col, ROWS - 1 - x.row) >= 3).sort((x, y) => hache(x.q, x.r, 21) - hache(y.q, y.r, 21))[0];
+  if (!t) return;
+  const nom = CARTE.villes[VILLES.length] || NOMS_VILLES.find(n => !VILLES.some(v => v.nom === n)) || `Ville ${VILLES.length + 1}`;
+  const v = { nom, centre: t, couleur: COULEURS_V[VILLES.length % COULEURS_V.length], tuiles: [], rang: 'village', rayon: 1, i: 0, servie: false, base: 0, fondee: a, grace: S.min + 365 * 1440, prochaine: a + intervalle({ rang: 'village' }) };
+  VILLES.push(v); ajouterQuartier(v, t, 'village', true);
+  log(`Un nouveau village est fondé : ${nom}. Raccordez-le au réseau dans l’année.`, 'alerte'); toast(`Nouveau village : ${nom}. Raccordez-le au réseau.`, 'info');
 }
 
 // ============================================================ superpositions : survol, sélection, frontières, lentilles
@@ -1328,6 +1448,11 @@ let toastT;
 function toast(t, genre = '') { if (BANC_ON) return; const el = $('#toast'); el.textContent = t; el.className = 'toast ' + genre; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (el.hidden = true), 3800); }
 function log(t, genre = '') { if (!t) return; S.journal.unshift({ m: S.min, t, genre }); S.journal.length = Math.min(S.journal.length, 80); }
 const ICONES = {
+  usine: '<rect x="4" y="15" width="18" height="13" rx="1.5" fill="#b7634a" stroke="#0f130e" stroke-width="2.5"/><path d="M4 15l6-4v4l6-4v4" fill="#b7634a" stroke="#0f130e" stroke-width="2.2" stroke-linejoin="round"/><rect x="23" y="5" width="5" height="23" fill="#8a3f2c" stroke="#0f130e" stroke-width="2.2"/><circle cx="27" cy="4" r="2.6" fill="#c9c6bc"/>',
+  fil: '<path d="M2 26q4-3 8 0t8 0 8 0 8 0" stroke="#46a9dd" stroke-width="3" fill="none"/><rect x="8" y="10" width="16" height="12" rx="1.5" fill="#d8cbb0" stroke="#0f130e" stroke-width="2.5"/><path d="M6 11l10-6 10 6" fill="#7a5a44" stroke="#0f130e" stroke-width="2.2" stroke-linejoin="round"/>',
+  charbon: '<rect x="4" y="14" width="16" height="14" rx="1.5" fill="#b7634a" stroke="#0f130e" stroke-width="2.5"/><rect x="22" y="4" width="6" height="24" fill="#f6f2ea" stroke="#0f130e" stroke-width="2.2"/><path d="M22 10h6M22 18h6" stroke="#d9573b" stroke-width="3"/><path d="M6 28l4-6 4 6z" fill="#2f2c2a"/>',
+  charbonG: '<path d="M3 29c2-6 2-10 0-16h10c-2 6-2 10 0 16z" fill="#e2ded4" stroke="#0f130e" stroke-width="2.2" stroke-linejoin="round"/><rect x="15" y="14" width="10" height="15" fill="#b7634a" stroke="#0f130e" stroke-width="2.2"/><rect x="26" y="3" width="5" height="26" fill="#f6f2ea" stroke="#0f130e" stroke-width="2"/><path d="M26 9h5M26 17h5" stroke="#d9573b" stroke-width="2.6"/>',
+  fioul: '<rect x="3" y="15" width="11" height="13" rx="5" fill="#e9e6dd" stroke="#0f130e" stroke-width="2.4"/><rect x="15" y="12" width="11" height="16" rx="1.5" fill="#d8d4c8" stroke="#0f130e" stroke-width="2.4"/><rect x="27" y="4" width="4" height="24" fill="#c9c4b6" stroke="#0f130e" stroke-width="2"/><path d="M6 21h5" stroke="#a07850" stroke-width="3"/>',
   solaire: '<rect x="5" y="12" width="24" height="14" rx="2" fill="#2d4f92" stroke="#0f130e" stroke-width="2.5"/><path d="M5 19h24M13 12v14M21 12v14" stroke="#9cc3ff" stroke-width="1.6"/><circle cx="27" cy="7" r="4" fill="#ffc94d" stroke="#0f130e" stroke-width="2"/>',
   eolien: '<path d="M17 15v16" stroke="#0f130e" stroke-width="4"/><path d="M17 15v16" stroke="#f6f6f1" stroke-width="2"/><path d="M17 14 16 3l3 0zM17 14l10 5-1 2.4zM17 14 7 19.6 8.4 22z" fill="#f6f6f1" stroke="#0f130e" stroke-width="1.8" stroke-linejoin="round"/><circle cx="17" cy="14" r="2.2" fill="#ffc94d" stroke="#0f130e" stroke-width="1.5"/>',
   offshore: '<path d="M2 28q4-3 8 0t8 0 8 0 8 0" stroke="#46a9dd" stroke-width="3" fill="none"/><path d="M17 13v13" stroke="#0f130e" stroke-width="4"/><path d="M17 13v13" stroke="#f6f6f1" stroke-width="2"/><path d="M17 12 16 2l3 0zM17 12l9 5-1 2zM17 12l-9 5 1.4 2z" fill="#f6f6f1" stroke="#0f130e" stroke-width="1.6" stroke-linejoin="round"/>',
@@ -1343,13 +1468,15 @@ const ICONES = {
   ligne: '<path d="M17 3 10 31M17 3l7 28M8 10h18M11 17h12M13 24h8" stroke="#0f130e" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M2 12q7 6 6 0M26 12q6 6 6 0" stroke="#ffc94d" stroke-width="2" fill="none"/>',
 };
 function majBarre() {
-  $('#chantier').innerHTML = ORDRE_BARRE.map(k => { const ty = TYPES[k], verrou = ty.rd && !rd(ty.rd);
-    return `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" ${verrou ? 'disabled' : ''} title="${verrou ? 'Recherche : ' + RDI[ty.rd].nom : ty.nom + ' · ' + ty.non}"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k]}</svg><b>${ty.court}</b><span>${verrou ? 'R&D' : `${ty.mw ? nf(ty.mw) + ' MW · ' : ''}${nf(coutType(k))} M€`}</span></button>`; }).join('') +
-    `<button type="button" class="carte-c${mode === 'ligne' ? ' actif' : ''}" data-act="mode" data-id="ligne" title="Relier deux ouvrages"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES.ligne}</svg><b>Ligne</b><span>63 · 225${rd('tht') ? ' · 400' : ''} kV</span></button>`;
+  const a = annee(S.min), dispo = ORDRE_BARRE.filter(k => dispoType(k)), bientot = ORDRE_BARRE.filter(k => TYPES[k].an > a).sort((x, y) => TYPES[x].an - TYPES[y].an).slice(0, 3);
+  const kvs = Object.entries(KV).filter(([, v]) => v.an <= a).map(([k]) => k).join(' · ');
+  $('#chantier').innerHTML = [...dispo, ...bientot].map(k => { const ty = TYPES[k], futur = ty.an > a, verrou = futur || (ty.rd && !rd(ty.rd));
+    return `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" ${verrou ? 'disabled' : ''} title="${futur ? `Disponible en ${ty.an}` : ty.rd && !rd(ty.rd) ? 'Recherche : ' + RDI[ty.rd].nom : ty.nom + ' · ' + ty.non}"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k] || ICONES.charbon}</svg><b>${ty.court}</b><span>${futur ? `en ${ty.an}` : verrou ? 'R&D' : `${ty.mw ? nf(ty.mw) + ' MW · ' : ''}${nf(coutType(k))} M€`}</span></button>`; }).join('') +
+    `<button type="button" class="carte-c${mode === 'ligne' ? ' actif' : ''}" data-act="mode" data-id="ligne" title="Relier deux ouvrages"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES.ligne}</svg><b>Ligne</b><span>${kvs} kV</span></button>`;
 }
 function majAide() {
   const a = $('#aide'); a.hidden = !mode;
-  if (mode === 'ligne') a.innerHTML = `<span>${depart ? `Départ : ${nomCourt(depart)}. Cliquez sur l’arrivée.` : 'Cliquez sur l’ouvrage de départ.'}</span>${Object.entries(KV).map(([k, v]) => `<button type="button" data-act="kv" data-id="${k}" class="${+k === kvMode ? 'actif' : ''}" ${v.rd && !rd(v.rd) ? 'disabled' : ''}>${v.nom} · ${nf(v.cap)} MW</button>`).join('')}<button type="button" data-act="mode" data-id="ligne">Annuler</button>`;
+  if (mode === 'ligne') a.innerHTML = `<span>${depart ? `Départ : ${nomCourt(depart)}. Cliquez sur l’arrivée.` : 'Cliquez sur l’ouvrage de départ.'}</span>${Object.entries(KV).map(([k, v]) => `<button type="button" data-act="kv" data-id="${k}" class="${+k === kvMode ? 'actif' : ''}" ${v.an > annee(S.min) ? 'disabled' : ''}>${v.nom} · ${nf(v.cap)} MW</button>`).join('')}<button type="button" data-act="mode" data-id="ligne">Annuler</button>`;
   else if (mode) a.innerHTML = `<span>${TYPES[mode].nom} : posez-la sur un hexagone vert. Plus il est foncé, meilleur est le site.</span><button type="button" data-act="mode" data-id="${mode}">Annuler</button>`;
 }
 function choisirMode(m) {
@@ -1401,14 +1528,19 @@ function acheterLigne(a, b, kv) {
   log(`Chantier de ligne ${KV[kv].nom} ${l.nom} lancé : ${p.length - 1} hexagones, ${nf(c / 1e6, 1)} M€, mise sous tension dans ${KV[kv].delai} mois.`);
   return l;
 }
-function emprunter(mEUR) {
-  const cap = mEUR * 1e6, duree = mEUR > 500 ? 25 : 20, taux = .035 + S.dette / 1e9 * .01, annuite = cap * taux / (1 - (1 + taux) ** -duree);
+// les montants suivent la taille du réseau : quelques M€ en 1900, des milliards en 2050
+const arrondiJoli = x => { const p = 10 ** Math.floor(Math.log10(x)), m = x / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; };
+const taillePret = () => arrondiJoli(Math.max(5, pointeEstimee() * .5));
+const detteMax = () => Math.max(60e6, pointeEstimee() * 5e6);
+const seuilFaillite = () => Math.max(20e6, pointeEstimee() * .75e6);
+function emprunter(mEUR, duree = 20) {
+  const cap = mEUR * 1e6, taux = .035 + S.dette / 1e9 * .01, annuite = cap * taux / (1 - (1 + taux) ** -duree);
   S.prets.push({ capital: cap, taux, duree, reste: duree, annuite }); S.argent += cap; S.dette += cap;
   log(`Emprunt de ${nf(mEUR)} M€ sur ${duree} ans à ${nf(taux * 100, 1)} %.`, 'alerte');
 }
 function fermer(u) {
-  const c = u.type === 'charbon' ? 30e6 : TYPES[u.type].capex * .05e6; S.argent -= c;
-  log(`${u.nom} ${u.type === 'charbon' ? 'fermée définitivement' : 'démolie'} (${nf(c / 1e6)} M€).`, u.type === 'charbon' ? 'bon' : 'alerte');
+  const ch = estCharbon(u), c = ch ? Math.max(.5, u.cap * .07) * 1e6 : TYPES[u.type].capex * .05e6; S.argent -= c;
+  log(`${u.nom} ${ch ? 'fermée définitivement' : 'démolie'} (${nf(c / 1e6, 1)} M€).`, ch ? 'bon' : 'alerte');
   demolir(u);
 }
 function cliquer(t, e) {
@@ -1445,7 +1577,8 @@ const OBJ = [
 function anCourant() { const a = S.an, e = Math.max(1, a.e); return { bas: a.bas / e * 100, coupure: a.coupure, sat: S.sat, co2: a.co2 / e }; }
 function panneauAccueil() {
   const r = anCourant(), j = S.jourPrec || S.jour, prix = S.hist.reduce((a, h) => a + h.spot, 0) / Math.max(1, S.hist.length);
-  return `<div class="encart"><h3>Objectif 2050 · ${DIFF[S.diff].nom}</h3><p>${CARTE.sous}. Rendre l’électricité de la région bas carbone sans coupure ni faillite, alors que les villes grandissent. La centrale à charbon doit fermer avant 2032.</p>
+  return `<div class="encart"><h3>${ere().an} · ${ere().nom}</h3><p>${ere().txt}${ERES[ERES.indexOf(ere()) + 1] ? ` Prochaine époque en ${ERES[ERES.indexOf(ere()) + 1].an} : ${ERES[ERES.indexOf(ere()) + 1].nom}.` : ''}</p></div>
+    <div class="encart"><h3>Objectif 2050 · ${DIFF[S.diff].nom}</h3><p>${CARTE.sous}. Électrifier la région à mesure qu’elle se peuple, puis rendre son électricité bas carbone sans coupure ni faillite. Le charbon doit avoir fermé avant 2032.</p>
     ${OBJ.map(([n, ok, v]) => `<div class="barre-l"><span style="width:auto;flex:1">${ok(r) ? '✓' : '✕'} ${n}</span><span style="width:auto;color:${ok(r) ? 'var(--vert)' : 'var(--rouge)'}">${v(r)}</span></div>`).join('')}
     <p class="verrou">${2050 - annee(S.min)} ans restants · année en cours depuis le 1er janvier</p></div>
     <div class="kpis">
@@ -1455,7 +1588,7 @@ function panneauAccueil() {
       ${kpi('Prix spot moyen', nf(prix), '€/MWh', prix / 200, '#f08a6c')}${kpi('Pointe de l’année', nf(S.an.pointe), 'MW', S.an.pointe / 1000, '#c3b0ea')}
     </div>
     <div class="section">Villes</div>
-    ${VILLES.map(v => `<div class="ligne"><span class="pastille" style="background:${v.couleur}"></span><div class="txt"><div class="t1">${v.nom} · ${nf(v.hab)} habitants</div><div class="t2">${v.tuiles.length} hexagone${v.tuiles.length > 1 ? 's' : ''} · prochaine extension en ${2027 + Math.ceil((annee(S.min) - 2027 + 1) / v.croit) * v.croit}</div></div><div class="val">${nf(v.dem || 0)}<small>MW · ${v.servie ? 'alimentée' : 'coupée'}</small></div></div>`).join('')}
+    ${VILLES.map(v => `<div class="ligne"><span class="pastille" style="background:${v.couleur}"></span><div class="txt"><div class="t1">${v.nom} · ${nf(v.hab)} habitants</div><div class="t2">${v.tuiles.length} hexagone${v.tuiles.length > 1 ? 's' : ''} · ${{ capitale: 'Capitale', ville: 'Ville', village: 'Village' }[v.rang]} fondée en ${v.fondee || 1900} · prochaine extension en ${v.prochaine}</div></div><div class="val">${nf(v.dem || 0)}<small>MW · ${v.servie ? 'alimentée' : 'coupée'}</small></div></div>`).join('')}
     <div class="section">Alertes</div>
     ${alertes().map(([g, t]) => `<div class="journal-l ${g}"><span class="d">${g === 'mauvais' ? 'CRITIQUE' : g === 'alerte' ? 'ATTENTION' : 'INFO'}</span><span class="t">${t}</span></div>`).join('') || '<p class="vide">Aucune alerte.</p>'}
     ${S.rapports.length ? `<div class="section">Bilans annuels</div><table class="tab"><thead><tr><th>Année</th><th>Bas carbone</th><th>Coupure</th><th>Résultat</th></tr></thead><tbody>${S.rapports.slice(-6).reverse().map(r => `<tr><td>${r.an}</td><td>${nf(r.bas)} %</td><td>${nf(r.coupure)} min</td><td>${nf(r.res / 1e6)} M€</td></tr>`).join('')}</tbody></table>` : ''}
@@ -1472,7 +1605,7 @@ function alertes() {
   for (const u of UNITES) if (!u.fin && TYPES[u.type].mw && !raccordee(u)) a.push(['alerte', `${u.nom} n’est pas raccordée au réseau.`]);
   for (const b of BR) if (actifB(b) && b.taux > .8) a.push([b.taux > 1 ? 'mauvais' : 'alerte', `${b.type === 'T' ? b.nom : 'Ligne ' + b.nom} chargée à ${nf(b.taux * 100)} %.`]);
   for (const r of n1Cache().slice(0, 4)) a.push(['alerte', `N-1 : perte de « ${r.el} » → ${r.cons}.`]);
-  if (annee(S.min) >= 2030 && UNITES.some(u => u.type === 'charbon')) a.push(['alerte', annee(S.min) >= 2032 ? 'Charbon encore en service : 40 M€ d’amende par an.' : `Sortie du charbon obligatoire avant le 1er janvier 2032.`]);
+  if (annee(S.min) >= 2030 && UNITES.some(estCharbon)) a.push(['alerte', annee(S.min) >= 2032 ? 'Charbon encore en service : 40 M€ d’amende par an.' : `Sortie du charbon obligatoire avant le 1er janvier 2032.`]);
   for (const [k, f] of Object.entries(S.evt)) if (f > S.min) a.push(['alerte', `${NOM_EVT[k]} jusqu’au ${dateTxt(f)}.`]);
   return a;
 }
@@ -1509,12 +1642,12 @@ let catOnglet = 'production';
 function panneauConstruire() {
   const liste = Object.entries(TYPES).filter(([, t]) => !t.cache && t.groupe === catOnglet);
   return `<div class="onglets">${[['production', 'Production'], ['reseau', 'Réseau'], ['stockage', 'Stockage']].map(([k, n]) => `<button type="button" data-act="cat" data-id="${k}" class="${catOnglet === k ? 'actif' : ''}">${n}</button>`).join('')}</div>
-    ${liste.map(([k, t]) => { const verrou = t.rd && !rd(t.rd); return `<div class="ligne"><span class="pastille" style="background:${t.f ? FIL[t.f][1] : '#d6dccb'}"></span><div class="txt"><div class="t1">${t.nom}${t.mw ? ' · ' + nf(t.mw) + ' MW' : ''}</div>
-      <div class="t2">${t.non}${t.co2 !== undefined && t.mw ? ` · ${nf(t.co2)} gCO₂/kWh` : ''}${t.cout ? ` · ${nf(t.cout)} €/MWh` : ''}${t.reseau ? ` · raccordement ${t.reseau} kV` : ''}</div>
+    ${liste.filter(([k, t]) => !(t.fin && annee(S.min) > t.fin)).map(([k, t]) => { const futur = t.an > annee(S.min), verrou = futur || (t.rd && !rd(t.rd)); return `<div class="ligne"><span class="pastille" style="background:${t.f ? FIL[t.f][1] : '#d6dccb'}"></span><div class="txt"><div class="t1">${t.nom}${t.mw ? ' · ' + nf(t.mw) + ' MW' : ''}</div>
+      <div class="t2">${t.non}${t.co2 !== undefined && t.mw ? ` · ${nf(t.co2)} gCO₂/kWh` : ''}${t.cout || k === 'fioul' ? ` · ${nf(prixCombustible(k, annee(S.min)))} €/MWh` : ''}${t.reseau ? ` · raccordement ${t.reseau} kV` : ''}</div>
       <div class="t3">${nf(coutType(k))} M€ · chantier ${delaiType(k)} mois${t.opex ? ` · ${nf(t.opex)} k€/MW/an` : ''}</div></div>
-      ${verrou ? `<button type="button" class="btn petit" disabled>R&D</button>` : `<button type="button" class="btn petit" data-act="placer" data-id="${k}">Placer</button>`}</div>`; }).join('')}
-    ${catOnglet === 'reseau' ? Object.entries(KV).map(([k, v]) => `<div class="ligne"><span class="pastille" style="background:${k == 63 ? '#c3b0ea' : k == 225 ? '#f08a6c' : '#ff5a4a'}"></span><div class="txt"><div class="t1">Ligne ${v.nom} · ${nf(v.cap)} MW</div><div class="t2">${k == 63 ? 'Postes 225/63 kV, villes et petites centrales' : k == 225 ? 'Centrales, postes et interconnexion' : 'Grosses centrales et grands postes'}</div><div class="t3">${nf(v.cout, 1)} M€ par hexagone · ${v.delai} mois</div></div>
-      ${v.rd && !rd(v.rd) ? '<button type="button" class="btn petit" disabled>R&D</button>' : `<button type="button" class="btn petit" data-act="tracer" data-id="${k}">Tracer</button>`}</div>`).join('') + '<p class="verrou">Chaîne réaliste : centrale → 225 kV → poste 225/63 kV → 63 kV → poste source de la ville.</p>' : ''}`;
+      ${verrou ? `<button type="button" class="btn petit" disabled>${futur ? t.an : 'R&D'}</button>` : `<button type="button" class="btn petit" data-act="placer" data-id="${k}">Placer</button>`}</div>`; }).join('')}
+    ${catOnglet === 'reseau' ? Object.entries(KV).map(([k, v]) => `<div class="ligne"><span class="pastille" style="background:${k == 15 ? '#cfcabd' : k == 63 ? '#c3b0ea' : k == 225 ? '#f08a6c' : '#ff5a4a'}"></span><div class="txt"><div class="t1">Ligne ${v.nom} · ${nf(v.cap)} MW</div><div class="t2">${k == 15 ? 'Poteaux en bois : villes et petites usines proches' : k == 63 ? 'Postes 225/63 kV, villes et petites centrales' : k == 225 ? 'Centrales, postes et interconnexion' : 'Grosses centrales et grands postes'}</div><div class="t3">${nf(v.cout, 1)} M€ par hexagone · ${v.delai} mois</div></div>
+      ${v.an > annee(S.min) ? `<button type="button" class="btn petit" disabled>${v.an}</button>` : `<button type="button" class="btn petit" data-act="tracer" data-id="${k}">Tracer</button>`}</div>`).join('') + '<p class="verrou">Au début du siècle, les usines alimentent directement les villes en 15 kV. Plus tard : centrale → 225 kV → poste 225/63 kV → 63 kV → ville.</p>' : ''}`;
 }
 function schemaReseau() {
   const xs = LISTE.filter(t => !t.brume), minX = Math.min(...xs.map(t => t.x)), maxX = Math.max(...xs.map(t => t.x)), minZ = Math.min(...xs.map(t => t.z)), maxZ = Math.max(...xs.map(t => t.z));
@@ -1566,16 +1699,16 @@ function panneauEconomie() {
     <canvas id="g-spot" class="graphe" height="90" style="margin-top:8px"></canvas>
     <div class="section">Financement · dette ${nf(S.dette / 1e6)} M€</div>
     ${S.prets.map(p => `<div class="ligne"><div class="txt"><div class="t1">Prêt de ${nf(p.capital / 1e6)} M€ à ${nf(p.taux * 100, 1)} %</div><div class="t2">Annuité ${nf(p.annuite / 1e6, 1)} M€ · encore ${p.reste} ans</div></div></div>`).join('') || '<p class="vide">Aucun prêt en cours.</p>'}
-    <div class="btns"><button type="button" class="btn petit" data-act="emprunt" data-id="200" ${S.dette > 1800e6 ? 'disabled' : ''}>Emprunter 200 M€ sur 20 ans</button><button type="button" class="btn petit secondaire" data-act="emprunt" data-id="1000" ${S.dette > 1000e6 ? 'disabled' : ''}>Emprunter 1 000 M€ sur 25 ans</button></div>`;
+    <div class="btns"><button type="button" class="btn petit" data-act="emprunt" data-id="${taillePret()}" data-duree="20" ${S.dette > detteMax() * .9 ? 'disabled' : ''}>Emprunter ${nf(taillePret())} M€ sur 20 ans</button><button type="button" class="btn petit secondaire" data-act="emprunt" data-id="${taillePret() * 5}" data-duree="25" ${S.dette > detteMax() * .5 ? 'disabled' : ''}>Emprunter ${nf(taillePret() * 5)} M€ sur 25 ans</button></div>`;
 }
 function panneauRD() {
   const c = S.rd.cours ? RDI[S.rd.cours] : null;
   return `<div class="encart"><h3>${c ? `En cours : ${c.nom}` : 'Aucune recherche en cours'}</h3>
     ${c ? `<div class="barre-l"><span>Avancement</span><div class="jauge"><i style="width:${S.rd.avance / c.cout * 100}%;background:var(--or)"></i></div><span>${nf(S.rd.avance, 1)} / ${c.cout} M€</span></div><p>Fin estimée : ${dateTxt(S.min + (c.cout - S.rd.avance) / S.rd.budget * 365 * 1440)}.</p>` : '<p>Choisissez une technologie disponible ci-dessous.</p>'}
     <div class="onglets">${[5, 10, 25, 50].map(b => `<button type="button" data-act="budget" data-id="${b}" class="${S.rd.budget === b ? 'actif' : ''}">${b} M€/an</button>`).join('')}</div></div>
-    ${BRANCHES.map((bn, bi) => `<div class="section">${bn}</div>${RD.filter(r => r.b === bi).map(r => { const ok = rd(r.id), cours = S.rd.cours === r.id, dispo = rdDispo(r); return `<div class="ligne"><div class="txt"><div class="t1">${r.nom}</div><div class="t2">${r.effet} · ${r.cout} M€</div>
+    ${BRANCHES.map((bn, bi) => `<div class="section">${bn}</div>${RD.filter(r => r.b === bi).map(r => { const ok = rd(r.id), cours = S.rd.cours === r.id, dispo = rdDispo(r); return `<div class="ligne"><div class="txt"><div class="t1">${r.nom}</div><div class="t2">${r.effet} · ${r.cout} M€${r.an ? ` · à partir de ${r.an}` : ''}</div>
       <div class="etapes">${[1, 2, 3, 4, 5].map(k => `<span class="${k < r.niv || (k === r.niv && ok) ? 'ok' : k === r.niv && cours ? 'cours' : ''}"></span>`).join('')}</div>${!ok && !dispo && r.pre ? `<div class="t3">Prérequis : ${r.pre.map(p => RDI[p].nom).join(', ')}</div>` : ''}</div>
-      ${ok ? '<span class="chip vert">Acquise</span>' : cours ? `<span class="chip or">${nf(S.rd.avance / r.cout * 100)} %</span>` : `<button type="button" class="btn petit" ${dispo ? `data-act="rd" data-id="${r.id}"` : 'disabled'}>${dispo ? 'Lancer' : 'Verrouillée'}</button>`}</div>`; }).join('')}`).join('')}`;
+      ${ok ? '<span class="chip vert">Acquise</span>' : cours ? `<span class="chip or">${nf(S.rd.avance / r.cout * 100)} %</span>` : `<button type="button" class="btn petit" ${dispo ? `data-act="rd" data-id="${r.id}"` : 'disabled'}>${dispo ? 'Lancer' : annee(S.min) < (r.an || 0) ? `En ${r.an}` : 'Verrouillée'}</button>`}</div>`; }).join('')}`).join('')}`;
 }
 function panneauJournal() { return S.journal.map(e => `<div class="journal-l ${e.genre}"><span class="d">${jourTxt(e.m).split(' ').slice(1).join(' ')} ${hhmm(e.m)}</span><span class="t">${e.t}</span></div>`).join('') || '<p class="vide">Rien pour l’instant.</p>'; }
 let confirmer = null;
@@ -1585,7 +1718,7 @@ function panneauHex() {
   if (t.ville) {
     const v = t.ville;
     h += `<div class="encart"><h3>${v.nom} · ${nf(v.hab)} habitants</h3><div class="stat"><span>Demande</span><b>${nf(v.dem || 0)} MW</b><span>Alimentation</span><b style="color:var(${v.servie ? '--vert' : '--rouge'})">${v.servie ? 'Raccordée' : 'Coupée'}</b></div>
-      ${v.tuiles.map(x => `<div class="barre-l"><span style="width:auto;flex:1">${x === t ? '▸ ' : ''}${QUART[x.quartier].nom}</span><span>${nf(QUART[x.quartier].mw * v.k * S.croissance)} MW</span></div>`).join('')}</div>
+      ${v.tuiles.map(x => `<div class="barre-l"><span style="width:auto;flex:1">${x === t ? '▸ ' : ''}${QUART[x.quartier].nom}</span><span>${nf(QUART[x.quartier].mw * facteurDemande(), 1)} MW</span></div>`).join('')}</div>
       <p class="verrou">Les villes se raccordent en 63 kV sur leur centre. Elles s’étendent sur les hexagones libres voisins au fil des années.</p>`;
   } else if (t.occ) {
     const u = t.occ, ty = TYPES[u.type];
@@ -1594,7 +1727,7 @@ function panneauHex() {
       ${ty.mw ? `<div class="barre-l"><span>Puissance</span><div class="jauge"><i style="width:${clamp(Math.abs(u.p) / u.cap, 0, 1) * 100}%;background:${FIL[ty.f][1]}"></i></div><span>${nf(u.p)} / ${nf(u.cap)}</span></div>` : ''}
       <div class="stat">${ty.mw ? `<span>Coût marginal</span><b>${nf(coutMarginal(u))} €/MWh</b><span>Émissions</span><b>${nf(co2U(u))} gCO₂/kWh</b><span>Rampe</span><b>${ty.ramp >= 99 ? 'instantanée' : ty.ramp + ' MW/min'}</b>` : ''}${ty.min ? `<span>Minimum technique</span><b>${ty.min} MW</b>` : ''}${u.type === 'poste' ? '<span>Transformation</span><b>2 × 250 MVA</b>' : ''}${ty.reseau ? `<span>Raccordement conseillé</span><b>${ty.reseau} kV</b>` : ''}${u.type === 'barrage' || u.type === 'batterie' ? `<span>Réserve</span><b>${nf(u.soc * 100)} %</b>` : ''}</div></div>
       ${u.type === 'frontiere' ? '' : `<div class="btns">${ty.mw && !u.fin && !ty.fatal ? `<button type="button" class="btn ${u.dispo ? 'secondaire' : ''} petit" data-act="arret" data-id="${u.id}">${u.dispo ? 'Mettre à l’arrêt' : 'Recoupler'}</button>` : ''}
-        <button type="button" class="btn danger petit" data-act="demolir" data-id="${u.id}">${confirmer === u.id ? `Confirmer : ${u.type === 'charbon' ? 'fermeture 30 M€' : 'démolir'}` : u.type === 'charbon' ? 'Fermer définitivement' : 'Démolir'}</button></div>`}`;
+        <button type="button" class="btn danger petit" data-act="demolir" data-id="${u.id}">${confirmer === u.id ? `Confirmer : ${estCharbon(u) ? `fermeture ${nf(Math.max(.5, u.cap * .07), 1)} M€` : 'démolir'}` : estCharbon(u) ? 'Fermer définitivement' : 'Démolir'}</button></div>`}`;
   }
   const ls = LIGNES.filter(l => l.a === bout(t) || l.b === bout(t));
   if (ls.length) h += `<div class="section">Lignes raccordées</div>` + ls.map(l => `<div class="ligne"><span class="pastille" style="background:${coulTaux(l)}"></span><div class="txt"><div class="t1">${KV[l.kv].nom} · ${l.nom}</div><div class="t2">${l.fin ? 'chantier' : l.hs > S.min ? 'déclenchée' : `${nf(Math.abs(l.f))} MW · ${nf(l.taux * 100)} %`}</div></div><button type="button" class="btn mini secondaire" data-act="demolir-ligne" data-id="${l.id}" aria-label="Démonter">✕</button></div>`).join('');
@@ -1621,7 +1754,7 @@ function majNav() { document.querySelectorAll('.nav button').forEach(b => b.clas
 
 // graphes (canvas 2D)
 function prep(id) { const c = document.getElementById(id); if (!c) return null; const r = devicePixelRatio || 1, w = c.clientWidth, h = +c.getAttribute('height'); c.width = w * r; c.height = h * r; c.style.height = h + 'px'; const g2 = c.getContext('2d'); g2.scale(r, r); return [g2, w, h]; }
-const ORDRE_PILE = ['nucleaire', 'hydro', 'charbon', 'biomasse', 'gaz', 'eolien', 'solaire', 'stockage', 'import', 'tac'];
+const ORDRE_PILE = ['nucleaire', 'hydro', 'charbon', 'fioul', 'biomasse', 'gaz', 'eolien', 'solaire', 'stockage', 'import', 'tac'];
 function graphes() {
   let p = prep('g-charge');
   if (p) {
@@ -1668,10 +1801,10 @@ function graphes() {
 
 // ============================================================ HUD, étiquettes, mini-carte
 const PAUSE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
-const VITESSES = [[0, PAUSE, 'Pause'], [6, '×1', '6 minutes par seconde'], [60, '×10', '1 heure par seconde'], [360, '×60', '6 heures par seconde'], [1440, '×240', '1 jour par seconde']];
+const VITESSES = [[0, PAUSE, 'Pause'], [6, '1×', '6 minutes par seconde'], [60, '1 h', '1 heure par seconde'], [360, '6 h', '6 heures par seconde'], [1440, '1 j', '1 jour par seconde'], [10080, '1 sem', '1 semaine par seconde'], [43800, '1 mois', '1 mois par seconde']];
 function hud() {
   const w = meteo(S.min);
-  $('#date').innerHTML = `${jourTxt(S.min)} ${annee(S.min)} · ${hhmm(S.min)}<small>${saison(S.min)} · vent ${nf(w.vent)} m/s · ${nf(w.temp)} °C · ${w.neb > .7 ? 'couvert' : w.neb > .35 ? 'nuageux' : 'dégagé'}</small>`;
+  $('#date').innerHTML = `${jourTxt(S.min)} ${annee(S.min)} · ${hhmm(S.min)}<small>${ere().nom} · ${saison(S.min)} · vent ${nf(w.vent)} m/s · ${nf(w.temp)} °C · ${w.neb > .7 ? 'couvert' : w.neb > .35 ? 'nuageux' : 'dégagé'}</small>`;
   const [, , cls] = etatFreq(S.f); $('#p-freq').className = 'pill ' + cls; $('#freq').textContent = nf(S.f, 2) + ' Hz';
   $('#sat').textContent = nf(S.sat) + ' %'; $('#argent').textContent = nf(S.argent / 1e6, 1) + ' M€'; $('#argent').classList.toggle('neg', S.argent < 0);
   const ev = Object.entries(S.evt).filter(([, f]) => f > S.min).map(([k]) => NOM_EVT[k]); $('#p-evt').hidden = !ev.length; $('#p-evt').textContent = ev.join(' · ');
@@ -1745,11 +1878,11 @@ document.addEventListener('click', ev => {
   else if (act === 'arret') { const u = unite(id); u.dispo = !u.dispo; log(`${u.nom} ${u.dispo ? 'recouplée au réseau' : 'mise à l’arrêt'} sur ordre du dispatcheur.`, u.dispo ? 'bon' : 'alerte'); dispatch(S.min); ouvrir('hex', true); }
   else if (act === 'demolir') {
     const u = unite(id); if (confirmer !== id) { confirmer = id; return ouvrir('hex', true); }
-    confirmer = null; toast(`${u.nom} ${u.type === 'charbon' ? 'fermée' : 'démolie'}.`, 'info'); fermer(u); ouvrir('hex', true);
+    confirmer = null; toast(`${u.nom} ${estCharbon(u) ? 'fermée' : 'démolie'}.`, 'info'); fermer(u); ouvrir('hex', true);
   }
   else if (act === 'demolir-ligne') { const l = LIGNES.find(x => x.id === id); if (l) { demolirLigne(l); ouvrir(S.onglet, true); } }
   else if (act === 'tarif') { S.tarif[id] = clamp(S.tarif[id] + +b.dataset.dir, 60, 240); ouvrir('economie', true); }
-  else if (act === 'emprunt') { emprunter(+id); ouvrir('economie', true); }
+  else if (act === 'emprunt') { emprunter(+id, +b.dataset.duree); ouvrir('economie', true); }
   else if (act === 'rd') { S.rd.cours = id; S.rd.avance = 0; log(`R&D : lancement de « ${RDI[id].nom} ».`, 'bon'); ouvrir('rd', true); }
   else if (act === 'budget') { S.rd.budget = +id; ouvrir('rd', true); }
   else if (act === 'menu') menu();
@@ -1783,28 +1916,30 @@ function menu() {
     <div class="choix-l cartes">${cartes.map(([k, c]) => `<button type="button" data-act="carte" data-id="${k}" class="${k === carteChoisie ? 'actif' : ''}">${c.nom}<small>${c.sous}</small></button>`).join('')}</div>
     ${carteChoisie === 'aleatoire' ? '<button type="button" class="btn secondaire petit" data-act="graine">Tirer une autre graine</button>' : ''}
     <div class="section" style="margin-top:4px">Difficulté</div>
-    <div class="choix-l">${Object.entries(DIFF).map(([k, d]) => `<button type="button" data-act="diff" data-id="${k}" class="${k === diffChoisie ? 'actif' : ''}">${d.nom}<small>${nf(d.argent)} M€ · +${nf(d.croiss * 100, 1)} %/an</small></button>`).join('')}</div>
-    <button type="button" class="btn ${S.enJeu || sv ? 'secondaire' : ''}" data-act="nouvelle">Nouvelle partie</button>
+    <div class="choix-l">${Object.entries(DIFF).map(([k, d]) => `<button type="button" data-act="diff" data-id="${k}" class="${k === diffChoisie ? 'actif' : ''}">${d.nom}<small>${nf(d.argent)} M€ · croissance ${d.croit < 1 ? 'lente' : d.croit > 1 ? 'rapide' : 'normale'}</small></button>`).join('')}</div>
+    <button type="button" class="btn ${S.enJeu || sv ? 'secondaire' : ''}" data-act="nouvelle">Nouvelle campagne · 1900 → 2050</button>
     <div class="encart"><h3>Comment jouer</h3><p>Posez centrales et postes sur les hexagones (barre du bas), puis reliez-les avec l’outil Ligne : centrale → 225 kV → poste 225/63 kV → 63 kV → ville. Une centrale non reliée ne produit rien. Surveillez la fréquence, la charge des lignes (lentille « Charge réseau ») et le critère N-1 dans l’onglet Réseau. Accélérez le temps en haut à gauche.</p></div>
     <button type="button" class="btn secondaire petit" data-act="banc">Banc d’équilibrage</button>
     <p class="verrou">La partie est enregistrée automatiquement dans ce navigateur chaque jour de jeu.</p>`);
 }
-function rapportAnnuel(r) {
+function rapportAnnuel(r, er) {
   const fin = r.an === 2049;
   if (BANC_ON) { if (fin) S.fini = OBJ.every(([, f]) => f(r)) ? 'victoire' : 'echec'; return; }
-  if (S.vit >= 3 || fin) { S.pause = true; S.pauseModale = !fin; }
-  else return toast(`Bilan ${r.an} : ${nf(r.bas)} % bas carbone, ${nf(r.coupure)} min de coupure, ${nf(r.res / 1e6)} M€.`, 'info');
+  if (!fin && !er) return toast(`Bilan ${r.an} : ${nf(r.pointe, r.pointe < 50 ? 1 : 0)} MW à la pointe, ${nf(r.coupure)} min de coupure, ${nf(r.res / 1e6, 1)} M€.`, 'info');
+  S.pause = true; S.pauseModale = !fin;
   const ok = OBJ.map(([n, f, v]) => [n, f(r), v(r)]), gagne = ok.every(o => o[1]);
   if (fin) S.fini = gagne ? 'victoire' : 'echec';
-  modale(`<h2 id="modale-titre">${fin ? (gagne ? 'Objectif 2050 atteint !' : 'Objectif 2050 manqué') : `Bilan de l’année ${r.an}`}</h2>
-    ${fin ? `<p>${gagne ? 'La région de Valmont produit une électricité bas carbone, fiable et abordable. Bravo, dispatcheur.' : 'La région n’a pas atteint tous ses objectifs. Vous pouvez continuer à jouer pour les remplir.'}</p>` : ''}
-    <div class="stat"><span>Énergie livrée</span><b>${nf(r.e / 1e3)} GWh</b><span>Pointe</span><b>${nf(r.pointe)} MW</b><span>Émissions</span><b>${nf(r.co2)} gCO₂/kWh</b><span>Renouvelables</span><b>${nf(r.ren)} %</b><span>Résultat</span><b class="${r.res < 0 ? 'neg' : 'pos'}">${nf(r.res / 1e6)} M€</b><span>Investissements</span><b>${nf(r.capex / 1e6)} M€</b></div>
-    <div class="section">Objectifs 2050</div>${ok.map(([n, b, v]) => `<div class="barre-l"><span style="width:auto;flex:1">${b ? '✓' : '✕'} ${n}</span><span style="width:auto;color:${b ? 'var(--vert)' : 'var(--rouge)'}">${v}</span></div>`).join('')}
+  const suiv = er && ERES[ERES.indexOf(er) + 1], neufs = er ? [...Object.values(TYPES).filter(t => !t.cache && t.an >= er.an && t.an < (suiv?.an || 2100)).map(t => `${t.nom} (${t.an})`), ...Object.values(KV).filter(k => k.an >= er.an && k.an < (suiv?.an || 2100)).map(k => `Lignes ${k.nom} (${k.an})`)] : [];
+  modale(`<h2 id="modale-titre">${fin ? (gagne ? 'Objectif 2050 atteint !' : 'Objectif 2050 manqué') : `${er.an} · ${er.nom}`}</h2>
+    ${fin ? `<p>${gagne ? `${CARTE.nom} produit une électricité bas carbone, fiable et abordable. Bravo, dispatcheur.` : 'La région n’a pas atteint tous ses objectifs. Vous pouvez continuer à jouer pour les remplir.'}</p>` : `<p>${er.txt}</p>${neufs.length ? `<div class="chips">${neufs.map(n => `<span class="chip or">${n}</span>`).join('')}</div>` : ''}`}
+    <div class="section" style="margin-top:0">Bilan de ${r.an}</div>
+    <div class="stat"><span>Villes</span><b>${VILLES.length} · ${nf(VILLES.reduce((a, v) => a + v.hab, 0))} habitants</b><span>Énergie livrée</span><b>${nf(r.e / 1e3, r.e < 1e4 ? 1 : 0)} GWh</b><span>Pointe</span><b>${nf(r.pointe, r.pointe < 50 ? 1 : 0)} MW</b><span>Émissions</span><b>${nf(r.co2)} gCO₂/kWh</b><span>Coupure</span><b>${nf(r.coupure)} min</b><span>Résultat</span><b class="${r.res < 0 ? 'neg' : 'pos'}">${nf(r.res / 1e6, 1)} M€</b></div>
+    ${fin ? `<div class="section">Objectifs 2050</div>${ok.map(([n, b, v]) => `<div class="barre-l"><span style="width:auto;flex:1">${b ? '✓' : '✕'} ${n}</span><span style="width:auto;color:${b ? 'var(--vert)' : 'var(--rouge)'}">${v}</span></div>`).join('')}` : ''}
     <button type="button" class="btn" data-act="${fin ? 'continuer-apres' : 'fermer-modale'}">${fin ? 'Continuer à jouer' : 'Continuer'}</button>`);
 }
 function finPartie(cause) {
   S.fini = cause; S.pause = true; if (BANC_ON) return;
-  modale(`<h2 id="modale-titre">${cause === 'faillite' ? 'Faillite' : 'Révocation'}</h2><p>${cause === 'faillite' ? 'La trésorerie est passée sous −300 M€ : les banques reprennent la gestion du réseau.' : 'La satisfaction des habitants est tombée sous 15 % : le conseil régional vous retire la concession.'}</p>
+  modale(`<h2 id="modale-titre">${cause === 'faillite' ? 'Faillite' : 'Révocation'}</h2><p>${cause === 'faillite' ? 'La trésorerie est passée sous −300 M€ : les banques reprennent la gestion du réseau.' : 'La satisfaction des habitants est restée sous 15 % pendant quatre mois : le conseil régional vous retire la concession.'}</p>
     <div class="choix-l">${Object.entries(DIFF).map(([k, d]) => `<button type="button" data-act="diff" data-id="${k}" class="${k === diffChoisie ? 'actif' : ''}">${d.nom}<small>${nf(d.argent)} M€</small></button>`).join('')}</div>
     <button type="button" class="btn" data-act="nouvelle">Recommencer</button>`);
 }
@@ -1815,50 +1950,27 @@ function toutEffacer() {
   for (const l of [...LIGNES]) jeter(l.grp);
   UNITES = []; LIGNES = []; TRANSFOS = new Map(); ROTORS.length = 0; FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.q && f.q.ville && f.q.ville.tuiles.indexOf(f.q) < f.q.ville.base));
   for (const t of LISTE) t.npyl = 0;
-  for (const v of VILLES) { for (const t of v.tuiles.slice(v.base)) { jeter(t.grpQ); t.grpQ = null; t.ville = null; t.quartier = null; t.t = t.t0; t.top = TERR[t.t].h; FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.q !== t)); } v.tuiles.length = v.base; v.i = 0; v.hab = v.hab0; v.etaitServie = undefined; }
+  for (const v of VILLES) { for (const t of v.tuiles.slice(v.base)) { jeter(t.grpQ); t.grpQ = null; t.ville = null; t.quartier = null; t.t = t.t0; t.top = TERR[t.t].h; FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.q !== t)); } v.tuiles.length = v.base; v.i = 0; v.hab = v.hab0; v.etaitServie = undefined; v.prochaine = 1905; v.rang = v.rang0 || v.rang; if (!v.base) v.el?.remove(); }
+  VILLES = VILLES.filter(v => v.base > 0);
   IMP.p = IMP.c = 0;
 }
 function genererCarte(def) {
   for (const v of VILLES) { for (const t of v.tuiles) jeter(t.grpQ); v.el?.remove(); }
   FUMEES.length = 0; ROTORS.length = 0; jeter(FRONT); FRONT = null;
   genererTerrain(def); construirePlateau();
-  for (const v of VILLES) { v.hab0 = v.hab; for (const t of v.tuiles) dessinerQuartier(t, false); }
+  for (const v of VILLES) { v.hab0 = v.hab; v.rang0 = v.rang; for (const t of v.tuiles) dessinerQuartier(t, false); }
   dessinerFrontieres(); majAcceptation(); dessinerMini();
   selT = null; placeAnneau(selR, null); placeAnneau(survolR, null);
 }
-function installationsDepart() {
-  const cap = VILLES[0].centre, v2 = VILLES[1], val = CARTE.id === 'valmont';
-  const libres = () => LISTE.filter(t => !raison(t, 'poste') && plat(t));
-  const pres = (c, d1, d2, vers) => libres().filter(t => dist(t, c) >= d1 && dist(t, c) <= d2).sort((a, b) => (vers ? dist(a, vers) - dist(b, vers) : 0) || hache(a.q, a.r, 13) - hache(b.q, b.r, 13))[0];
-  if (FRONT_T) creerUnite(FRONT_T, 'frontiere', { immediat: true, nom: 'Interconnexion avec la région voisine' });
-  const posteN = pres(cap, 2, 2, BARRAGE_T || FRONT_T) || pres(cap, 2, 4, null);
-  creerUnite(posteN, 'poste', { immediat: true, nom: val ? 'Poste de Valmont-Nord' : `Poste de ${VILLES[0].nom}` });
-  if (BARRAGE_T) creerUnite(BARRAGE_T, 'barrage', { immediat: true, nom: val ? 'Barrage du Grand-Lac' : null });
-  const kc = RIV.length > 4 ? RIV[Math.floor(RIV.length * .8)] : null;
-  const charbonT = (kc ? voisins(kc).filter(t => !raison(t, 'gaz')).sort((a, b) => dist(a, cap) - dist(b, cap)).at(-1) : null) || pres(cap, 3, 6, v2?.centre) || pres(cap, 2, 9, null);
-  creerUnite(charbonT, 'charbon', { immediat: true, nom: val ? 'Charbon de Port-Rivière' : null });
-  let posteO = null;
-  if (v2) { posteO = pres(v2.centre, 2, 3, charbonT) || pres(v2.centre, 2, 4, null); if (posteO) creerUnite(posteO, 'poste', { immediat: true, nom: `Poste de ${v2.nom}` }); }
-  let tac = null, ccg = null; if (!FRONT_T) { tac = pres(cap, 2, 5, null); if (tac) creerUnite(tac, 'tac', { immediat: true }); ccg = pres(cap, 3, 7, null); if (ccg) creerUnite(ccg, 'gaz', { immediat: true }); }
-  const ventes = LISTE.filter(t => !raison(t, 'eolien') && VILLES.every(v => dist(t, v.centre) >= 3)), collines = ventes.filter(t => t.t === 'colline');
-  const eols = (collines.length >= 2 ? collines : ventes).sort((a, b) => (collines.length >= 2 ? 0 : b.vent - a.vent) || dist(a, posteN) - dist(b, posteN));
-  const eol1 = eols[0], eol2 = eols.slice(1).find(t => dist(t, eol1) === 1) || eols[1];
-  if (eol1) creerUnite(eol1, 'eolien', { immediat: true, nom: val ? 'Éolien de la Crête' : null }); if (eol2) creerUnite(eol2, 'eolien', { immediat: true, nom: val ? 'Éolien du Haut-Val' : null });
-  const sol1 = LISTE.filter(t => !raison(t, 'solaire') && plat(t) && VILLES.every(v => dist(t, v.centre) >= 2)).sort((a, b) => (b.t === 'plaine') - (a.t === 'plaine') || Math.hypot(a.x - cap.x, a.z - cap.z - 40) - Math.hypot(b.x - cap.x, b.z - cap.z - 40))[0];
-  if (sol1) creerUnite(sol1, 'solaire', { immediat: true, nom: val ? 'Solaire des Landes' : null });
-  const postes = [posteN, posteO].filter(Boolean);
-  const relier = (a, cands, kv) => { for (const b of cands.filter(Boolean).sort((x, y) => dist(a, x) - dist(a, y))) if (tracerLigne(a, b, kv, { immediat: true })) return true; console.warn('ligne impossible', nomCourt(a)); return false; };
-  if (FRONT_T) for (let i = 0; i < (CARTE.frontLignes || 1); i++) relier(FRONT_T, [posteN], 225);
-  if (BARRAGE_T) relier(BARRAGE_T, [posteN], 225);
-  relier(charbonT, [posteN], 225); if (posteO && !relier(charbonT, [posteO], 225)) relier(posteO, [posteN], 225);
-  const atteints = () => { const vu = new Set([posteN]), f = [posteN]; while (f.length) { const t = f.pop(); for (const l of LIGNES) { const o = l.a === t ? l.b : l.b === t ? l.a : null; if (o && !vu.has(o)) { vu.add(o); f.push(o); } } } return vu; };
-  if (posteO && !atteints().has(posteO)) relier(posteO, [posteN], 225);
-  if (tac) relier(tac, postes, 63); if (ccg) relier(ccg, postes, 225);
-  if (eol1) relier(eol1, [posteN], 63); if (eol2) relier(eol2, [eol1, posteN], 63); if (sol1) relier(sol1, [posteN], 63);
-  const nbL = (v, nm1) => Math.max(1, Math.ceil(v.tuiles.reduce((a, t) => a + QUART[t.quartier].mw * v.k * { res: 1.3, ter: .6, ind: 1, crit: 1 }[QUART[t.quartier].cat], 0) * 1.1 / KV[63].cap) + nm1);
-  for (let i = nbL(VILLES[0], 1); i > 0; i--) relier(cap, [posteN], 63);
-  if (v2) for (let i = nbL(v2, 0); i > 0; i--) relier(v2.centre, posteO ? [posteO, posteN] : [posteN], 63);
-  for (const v of VILLES.slice(2)) relier(v.centre, postes, 63);
+function installationsDepart() {  // 1900 : une usine au charbon et, s'il y a une rivière, une usine au fil de l'eau, reliées en 15 kV
+  const cap = VILLES[0].centre;
+  const pres = (c, d1, d2) => LISTE.filter(t => !raison(t, 'usine') && plat(t) && dist(t, c) >= d1 && dist(t, c) <= d2).sort((a, b) => dist(a, c) - dist(b, c) || hache(a.q, a.r, 13) - hache(b.q, b.r, 13))[0];
+  const usine = pres(cap, 2, 2) || pres(cap, 2, 4);
+  creerUnite(usine, 'usine', { immediat: true, nom: `Usine électrique de ${VILLES[0].nom}` });
+  const fil = LISTE.filter(t => !raison(t, 'fil') && dist(t, cap) <= 6).sort((a, b) => dist(a, cap) - dist(b, cap))[0];
+  if (fil) creerUnite(fil, 'fil', { immediat: true });
+  const relier = (a, b, kv) => tracerLigne(a, b, kv, { immediat: true }) || console.warn('ligne impossible', nomCourt(a));
+  relier(usine, cap, 15); relier(usine, cap, 15); if (fil) relier(fil, cap, 15);
   S.ordre = UNITES.filter(u => TYPES[u.type].f && !TYPES[u.type].fatal && u.type !== 'batterie').map(u => u.id).concat('imp'); trierOrdre();
 }
 function prechauffer() {
@@ -1872,8 +1984,8 @@ function prechauffer() {
 function nouvellePartie(diff, def = carteDef('valmont')) {
   toutEffacer(); genererCarte(def); S = etatInitial(diff); S.carte = def; gs = 99 + (def.graine || 0); uid = 0; IMP.cap = 0;
   installationsDepart(); dessinerFrontieres(); prechauffer();
-  log(`Bienvenue, dispatcheur. ${CARTE.nom} compte ${nf(VILLES.reduce((a, v) => a + v.hab, 0))} habitants et une pointe d’environ ${nf(Math.max(...S.hist.map(h => h.charge)))} MW.`);
-  log(`La centrale à charbon doit fermer avant 2032 : préparez son remplacement.${FRONT_T ? '' : ' Sur une île, aucun secours ne viendra de l’extérieur.'}`, 'alerte');
+  log(`1900 · ${CARTE.nom}. ${VILLES[0].nom} compte ${nf(VILLES[0].hab)} habitants et découvre l’électricité : environ ${nf(Math.max(...S.hist.map(h => h.charge)), 1)} MW à la pointe. Votre mission : électrifier la région jusqu’en 2050.`);
+  log(`${ERES[0].nom} · ${ERES[0].txt}${FRONT_T ? '' : ' Sur une île, aucune interconnexion ne viendra jamais.'}`, 'bon');
   S.enJeu = true; S.pause = false; S.vit = 1;
   if (BANC_ON) return;
   majBarre(); majLentilles(); majLentille(); couleurCables(); dessinerMini(); hud();
@@ -1881,12 +1993,12 @@ function nouvellePartie(diff, def = carteDef('valmont')) {
   cible.set(VILLES[0].centre.x + 30, 0, VILLES[0].centre.z + 20); distc = 330; majCam();
   sauver();
 }
-const CLE = 'gridmaster-partie-v2';
+const CLE = 'gridmaster-campagne-v1';
 function sauver() {
   if (!S?.enJeu || BANC_ON) return;
   const d = { S: { ...S, hist: S.hist.slice(-96), fhist: undefined, D: undefined }, uid, gs, carte: CARTE,
     unites: UNITES.map(u => ({ id: u.id, type: u.type, k: u.t.k, nom: u.nom, dispo: u.dispo, panne: u.panne, fin: u.fin, debut: u.debut, soc: u.soc, mode: u.mode })),
-    lignes: LIGNES.map(l => ({ id: l.id, a: l.a.k, b: l.b.k, kv: l.kv, fin: l.fin, hs: l.hs, chemin: l.tuiles.map(t => t.k) })), villes: VILLES.map(v => ({ hab: v.hab, i: v.i })) };
+    lignes: LIGNES.map(l => ({ id: l.id, a: l.a.k, b: l.b.k, kv: l.kv, fin: l.fin, hs: l.hs, chemin: l.tuiles.map(t => t.k) })), villes: VILLES.map(v => ({ nom: v.nom, couleur: v.couleur, rang: v.rang, rayon: v.rayon, i: v.i, prochaine: v.prochaine, fondee: v.fondee, grace: v.grace, base: v.base, centre: v.centre.k, tuiles: v.tuiles.map(t => [t.k, t.quartier]) })) };
   try { localStorage.setItem(CLE, JSON.stringify(d)); } catch (e) { /* stockage indisponible : la partie continue sans sauvegarde */ }
 }
 function lireSauvegarde() { try { const d = JSON.parse(localStorage.getItem(CLE)); return d && d.S && d.unites && d.carte ? d : null; } catch (e) { return null; } }
@@ -1894,8 +2006,13 @@ function charger() {
   const d = lireSauvegarde(); if (!d) { toast('Aucune partie enregistrée.'); return false; }
   toutEffacer(); genererCarte(d.carte);
   S = Object.assign(etatInitial(d.S.diff), d.S, { fhist: Array(200).fill(50), enJeu: true, pause: true }); uid = d.uid; gs = d.gs;
-  for (const q of S.quartiers) { const v = VILLES.find(x => x.nom === q.ville), t = T.get(q.k); if (v && t) ajouterQuartier(v, t, q.type, false); }
-  d.villes.forEach((x, i) => VILLES[i] && Object.assign(VILLES[i], x));
+  for (const v of VILLES) { for (const t of v.tuiles) { jeter(t.grpQ); t.grpQ = null; t.ville = null; t.quartier = null; t.t = t.t0; t.top = TERR[t.t].h; } v.el?.remove(); }
+  FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => !f.q)); VILLES = [];
+  for (const x of d.villes) {
+    const v = { ...x, centre: T.get(x.centre), tuiles: [], servie: false };
+    for (const [k, q] of x.tuiles) { const t = T.get(k); Object.assign(t, { ville: v, quartier: q, t: 'ville' }); t.top = Math.max(t.top, TERR.ville.h); v.tuiles.push(t); dessinerQuartier(t, false); }
+    v.hab = v.hab0 = habVille(v); v.rang0 = v.base ? 'capitale' : v.rang; VILLES.push(v);
+  }
   for (const s of d.unites) { const u = creerUnite(T.get(s.k), s.type, { immediat: !s.fin, nom: s.nom, fin: s.fin }); Object.assign(u, { id: s.id, dispo: s.dispo, panne: s.panne, debut: s.debut, soc: s.soc, mode: s.mode }); }
   for (const s of d.lignes) { const l = tracerLigne(T.get(s.a), T.get(s.b), s.kv, { immediat: !s.fin, chemin: s.chemin.map(k => T.get(k)) }); if (l) Object.assign(l, { id: s.id, fin: s.fin, hs: s.hs }); if (l && l.fin) dessinerLigne(l); }
   dessinerFrontieres(); majAcceptation(); topologie(); dispatch(S.min); for (const u of [...UNITES, IMP]) u.p = actifU(u) ? u.c : 0; reseau();
@@ -1907,66 +2024,82 @@ function charger() {
 // ============================================================ banc d'équilibrage : stratégies programmées, parties accélérées jusqu'en 2050
 // Aucune IA : chaque stratégie applique des règles fixes une fois par mois de jeu, ce qui rend le banc reproductible.
 const STRATS = {
-  passif: { nom: 'Passif', desc: 'Ne construit rien et garde le charbon : la partie doit être perdue.' },
-  gaz: { nom: 'Tout gaz', desc: 'Remplace le charbon et suit la croissance avec du gaz.', budget: 5, ferme: true, rd: ['maint', 'compteurs', 'locales', 'ccga', 'compens', 'scada', 'effac', 'tarifs', 'htls'], ferme2: ['gaz', 'tac'] },
-  vert: { nom: 'Transition bas carbone', desc: 'Renouvelables et stockage, puis petits réacteurs dès que la recherche le permet.', budget: 40, ferme: true, vert: true,
-    rd: ['pales', 'li', 'locales', 'compteurs', 'offshore', 'ccga', 'maint', 'b4h', 'bifacial', 'epr', 'smr', 'compens', 'tht', 'htls', 'scada', 'sodium', 'effac', 'tarifs', 'dlr', 'v2g', 'volants', 'reversible', 'previ', 'gridf', 'hvdc', 'h2', 'ia', 'fusion'], ferme2: ['smr', 'barrage', 'biomasse', 'tac'] },
+  passif: { nom: 'Passif', desc: 'Ne construit rien : la région manque vite d’électricité, la partie doit être perdue.' },
+  fossile: { nom: 'Fossile', desc: 'Charbon, puis fioul, puis gaz : suit la croissance au moindre coût, sans viser le bas carbone.', budget: .3, ferme: true, rd: ['maint', 'compteurs', 'locales', 'ccga', 'compens', 'scada', 'effac', 'tarifs', 'htls'], ferme2: ['gaz', 'charbonG', 'fioul', 'charbon', 'tac', 'usine'] },
+  vert: { nom: 'Bas carbone', desc: 'Hydraulique dès que possible, nucléaire à partir de 1974, puis renouvelables, stockage et petits réacteurs.', budget: 1, ferme: true, vert: true,
+    rd: ['reversible', 'compens', 'tarifs', 'effac', 'scada', 'pales', 'maint', 'locales', 'volants', 'htls', 'ccga', 'epr', 'compteurs', 'li', 'offshore', 'dlr', 'previ', 'bifacial', 'b4h', 'sodium', 'gridf', 'smr', 'v2g', 'h2', 'ia', 'hvdc', 'fusion'], ferme2: ['smr', 'nucleaire', 'barrage', 'fil', 'biomasse', 'charbonG', 'charbon', 'usine', 'tac'] },
 };
 let BANC_ON = false;
-const CF = { solaire: .13, eolien: .27, offshore: .42, barrage: .45, biomasse: .7, nucleaire: .85, smr: .85, fusion: .85 };
+const CF = { fil: .55, solaire: .13, eolien: .27, offshore: .42, barrage: .45, biomasse: .7, nucleaire: .85, smr: .85, fusion: .85 };
 function pointeEstimee(ans = 0) {
   const f = { res: 1.3, ter: .6, ind: 1, crit: 1 }; let p = 0;
-  for (const v of VILLES) for (const t of v.tuiles) { const q = QUART[t.quartier]; p += q.mw * v.k * f[q.cat]; }
-  return p * S.croissance * (1 + DIFF[S.diff].croiss) ** ans;
+  for (const v of VILLES) for (const t of v.tuiles) { const q = QUART[t.quartier]; p += q.mw * f[q.cat]; }
+  return p * elec(annee(S.min) + ans) * DIFF[S.diff].k * ((CARTE && CARTE.demande) || 1);
 }
 function capFerme(sansCharbon) {
   let c = 0;
-  for (const u of UNITES) { if (!u.dispo || (sansCharbon && u.type === 'charbon')) continue; c += u.cap * ({ solaire: 0, eolien: .05, offshore: .08, barrage: .6, batterie: FRONT_T ? .5 : .35 }[u.type] ?? (TYPES[u.type].mw ? .9 : 0)); }
+  for (const u of UNITES) { if (!u.dispo || (sansCharbon && estCharbon(u))) continue; c += u.cap * ({ fil: .35, solaire: 0, eolien: .05, offshore: .08, barrage: .6, batterie: FRONT_T ? .5 : .35 }[u.type] ?? (TYPES[u.type].mw ? .9 : 0)); }
   return c + capImport() * .8;
 }
 const energieBas = () => UNITES.reduce((a, u) => a + (u.dispo && CF[u.type] ? u.cap * CF[u.type] * (TYPES[u.type].f === 'eolien' ? u.t.vent / 6.5 : 1) : 0), 0) * 8760;
 const postesB = () => UNITES.filter(u => u.type === 'poste');
-function relierA(t, kv) {
-  for (const p of postesB().filter(p => p.t !== t).sort((a, b) => dist(a.t, t) - dist(b.t, t)).slice(0, 4)) { const l = acheterLigne(t, p.t, kv); if (typeof l !== 'string') return l; }
+const sousTension = t => COMP.has(t.k) || COMP.has(t.k + ':H') || COMP.has(t.k + ':B');
+function relierA(t, kv, cibles = null) {  // vers les postes, ou, avant 1935, directement entre usines et villes
+  const c = cibles || [...postesB().map(p => p.t), ...(kv <= 63 ? (t.ville ? UNITES.filter(u => TYPES[u.type].mw && !u.fin).map(u => u.t) : VILLES.map(v => v.centre)) : [])];
+  for (const b of c.filter(b => b !== t).sort((a, b) => dist(a, t) - dist(b, t)).slice(0, 5)) { const l = acheterLigne(t, b, kv); if (typeof l !== 'string') return l; }
   return null;
 }
-function financer(besoin) { while (besoin > 0 && S.dette < 2500e6) { const m = besoin > 600e6 ? 1000 : 200; emprunter(m); besoin -= m * 1e6; } return besoin <= 0; }
+function financer(besoin) { while (besoin > 0 && S.dette < detteMax()) { const m = besoin > taillePret() * 3e6 ? taillePret() * 5 : taillePret(); emprunter(m, 20); besoin -= m * 1e6; } return besoin <= 0; }
 function siteBot(type) {
-  const pot = TYPES[type].pot, ps = postesB();
-  const c = LISTE.filter(t => !raison(t, type)).map(t => ({ t, s: (pot === 'vent' ? t.vent : pot === 'soleil' ? t.soleil * 1.5 : 0) + t.accept / 30 - recours(t) * 3 - Math.min(20, ...ps.map(p => dist(p.t, t))) * .25 })).sort((a, b) => b.s - a.s);
-  for (const { t } of c.slice(0, 6)) if (ps.some(p => chemin(t, p.t))) return t;
+  const pot = TYPES[type].pot, centres = [...postesB().map(p => p.t), ...VILLES.map(v => v.centre)];
+  const c = LISTE.filter(t => !raison(t, type)).map(t => ({ t, s: (pot === 'vent' ? t.vent : pot === 'soleil' ? t.soleil * 1.5 : 0) + t.accept / 30 - recours(t) * 3 - Math.min(20, ...centres.map(p => dist(p, t))) * .3 })).sort((a, b) => b.s - a.s);
+  for (const { t } of c.slice(0, 6)) if (centres.some(p => chemin(t, p))) return t;
   return null;
+}
+function posteBot() {  // un poste 225/63 kV près de la plus grande ville, relié à elle en 63 kV
+  const v = [...VILLES].sort((a, b) => b.tuiles.length - a.tuiles.length)[0];
+  const site = LISTE.filter(x => !raison(x, 'poste') && plat(x) && dist(x, v.centre) >= 2 && dist(x, v.centre) <= 3).sort((a, b) => hache(a.q, a.r, 3) - hache(b.q, b.r, 3))[0];
+  if (!site || typeof acheterUnite(site, 'poste') === 'string') return null;
+  acheterLigne(site, v.centre, 63); acheterLigne(site, v.centre, 63);
+  const p = UNITES.filter(u => u.type === 'poste' && u.t !== site); if (p.length) relierA(site, 225, p.map(u => u.t));
+  return site;
 }
 function construireBot(type) {
-  if (TYPES[type].rd && !rd(TYPES[type].rd)) return false;
-  const cout = coutType(type) * 1e6 + 40e6;
-  if (S.argent < cout && !financer(cout - S.argent + 60e6)) return false;
-  const t = siteBot(type); if (!t) return false;
+  if (!dispoType(type) || (TYPES[type].rd && !rd(TYPES[type].rd))) return false;
+  const kv = kvDispo(TYPES[type].reseau);
+  const t = siteBot(type); if (!t) return false;  // on ne s'endette qu'une fois l'emplacement trouvé
+  const cout = coutType(type) * 1e6 * 1.15 + (kv >= 225 && !postesB().length ? 60e6 : 0);
+  if (S.argent < cout && !financer(cout - S.argent + taillePret() * 1e6)) return false;
+  if (kv >= 225 && !postesB().length && !posteBot()) return false;
   const u = acheterUnite(t, type); if (typeof u === 'string') return false;
-  if (!relierA(t, TYPES[type].reseau > 225 && !rd('tht') ? 225 : TYPES[type].reseau)) log(`Banc : ${u.nom} n’a pas pu être raccordée.`, 'alerte');
+  if (!relierA(t, kv)) log(`Banc : ${u.nom} n’a pas pu être raccordée.`, 'alerte');
   return true;
 }
 function reparerBot(suivi) {
   let n = 0;
-  const relie = p => COMP.has(p.t.k + ':H') || COMP.has(p.t.k + ':B');
-  for (const p of postesB()) if (!p.fin && !relie(p)) { const c = postesB().filter(q => q !== p && !q.fin && relie(q)).sort((a, b) => dist(a.t, p.t) - dist(b.t, p.t)); for (const q of c.slice(0, 3)) if (typeof acheterLigne(p.t, q.t, 225) !== 'string') { n++; break; } }
+  const kvV = kvDispo(63);
+  if (busFront() && !LIGNES.some(l => l.a === FRONT_T || l.b === FRONT_T) && postesB().length) { relierA(FRONT_T, 225, postesB().map(p => p.t)); n++; }
+  for (const p of postesB()) if (!p.fin && !sousTension(p.t)) { const c = [...postesB().filter(q => q !== p && !q.fin && sousTension(q.t)).map(q => q.t)]; if (relierA(p.t, 225, c)) n++; }
   for (const v of VILLES) {
     if (n >= 3) break;
-    const besoin = v.tuiles.reduce((a, t) => a + QUART[t.quartier].mw * v.k, 0) * S.croissance * 1.25;
+    const besoin = v.tuiles.reduce((a, t) => a + QUART[t.quartier].mw * { res: 1.3, ter: .6, ind: 1, crit: 1 }[QUART[t.quartier].cat], 0) * facteurDemande() * 1.5;
     const ls = LIGNES.filter(l => (l.a === v.centre || l.b === v.centre) && !(l.hs > S.min)), caps = ls.map(capLigne);
     if (!ls.length || caps.reduce((a, c) => a + c, 0) - Math.max(...caps) < besoin || !v.servie) {
-      if (S.argent < 60e6) financer(200e6);
-      const pRel = postesB().filter(p => !p.fin && (COMP.has(p.t.k + ':H') || COMP.has(p.t.k + ':B')));
-      const ok = pRel.sort((a, b) => dist(a.t, v.centre) - dist(b.t, v.centre)).slice(0, 4).some(p => typeof acheterLigne(v.centre, p.t, 63) !== 'string');
-      if (ok) { n++; continue; }
-      const site = LISTE.filter(x => !raison(x, 'poste') && dist(x, v.centre) >= 1 && dist(x, v.centre) <= 3).sort((a, b) => dist(a, v.centre) - dist(b, v.centre))[0];
-      if (site && typeof acheterUnite(site, 'poste') !== 'string') { pRel.sort((a, b) => dist(a.t, site) - dist(b.t, site)).slice(0, 4).some(p => typeof acheterLigne(site, p.t, 225) !== 'string'); acheterLigne(site, v.centre, 63); acheterLigne(site, v.centre, 63); n++; }
+      if (S.argent < 0) financer(taillePret() * 1e6);
+      const sources = [...postesB().filter(p => !p.fin && sousTension(p.t)).map(p => p.t), ...UNITES.filter(u => TYPES[u.type].mw && !u.fin && sousTension(u.t) && u.cap <= KV[kvV].cap).map(u => u.t)];
+      if (relierA(v.centre, kvV, sources)) { n++; continue; }
+      if (dispoType('poste')) { const site = LISTE.filter(x => !raison(x, 'poste') && dist(x, v.centre) >= 1 && dist(x, v.centre) <= 3).sort((a, b) => dist(a, v.centre) - dist(b, v.centre))[0];
+        if (site && typeof acheterUnite(site, 'poste') !== 'string') { relierA(site, 225, postesB().filter(p => p.t !== site && sousTension(p.t)).map(p => p.t)); acheterLigne(site, v.centre, 63); acheterLigne(site, v.centre, 63); n++; } }
     }
   }
   for (const [b, tx] of suivi) {
-    if (n >= 4 || tx < .92 || !BR.includes(b)) continue;
-    if (S.argent < 60e6) financer(200e6);
-    if (b.type === 'L') { if (typeof acheterLigne(b.a, b.b, b.kv) !== 'string') n++; continue; }
+    if (n >= 6 || tx < .92 || !BR.includes(b)) continue;
+    if (S.argent < 0) financer(taillePret() * 1e6);
+    if (b.type === 'L') {  // une ligne saturée est doublée ; une ligne 15 kV saturée est remplacée par du 63 kV
+      const kv = b.kv <= 15 && kvV > 15 ? kvV : b.kv, a = b.a, c = b.b;
+      if (kv !== b.kv) demolirLigne(b, true);
+      if (typeof acheterLigne(a, c, kv) !== 'string') n++; continue;
+    }
     const t = b.u.t, v = VILLES.filter(v => LIGNES.some(l => (l.a === t && l.b === v.centre) || (l.b === t && l.a === v.centre))).sort((x, y) => (y.dem || 0) - (x.dem || 0))[0];
     if (!v) continue;
     const site = LISTE.filter(x => !raison(x, 'poste') && plat(x) && dist(x, v.centre) >= 2 && dist(x, v.centre) <= 3).sort((x, y) => dist(x, t) - dist(y, t))[0];
@@ -1978,21 +2111,22 @@ function reparerBot(suivi) {
 function botMois(st, suivi) {
   if (!st.rd) return;
   const an = annee(S.min), mo = date(S.min).getUTCMonth();
-  S.rd.budget = st.budget;
+  S.rd.budget = Math.max(1, Math.round(st.budget * pointeEstimee() / 10));  // budget de recherche proportionnel à la taille du réseau
   if (!S.rd.cours) { const r = st.rd.map(id => RDI[id]).find(r => r && rdDispo(r)); if (r) { S.rd.cours = r.id; S.rd.avance = 0; } }
   if (rd('effac')) S.effacement = S.delestage > 0 || marge() < 60;
   reparerBot(suivi);
-  const ch = UNITES.find(u => u.type === 'charbon');
-  if (ch && st.ferme && (an > 2031 || (an === 2031 && mo >= 10) || (an >= 2029 && capFerme(true) > pointeEstimee(1) * 1.2))) fermer(ch);
-  const besoin = pointeEstimee(2) * 1.15 - capFerme(st.ferme && an >= 2028);
-  if (besoin > 0) for (const ty of st.ferme2) { if (ty === 'gaz' && besoin < 180) continue; if (construireBot(ty)) break; }
-  if (st.vert) {
-    const cible = clamp(.35 + (an - 2027) * .045, .35, .96), mesure = (S.rapports.at(-1)?.bas ?? 35) / 100, Edem = pointeEstimee(0) * .62 * 8760;
+  const ch = UNITES.find(estCharbon);
+  if (ch && st.ferme && (an > 2031 || (an === 2031 && mo >= 6) || (an >= 2026 && capFerme(true) > pointeEstimee(1) * 1.2))) fermer(ch);
+  const plusGros = Math.min(pointeEstimee() * .5, Math.max(0, ...UNITES.filter(u => TYPES[u.type].mw && !TYPES[u.type].fatal).map(u => u.cap)));  // on garde de quoi perdre la plus grosse centrale
+  const besoin = pointeEstimee(2) * 1.1 + plusGros * .9 - capFerme(st.ferme && an >= 2026);
+  if (besoin > 0) for (const ty of st.ferme2) { if (TYPES[ty].mw > besoin * 4 && ty !== st.ferme2.at(-1) && st.ferme2.some(x => x !== ty && dispoType(x) && TYPES[x].mw <= besoin * 4)) continue; if (construireBot(ty)) break; }
+  if (st.vert && an >= 1996) {
+    const cible = clamp(.35 + (an - 2027) * .045, .3, .96), mesure = (S.rapports.at(-1)?.bas ?? 35) / 100, Edem = pointeEstimee(0) * .62 * 8760;
     const nb = mesure < cible - .1 ? 2 : mesure < cible ? 1 : 0;  // on mesure la part bas carbone réelle de l'année passée
     if (rd('smr') && mesure < cible - .03 && mo === 2) construireBot('smr');
     for (let k = 0; k < nb && energieBas() < (FRONT_T ? 1.8 : 1.15) * Edem; k++)  // sans export possible, la surproduction est perdue
       if (!['offshore', 'eolien', 'solaire'].some(construireBot)) break;
-    const ren = UNITES.filter(u => TYPES[u.type].fatal).reduce((a, u) => a + u.cap, 0), bat = UNITES.filter(u => u.type === 'batterie').reduce((a, u) => a + u.cap, 0);
+    const ren = UNITES.filter(u => TYPES[u.type].fatal && u.type !== 'fil').reduce((a, u) => a + u.cap, 0), bat = UNITES.filter(u => u.type === 'batterie').reduce((a, u) => a + u.cap, 0);
     if (ren > pointeEstimee(0) * .5 && bat < ren * .35) construireBot('batterie');
   }
 }
@@ -2005,7 +2139,7 @@ async function bancPartie(carte, diff, strat, graine) {
   const villesKO = VILLES.filter(v => !v.servie).map(v => v.nom);
   while (!S.fini && annee(S.min) < 2050) {
     S.imb = integrer(15); S.min += 15; pas(S.min);
-    for (const b of BR) if (actifB(b)) suivi.set(b, Math.max(suivi.get(b) || 0, b.taux));
+    for (const b of BR) if (actifB(b) || b.hs > S.min) suivi.set(b, Math.max(suivi.get(b) || 0, actifB(b) ? b.taux : 1.2));
     if (Math.abs(heure(S.min)) < .01) { jours++; if (jours % 30 === 0) botMois(st, suivi); if (jours % 120 === 0) { bancEtat?.(`${CARTE.nom} · ${DIFF[diff].nom} · ${st.nom} · ${annee(S.min)}`); await new Promise(r => setTimeout(r, 0)); } }
   }
   const r49 = S.rapports.at(-1) || {}, compte = {};
@@ -2016,11 +2150,11 @@ async function bancPartie(carte, diff, strat, graine) {
 }
 let bancEtat = null;
 const ISSUES = { victoire: ['Victoire', 'vert'], echec: ['Objectifs manqués', 'or'], faillite: ['Faillite', 'rouge'], revocation: ['Révocation', 'rouge'] };
-let bancSel = { cartes: ['valmont'], diffs: ['normal'], strats: ['passif', 'gaz', 'vert'] }, bancRes = [];
+let bancSel = { cartes: ['valmont'], diffs: ['normal'], strats: ['passif', 'fossile', 'vert'] }, bancRes = [];
 function menuBanc() {
   const tog = (k, v, n) => `<button type="button" data-act="banc-sel" data-k="${k}" data-id="${v}" class="${bancSel[k].includes(v) ? 'actif' : ''}">${n}</button>`;
   const nb = bancSel.cartes.length * bancSel.diffs.length * bancSel.strats.length;
-  modale(`<h2 id="modale-titre">Banc d’équilibrage</h2><p>Le banc joue des parties complètes jusqu’en 2050 avec des stratégies programmées, sans affichage, puis compare les résultats. Comptez une minute environ par partie.</p>
+  modale(`<h2 id="modale-titre">Banc d’équilibrage</h2><p>Le banc joue des campagnes complètes de 1900 à 2050 avec des stratégies programmées, sans affichage, puis compare les résultats. Comptez quelques minutes par partie.</p>
     <div class="section" style="margin-top:0">Cartes</div><div class="choix-l">${Object.entries(CARTES).map(([k, c]) => tog('cartes', k, c.nom)).join('')}${tog('cartes', 'aleatoire', 'Aléatoire')}</div>
     <div class="section" style="margin-top:0">Difficultés</div><div class="choix-l">${Object.entries(DIFF).map(([k, d]) => tog('diffs', k, d.nom)).join('')}</div>
     <div class="section" style="margin-top:0">Stratégies</div><div class="choix-l">${Object.entries(STRATS).map(([k, s]) => tog('strats', k, s.nom)).join('')}</div>
@@ -2062,7 +2196,7 @@ function tic(maintenant) {
   if (BANC_ON) return;
   if (S.enJeu && !S.pause) {
     let dm = dt * VITESSES[S.vit][0], prochain = Math.floor(S.min / 15 + 1) * 15;
-    while (dm > 1e-9) { const d = Math.min(dm, prochain - S.min); S.imb = integrer(d); S.min += d; dm -= d; if (S.min >= prochain - 1e-6) { S.min = prochain; pas(S.min); prochain += 15; if (S.pause) break; } }
+    let n = 0; while (dm > 1e-9 && n < 400) { const d = Math.min(dm, prochain - S.min); S.imb = integrer(d); S.min += d; dm -= d; if (S.min >= prochain - 1e-6) { S.min = prochain; pas(S.min); prochain += 15; n++; if (S.pause) break; } }  // la simulation ralentit si l'ordinateur ne suit pas
   }
   const k = 1.9 / Math.max(150, S.charge) * (rd('gridf') ? .5 : 1) * (rd('volants') ? .75 : 1);
   const cibleF = 50 + clamp(S.imb || 0, -400, 400) * k - (S.delestage > 1 ? .85 + Math.min(.4, S.delestage / Math.max(1, S.charge)) : 0) + (DOUX ? 0 : .012 * Math.sin(maintenant / 700) + .006 * Math.sin(maintenant / 230));
@@ -2087,7 +2221,7 @@ majBarre(); majLentilles(); majLentille();
 cible.set(VILLES[0].centre.x + 30, 0, VILLES[0].centre.z + 20); majCam(); redim();
 requestAnimationFrame(tic);
 menu();
-window.GM = { bancPartie, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
+window.GM = { bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
 </script>
 
 </body>

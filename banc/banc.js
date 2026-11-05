@@ -1,6 +1,6 @@
 // Banc d'équilibrage GridMaster : joue des parties complètes (2027 → 2050) avec les stratégies programmées du jeu,
 // en parallèle dans Chromium sans affichage, puis écrit banc-resultats.json et banc-rapport.md.
-// Usage : node banc/banc.js [url-de-la-page-du-jeu, par défaut ../index.html] [cartes=valmont,littoral,...] [diffs=facile,normal,difficile] [strats=passif,gaz,vert] [paralleles=4] [graine=1001] [sortie=banc]
+// Usage : node banc/banc.js [url-de-la-page-du-jeu, par défaut ../index.html] [cartes=valmont,littoral,...] [diffs=facile,normal,difficile] [strats=passif,fossile,vert] [paralleles=4] [graine=1001] [sortie=banc]
 // Cartes : valmont, littoral, plaine, ile, industrie, marche, aleatoire. Prérequis : npm i playwright && npx playwright install chromium.
 // THREE_LOCAL=/chemin/vers/three/ sert three.js depuis le disque quand le CDN est inaccessible.
 const { chromium } = require('playwright');
@@ -10,7 +10,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 const arg = (k, d) => (process.argv.find(a => a.startsWith(k + '=')) || '').split('=')[1] || d;
 const URL = process.argv[2] && !process.argv[2].includes('=') ? process.argv[2] : pathToFileURL(path.join(__dirname, '..', 'index.html')).href;
-const cartes = arg('cartes', 'valmont,littoral,plaine,ile,industrie,marche,aleatoire').split(','), diffs = arg('diffs', 'normal').split(','), strats = arg('strats', 'passif,gaz,vert').split(',');
+const cartes = arg('cartes', 'valmont,littoral,plaine,ile,industrie,marche,aleatoire').split(','), diffs = arg('diffs', 'normal').split(','), strats = arg('strats', 'passif,fossile,vert').split(',');
 const N = +arg('paralleles', 4), sortie = arg('sortie', 'banc');
 (async () => {
   const b = await chromium.launch({ args: ARGS });
