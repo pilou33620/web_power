@@ -80,7 +80,9 @@ On construit dans la vue de chaque réseau.
 - **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts.
 - **R&D** : 37 technologies réparties en 5 branches et 5 niveaux.
 - **Événements** : pannes, tempêtes, vagues de froid, canicules, sécheresses, crise du gaz.
-- **Ambiance** : fermes sur les plaines et les prairies, routes entre les villes (en terre, puis goudronnées en 1930), charrettes puis voitures, bateaux, oiseaux, vaches, cerfs et tracteurs.
+- **Ambiance** : fermes sur les plaines et les prairies, bateaux, oiseaux, vaches, cerfs et tracteurs.
+  - Routes entre chaque ville et ses deux voisines (en terre, puis goudronnées en 1930), une desserte vers chaque ouvrage isolé et un chemin de terre vers chaque ferme isolée. Les routes se redessinent quand on construit ou démolit.
+  - Trafic selon l'époque : charrettes à cheval, puis premières automobiles et camions (1910), autobus (1930), voitures colorées (1955), voitures modernes (2000). Le trafic grossit au fil du siècle, les camions desservent les ouvrages, et les phares s'allument la nuit.
 - **Cartes** :
   - Vallée de Valmont ;
   - Côte d'Émeraude ;
