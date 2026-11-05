@@ -2081,7 +2081,10 @@ function construireBot(type) {
 function reparerBot(suivi) {
   let n = 0;
   const kvV = kvDispo(63);
-  if (busFront() && !LIGNES.some(l => l.a === FRONT_T || l.b === FRONT_T) && S.argent > seuilFaillite() + 60e6) { if (!postesB().length) posteBot();  // seulement si on en a les moyens if (postesB().length) { relierA(FRONT_T, 225, postesB().map(p => p.t)); n++; } }  // l'interconnexion sert de secours
+  if (busFront() && !LIGNES.some(l => l.a === FRONT_T || l.b === FRONT_T) && S.argent > seuilFaillite() + 60e6) {  // l'interconnexion sert de secours, seulement si on en a les moyens
+    if (!postesB().length) posteBot();
+    if (postesB().length) { relierA(FRONT_T, 225, postesB().map(p => p.t)); n++; }
+  }
   for (const p of postesB()) if (!p.fin && !sousTension(p.t)) { const c = [...postesB().filter(q => q !== p && !q.fin && sousTension(q.t)).map(q => q.t)]; if (relierA(p.t, 225, c)) n++; }
   for (const v of VILLES) {
     if (n >= 3) break;
