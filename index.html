@@ -2078,7 +2078,7 @@ function construireBot(type) {
 function reparerBot(suivi) {
   let n = 0;
   const kvV = kvDispo(63);
-  if (busFront() && !LIGNES.some(l => l.a === FRONT_T || l.b === FRONT_T) && postesB().length) { relierA(FRONT_T, 225, postesB().map(p => p.t)); n++; }
+  if (busFront() && !LIGNES.some(l => l.a === FRONT_T || l.b === FRONT_T)) { if (!postesB().length) posteBot(); if (postesB().length) { relierA(FRONT_T, 225, postesB().map(p => p.t)); n++; } }  // l'interconnexion sert de secours
   for (const p of postesB()) if (!p.fin && !sousTension(p.t)) { const c = [...postesB().filter(q => q !== p && !q.fin && sousTension(q.t)).map(q => q.t)]; if (relierA(p.t, 225, c)) n++; }
   for (const v of VILLES) {
     if (n >= 3) break;
@@ -2117,9 +2117,10 @@ function botMois(st, suivi) {
   reparerBot(suivi);
   const ch = UNITES.find(estCharbon);
   if (ch && st.ferme && (an > 2031 || (an === 2031 && mo >= 6) || (an >= 2026 && capFerme(true) > pointeEstimee(1) * 1.2))) fermer(ch);
-  const plusGros = Math.min(pointeEstimee() * .5, Math.max(0, ...UNITES.filter(u => TYPES[u.type].mw && !TYPES[u.type].fatal).map(u => u.cap)));  // on garde de quoi perdre la plus grosse centrale
-  const besoin = pointeEstimee(2) * 1.1 + plusGros * .9 - capFerme(st.ferme && an >= 2026);
-  if (besoin > 0) for (const ty of st.ferme2) { if (TYPES[ty].mw > besoin * 4 && ty !== st.ferme2.at(-1) && st.ferme2.some(x => x !== ty && dispoType(x) && TYPES[x].mw <= besoin * 4)) continue; if (construireBot(ty)) break; }
+  const plusGros = Math.max(0, ...UNITES.filter(u => TYPES[u.type].mw && !TYPES[u.type].fatal).map(u => u.cap));  // on garde de quoi perdre la plus grosse centrale
+  const pe = pointeEstimee(2), besoin = pe * 1.1 + plusGros * .9 - capFerme(st.ferme && an >= 2026);
+  const tropGros = ty => TYPES[ty].mw > Math.max(pe * .6, 15) && st.ferme2.some(x => x !== ty && dispoType(x) && (!TYPES[x].rd || rd(TYPES[x].rd)) && TYPES[x].mw <= Math.max(pe * .6, 15));  // pas de groupe démesuré
+  if (besoin > 0) for (const ty of st.ferme2) { if (tropGros(ty)) continue; if (construireBot(ty)) break; }
   if (st.vert && an >= 1996) {
     const cible = clamp(.35 + (an - 2027) * .045, .3, .96), mesure = (S.rapports.at(-1)?.bas ?? 35) / 100, Edem = pointeEstimee(0) * .62 * 8760;
     const nb = mesure < cible - .1 ? 2 : mesure < cible ? 1 : 0;  // on mesure la part bas carbone réelle de l'année passée
