@@ -2059,6 +2059,7 @@ function siteBot(type) {
   return null;
 }
 function posteBot() {  // un poste 225/63 kV près de la plus grande ville, relié à elle en 63 kV
+  if (S.argent < 40e6 && !financer(60e6)) return null;
   const v = [...VILLES].sort((a, b) => b.tuiles.length - a.tuiles.length)[0];
   const site = LISTE.filter(x => !raison(x, 'poste') && plat(x) && dist(x, v.centre) >= 2 && dist(x, v.centre) <= 3).sort((a, b) => hache(a.q, a.r, 3) - hache(b.q, b.r, 3))[0];
   if (!site || typeof acheterUnite(site, 'poste') === 'string') return null;
@@ -2080,7 +2081,7 @@ function construireBot(type) {
 function reparerBot(suivi) {
   let n = 0;
   const kvV = kvDispo(63);
-  if (busFront() && !LIGNES.some(l => l.a === FRONT_T || l.b === FRONT_T)) { if (!postesB().length) posteBot(); if (postesB().length) { relierA(FRONT_T, 225, postesB().map(p => p.t)); n++; } }  // l'interconnexion sert de secours
+  if (busFront() && !LIGNES.some(l => l.a === FRONT_T || l.b === FRONT_T) && S.argent > seuilFaillite() + 60e6) { if (!postesB().length) posteBot();  // seulement si on en a les moyens if (postesB().length) { relierA(FRONT_T, 225, postesB().map(p => p.t)); n++; } }  // l'interconnexion sert de secours
   for (const p of postesB()) if (!p.fin && !sousTension(p.t)) { const c = [...postesB().filter(q => q !== p && !q.fin && sousTension(q.t)).map(q => q.t)]; if (relierA(p.t, 225, c)) n++; }
   for (const v of VILLES) {
     if (n >= 3) break;
