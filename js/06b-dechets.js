@@ -78,7 +78,7 @@ const nuisVille = v => UNITES.reduce((s, u) => { if (!estDecU(u) || !TYPES[u.typ
 const nuisHex = t => UNITES.reduce((s, u) => { if (!estDecU(u) || !TYPES[u.type].nuis) return s; const d = dist(t, u.t); return d <= 3 ? s + nuisU(u) * (1 - d / 4) : s; }, 0);
 // boues d'épuration : environ 1,5 kg par m³ épuré, trois fois moins si la station les déshydrate
 const partSechage = () => { const ep = UNITES.filter(u => estEauU(u) && TYPES[u.type].role === 'epuration' && !u.fin), tot = ep.reduce((s, u) => s + ehU(u), 0); return tot ? ep.filter(u => amel(u, 'sechage')).reduce((s, u) => s + ehU(u), 0) / tot : 0; };
-const lixiviats = (u, w) => (u.rempli || 0) * 2e-4 * w.debit;  // m³ d'eau polluée par pas de 15 minutes, comme des eaux usées non épurées
+const lixiviats = (u, w) => (u.rempli || 0) * 3e-5 * w.debit;  // m³ d'eau polluée par pas de 15 minutes, comme des eaux usées non épurées : une décharge pleine pollue comme une petite ville
 const bouesJour = () => VILLES.reduce((s, v) => s + (v.traite || 0), 0) * 96 * 1.5e-3 * (1 - 2 / 3 * partSechage());
 
 function jourDechets(m) {
