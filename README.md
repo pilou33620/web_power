@@ -21,7 +21,7 @@ La région a deux réseaux à gérer : l'électricité et l'eau. Le but est de l
 
 ## Jouer
 
-Le jeu tient dans un seul fichier, `index.html`, sans installation ni serveur obligatoire.
+Le jeu est une page web, sans installation, sans compilation ni serveur obligatoire : `index.html` charge ses styles (`css/`) et ses scripts (`js/`). Voir [Organisation des fichiers](#organisation-des-fichiers).
 
 - **Localement** : ouvrez `index.html` dans un navigateur récent. Une connexion internet est nécessaire pour charger three.js et les polices.
 - **En ligne** : activez GitHub Pages sur la branche `main` (Settings → Pages). Le jeu sera alors disponible à l'adresse `https://pilou33620.github.io/web_power/`.
@@ -98,6 +98,45 @@ On construit dans la vue de chaque réseau.
   - Carrefour des frontières (marché ouvert) ;
   - carte aléatoire, définie par une graine.
 - **Difficultés** : Facile, Normal, Difficile.
+
+## Organisation des fichiers
+
+Le découpage reprend celui de web_cao : une page, un dossier `css/` et des scripts numérotés dans `js/`.
+
+| Fichier | Contenu |
+|---|---|
+| `index.html` | la page : structure HTML, chargement de three.js et des scripts |
+| `css/style.css` | tous les styles, mises en page paysage et portrait comprises |
+| `js/00-appareil.js` | détection ordinateur, tablette ou téléphone, avant l'affichage |
+| `js/01-outils.js` | utilitaires, grille hexagonale |
+| `js/02-terrain.js` | génération des cartes et du terrain |
+| `js/03-moteur-3d.js` | scène three.js, matériaux, plateau |
+| `js/04-modeles.js` | modèles 3D des installations et des quartiers |
+| `js/05-catalogue.js` | catalogue des centrales et des postes, tensions des lignes |
+| `js/06-eau.js` | réseau d'eau : ouvrages, conduites, qualité, simulation |
+| `js/07-epoques-rd.js` | époques de la campagne, recherche |
+| `js/08-installations.js` | état de la partie, construire et démolir |
+| `js/09-lignes.js` | lignes électriques et leurs règles de raccordement, dessin des conduites |
+| `js/10-reseau.js` | topologie, flux de puissance, critère N-1 |
+| `js/11-meteo-demande.js` | soleil, météo, demande |
+| `js/12-dispatch.js` | appel des centrales, stockage, import |
+| `js/13-simulation.js` | pas de 15 minutes : économie, pannes, événements |
+| `js/14-superpositions.js` | survol, sélection, lentilles, fumées |
+| `js/15-camera.js` | caméra et commandes tactiles ou souris |
+| `js/16-interface.js` | barre de construction, survol, clics sur la carte |
+| `js/17-panneaux.js` | panneaux de gestion (électricité et eau) |
+| `js/18-hud.js` | barre du haut, étiquettes, mini-carte |
+| `js/19-vues.js` | les trois vues : carte, électricité, eau |
+| `js/20-actions.js` | boutons, menu, tutoriel, bilans annuels |
+| `js/21-partie.js` | nouvelle partie, sauvegarde, chargement |
+| `js/22-banc.js` | stratégies programmées du banc d'équilibrage |
+| `js/23-ambiance.js` | routes, véhicules, animaux, bateaux |
+| `js/24-ciel.js` | jour et nuit, nuages, pluie, neige, saisons, lumières |
+| `js/25-boucle.js` | démarrage et boucle d'animation |
+
+Les scripts sont des scripts classiques chargés dans l'ordre de leur numéro : ils partagent leurs déclarations, donc un fichier peut utiliser ce que les précédents ont défini. Seul three.js arrive en module ES, depuis le CDN.
+
+Le serveur (`serveur.py`) ne sert que la page, `css/*.css` et `js/*.js`.
 
 ## Banc d'équilibrage
 

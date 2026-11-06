@@ -22,7 +22,7 @@ from pathlib import Path
 import appairage
 
 RACINE = Path(__file__).resolve().parent
-STATIQUE = re.compile(r"^/(?:index\.html)?$")   # ni .git/, ni les scripts, ni le banc
+STATIQUE = re.compile(r"^/(?:index\.html|css/[\w-]+\.css|js/[\w-]+\.js)?$")   # la page, ses styles et ses scripts ; ni .git/, ni le Python, ni le banc
 GARDE = appairage.Garde("WEB_POWER", actif=False)   # remplacé dans main() selon --local
 
 
@@ -31,6 +31,8 @@ class Gestionnaire(http.server.SimpleHTTPRequestHandler):
     extensions_map = {
         **http.server.SimpleHTTPRequestHandler.extensions_map,
         ".html": "text/html; charset=utf-8",
+        ".css": "text/css; charset=utf-8",          # nosniff : sans le bon type, le navigateur refuse le fichier
+        ".js": "text/javascript; charset=utf-8",    # (Windows associe parfois .js à text/plain)
     }
 
     def __init__(self, *args, **kwargs):
