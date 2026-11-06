@@ -193,6 +193,67 @@ Object.assign(BAT, {
   },
 });
 BAT.forageP = L => { BAT.forage(L); put(L, cyl(1.5, 1.5, .5, 10), 0x3f7fb5, 2.2, .25, -1.2, 0, .1); };
+// sites des déchets
+Object.assign(BAT, {
+  decharge(L) {
+    put(L, cyl(R * .86, R * .9, .3, 6), 0x9c8b62, 0, .15, 0, 0, 0);
+    const tas = sphere(5.4, 2); tas.scale(1, .36, .85); put(L, tas, 0x8a6f4a, -1, .3, -.6, 0, .2);
+    for (const [x, z, c] of [[-3.2, -1.4, 0x5c7184], [.8, -2.8, 0xd9573b], [-.6, .6, 0xf2c94c], [1.8, -.2, 0x7be08a], [-2.4, 1.4, 0xe9e3d3], [-1.4, -3, 0x3f7fb5]]) put(L, boite(1, .55, .8), c, x, 1.9 - Math.hypot(x + 1, z + .6) * .3, z, x, .1);
+    put(L, boite(2.2, 1, 1.4), 0xf2c94c, 4.4, .9, 3.4); put(L, boite(1, 1, 1.1), 0xf2c94c, 4, 1.9, 3.4); put(L, boite(.3, 1, 1.9), 0x6b6f75, 5.7, .6, 3.4, 0, .1);
+    for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2; put(L, boite(.25, 1.2, .25), 0x8a6a4a, Math.cos(a) * 7.6, .6, Math.sin(a) * 7.6, 0, 0); }
+  },
+  decheterie(L) {
+    sol(L, 0xb8b2a2);
+    put(L, boite(9.4, 1.2, 2.2), 0xcfcac0, 0, .6, -2.4);
+    for (const [x, c] of [[-3.5, 0x3f7fb5], [-1.15, 0xf2c94c], [1.2, 0x5fae3e], [3.55, 0x8d8f96]]) { put(L, boite(2.1, 1.3, 2.6), c, x, .65, .8); put(L, boite(2.2, .2, 2.7), 0x2f2c2a, x, 1.35, .8, 0, 0); }
+    put(L, boite(2.6, 2, 2), 0xf3ead6, -3.6, 1, 5); toit(L, 2.9, 2.4, 1, 0x3f7fb5, -3.6, 2, 5);
+    put(L, boite(.3, 2.4, .3), 0x6b6f75, 4.6, 1.2, 5, 0, .1); put(L, boite(2, .9, .2), 0xf0a35e, 4.6, 2.6, 5, 0, .1); arbre(L, 1, 5.4, .8);
+  },
+  compost(L) {
+    put(L, cyl(R * .86, R * .9, .3, 6), 0xa9a07a, 0, .15, 0, 0, 0);
+    for (const [z, c] of [[-4.2, 0x6d4c2f], [-1.2, 0x7a5a38], [1.8, 0x6f8a3a], [4.6, 0x86a24a]]) { const a = cyl(1.3, 1.3, 9, 8); a.rotateZ(Math.PI / 2); a.scale(1, .75, 1); put(L, a, c, -.6, .35, z, 0, .14); }
+    put(L, boite(1.8, 1, 1.2), 0xf2c94c, 5.6, .8, -2.6); put(L, boite(.9, .9, 1), 0xf2c94c, 5.2, 1.7, -2.6); put(L, boite(.3, .7, 1.4), 0x6b6f75, 6.7, .5, -2.6, 0, .1);
+  },
+  tri(L) {
+    sol(L, 0xbdb6a6);
+    put(L, boite(8.6, 4, 6), 0xe8e2d4, -.8, 2, -.8); put(L, boite(9, .5, 6.4), 0x3987e5, -.8, 4.25, -.8);
+    for (let k = 0; k < 3; k++) put(L, boite(1.4, 1.8, .1), 0x6b6f75, -3.6 + k * 2.6, .9, 2.25, 0, 0);
+    const conv = boite(.8, .4, 5.2); conv.rotateX(-.4); put(L, conv, 0x6b6f75, 4.6, 2.3, -1.4, 0, .1);
+    for (let i = 0; i < 6; i++) put(L, boite(1.3, 1.3, 1.3), [0xc98500, 0x3987e5, 0x8d8f96, 0xe9e3d3][i % 4], -3.4 + (i % 3) * 1.5, .65 + (i > 2 ? 1.3 : 0), 4.6, 0, .1);
+  },
+  dangereux(L) {
+    sol(L, 0xbdb6a6);
+    put(L, boite(6.4, 3.4, 4.4), 0xe3e0d6, -1.4, 1.7, -1.4); put(L, boite(6.7, .45, 4.7), 0xf2c94c, -1.4, 3.6, -1.4);
+    for (let i = 0; i < 4; i++) put(L, boite(.5, 3.4, .1), i % 2 ? 0x2f2c2a : 0xf2c94c, -4 + i * .6, 1.7, .85, 0, 0);
+    for (let i = 0; i < 6; i++) { put(L, cyl(.6, .6, 1.4, 10), 0xf2c94c, 1.6 + (i % 3) * 1.4, .7, 2.8 + (i > 2 ? 1.4 : 0)); put(L, cyl(.62, .62, .2, 10), 0x2f2c2a, 1.6 + (i % 3) * 1.4, .9, 2.8 + (i > 2 ? 1.4 : 0), 0, 0); }
+    put(L, cyl(.5, .6, 7, 8), 0xc9c4b6, 4.6, 3.5, -3.6); put(L, cyl(.55, .55, .5, 8), 0xf2c94c, 4.6, 6.8, -3.6, 0, .1);
+  },
+  garage(L) {
+    sol(L, 0xb8b2a2);
+    put(L, boite(8, 3.4, 5), 0xe8e2d4, -1, 1.7, -1.8); put(L, boite(8.4, .4, 5.4), 0x5fae3e, -1, 3.6, -1.8);
+    for (const x of [-3.6, -1, 1.6]) put(L, boite(2, 2.4, .1), 0x6b6f75, x, 1.2, .75, 0, 0);
+    for (const [x, z] of [[-3, 3.4], [.4, 3.4], [3.8, 2.6]]) { put(L, boite(3, 1.4, 1.5), 0x7be08a, x, 1, z); put(L, boite(1.1, 1.2, 1.5), 0xf3efe6, x + 1.9, .9, z); }
+  },
+  quai(L) {
+    sol(L, 0xbdb6a6);
+    put(L, boite(9, 2, 4), 0xcfcac0, 0, 1, -1.8); const r = boite(4, .4, 3); r.rotateZ(.35); put(L, r, 0x8d8f96, -5.4, .8, -1.8, 0, .1);
+    for (const [x, c] of [[-2.6, 0x3f7fb5], [.4, 0x8d8f96], [3.4, 0x5fae3e]]) put(L, boite(2.6, 1.6, 2.2), c, x, .8, 2.2);
+    put(L, boite(5.4, 1.8, 1.8), 0xe9e3d3, 1, 3, -1.8); put(L, boite(1.4, 1.6, 1.8), 0xd9573b, 4.4, 2.9, -1.8);
+  },
+  metha(L, ex) {
+    sol(L, 0xb3bba0);
+    for (const [x, z] of [[-3.2, -2.4], [2.6, -2.8]]) { put(L, cyl(2.6, 2.6, 2.4, 14), 0xd8d4c8, x, 1.2, z); put(L, new THREE.SphereGeometry(2.6, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0x86b85a, x, 2.4, z); }
+    put(L, boite(4, 2.4, 2.6), 0xf3efe6, -1.6, 1.2, 3.6); put(L, boite(4.3, .35, 2.9), 0x7be08a, -1.6, 2.5, 3.6);
+    put(L, cyl(.3, .4, 5, 8), 0x8d8f96, 4.6, 2.5, 3.2); put(L, cone(.5, .9, 6), 0xff9a4a, 4.6, 5.4, 3.2, 0, .1);
+  },
+  incin(L, ex) {
+    sol(L, 0xb0ab9d);
+    put(L, boite(7, 4.6, 5), 0xd8d4c8, -1.4, 2.3, .4); put(L, boite(7.3, .5, 5.3), 0xf0a35e, -1.4, 4.75, .4);
+    put(L, boite(3.6, 6, 3.4), 0xc9c4b6, 3.2, 3, -1.8);
+    put(L, cyl(.8, 1, 13, 10), 0xe9e6dd, 4.6, 6.5, 3.4); put(L, cyl(.85, .85, .9, 10), 0xd9573b, 4.6, 12.2, 3.4, 0, .1); ex.fum.push([4.6, 13.6, 3.4, false]);
+    put(L, boite(2.4, 1.2, 1.6), 0x8d8f96, -4.6, .6, -3.8);
+  },
+});
 // fermes : culture sur les plaines, élevage sur les prairies
 function bFerme(L, elevage) {
   if (elevage) {

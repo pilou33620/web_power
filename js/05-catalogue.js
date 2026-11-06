@@ -1,6 +1,6 @@
 "use strict";
 // ============================================================ catalogue des installations
-const FIL = { hydro: ['Hydraulique', '#4f8fe0'], nucleaire: ['Nucléaire', '#ff86c8'], charbon: ['Charbon', '#8d8f96'], fioul: ['Fioul', '#a07850'], biomasse: ['Biomasse', '#a0703f'], gaz: ['Gaz', '#f08a6c'], eolien: ['Éolien', '#7cc0f2'], solaire: ['Solaire', '#ffc94d'], stockage: ['Batteries', '#7be08a'], import: ['Import', '#c3b0ea'], tac: ['TAC', '#e0607e'] };
+const FIL = { hydro: ['Hydraulique', '#4f8fe0'], nucleaire: ['Nucléaire', '#ff86c8'], charbon: ['Charbon', '#8d8f96'], fioul: ['Fioul', '#a07850'], biomasse: ['Biomasse', '#a0703f'], gaz: ['Gaz', '#f08a6c'], eolien: ['Éolien', '#7cc0f2'], solaire: ['Solaire', '#ffc94d'], stockage: ['Batteries', '#7be08a'], import: ['Import', '#c3b0ea'], tac: ['TAC', '#e0607e'], dechets: ['Déchets', '#f0a35e'] };
 const bordEau = t => voisins(t).some(n => estEau(n) || n.riviere !== undefined);
 // mw : puissance ; capex M€ ; delai mois ; opex k€/MW/an ; cout €/MWh hors CO₂ ; co2 g/kWh ; ramp MW/min ; min MW
 const hydroLibre = t => t.riviere !== undefined && !UNITES.some(u => (u.type === 'barrage' || u.type === 'fil') && u.t !== t && dist(u.t, t) <= 2);

@@ -2,7 +2,7 @@
 :root {
   color-scheme: dark;
   --fond: #1b211a; --fond2: #253021; --fond3: #2a3327; --bord: #0f130e; --trait: #2b1d14; --sol: #141813;
-  --txt: #f6f4ea; --doux: #b3bca5; --pale: #d6dccb; --gris: #a9b39a; --or: #ffc94d; --vert: #7be08a; --rouge: #ff8a7a; --orange: #ff9a4a; --creme: #fff7e6; --eau: #38b6ff;
+  --txt: #f6f4ea; --doux: #b3bca5; --pale: #d6dccb; --gris: #a9b39a; --or: #ffc94d; --vert: #7be08a; --rouge: #ff8a7a; --orange: #ff9a4a; --creme: #fff7e6; --eau: #38b6ff; --dechets: #f0a35e;
   --titre: Fredoka, "Trebuchet MS", system-ui, sans-serif; --corps: Nunito, "Segoe UI", system-ui, sans-serif; --mono: ui-monospace, Menlo, Consolas, monospace;
   --ombre: 0 4px 0 rgba(0,0,0,.35);
 }
@@ -57,6 +57,14 @@ main { position: relative; overflow: hidden; background: var(--fond); touch-acti
 .aide { position: absolute; z-index: 4; left: 50%; transform: translateX(-50%); bottom: 116px; padding: 7px 12px; border-radius: 14px; background: var(--creme); color: var(--trait); border: 2.5px solid var(--bord); box-shadow: var(--ombre); font-weight: 800; font-size: 13px; width: max-content; max-width: min(560px, calc(100% - 24px)); text-align: center; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
 .aide button { min-height: 32px; padding: 0 10px; border-radius: 9px; border: 2px solid var(--bord); background: #efe3c8; color: var(--trait); font-weight: 800; cursor: pointer; }
 .aide button.actif { background: var(--or); }
+.guide { left: 12px; bottom: 120px; width: min(320px, calc(100% - 24px)); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; background: var(--creme); color: var(--trait); }
+.guide .g-etape { font-size: 10.5px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #6b5a3a; }
+.guide h3 { margin: 0; font-family: var(--titre); font-weight: 700; font-size: 17px; line-height: 1.15; }
+.guide p { margin: 0; font-size: 13px; font-weight: 700; line-height: 1.35; }
+.guide .jauge { height: 6px; background: #e6d9bb; } .guide .jauge i { background: var(--vert); }
+.guide .fait { color: #23752f; font-weight: 800; font-size: 13px; }
+.guide .btns { margin-top: 2px; } .guide .btn.secondaire { background: #efe3c8; color: var(--trait); }
+html[data-format="portrait"] .guide { bottom: auto; top: 60px; }
 .bulle { position: fixed; z-index: 9; pointer-events: none; padding: 6px 10px; border-radius: 11px; background: var(--creme); color: var(--trait); border: 2px solid var(--bord); box-shadow: 0 3px 0 rgba(0,0,0,.3); font-size: 12px; font-weight: 800; max-width: 260px; }
 .bulle b { font-family: var(--titre); font-weight: 600; font-size: 14px; }
 .bulle .non { color: #b3261e; } .bulle .oui { color: #23752f; }
@@ -170,9 +178,11 @@ svg.schema text { font: 700 9px var(--corps); fill: var(--pale); }
 .vues button svg { width: 17px; height: 17px; flex: none; }
 .vues button:hover { background: var(--fond3); }
 .vues button.actif { color: var(--trait); box-shadow: 0 3px 0 var(--bord); }
-.vues [data-id="carte"].actif { background: var(--vert); } .vues [data-id="elec"].actif { background: var(--or); } .vues [data-id="eau"].actif { background: var(--eau); }
-body[data-vue="elec"] .barre { border-bottom-color: #6b5520; } body[data-vue="eau"] .barre { border-bottom-color: #1d5a86; }
+.vues [data-id="carte"].actif { background: var(--vert); } .vues [data-id="elec"].actif { background: var(--or); } .vues [data-id="eau"].actif { background: var(--eau); } .vues [data-id="dechets"].actif { background: var(--dechets); }
+body[data-vue="elec"] .barre { border-bottom-color: #6b5520; } body[data-vue="eau"] .barre { border-bottom-color: #1d5a86; } body[data-vue="dechets"] .barre { border-bottom-color: #7a4a22; }
 .eti.eau { background: var(--eau) !important; } .eti.eau.alerte { background: var(--orange) !important; }
+.eti.dec { background: var(--dechets) !important; } .eti.dec.alerte { background: var(--rouge) !important; }
+#sankey text { font-family: var(--corps); font-weight: 800; font-size: 11px; fill: var(--txt); } #sankey .lien { fill: none; stroke-opacity: .42; } #sankey .lien:hover { stroke-opacity: .8; }
 .chaine { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .etape { padding: 3px 8px; border-radius: 9px; background: #23465e; border: 2px solid var(--bord); font-size: 12px; font-weight: 800; }
 .etape.verrou { background: var(--fond); color: var(--gris); border-style: dashed; }
@@ -192,18 +202,20 @@ html[data-format="paysage"] main { grid-row: 2 / 4; grid-column: 1; }
 html[data-format="paysage"] #panneau { display: flex; position: relative; left: auto; right: auto; bottom: auto; height: auto; grid-row: 2; grid-column: 2; border-radius: 0; border: 0; border-left: 3px solid var(--bord); box-shadow: none; z-index: 5; }
 html[data-format="paysage"] #panneau .fermer { display: none; }
 html[data-format="paysage"] .nav { grid-row: 3; grid-column: 2; border-left: 3px solid var(--bord); padding-bottom: 0; }
-html[data-format="paysage"] .nav button { font-size: 10.5px; } html[data-format="paysage"] .nav button svg { width: 19px; height: 19px; }
+html[data-format="paysage"] .nav button { font-size: 9.5px; letter-spacing: -.2px; overflow: hidden; } html[data-format="paysage"] .nav button svg { width: 19px; height: 19px; }
 @media (max-width: 1250px) { .minicarte { display: none; } }
 html[data-format="portrait"] main { grid-row: 2; }
 html[data-format="portrait"] .nav { grid-row: 3; }
 html[data-format="portrait"] .carte-eq { display: none; }
 html[data-format="portrait"] .lentilles { top: auto; bottom: 108px; flex-direction: row; flex-wrap: wrap; max-width: calc(100% - 24px); }
 html[data-format="portrait"] .aide { bottom: auto; top: 60px; }
-@media (max-width: 1100px) { .vues button span { display: none; } .vues button { padding: 0 9px; } }
+@media (max-width: 1100px) { .vues button span { display: none; } .vues button { padding: 0 9px; } .pill .lib { display: none; } .pills { flex: none; } }
+#p-dec .pt { border-radius: 2px 2px 4px 4px; } #p-eau .pt { border-radius: 0 50% 50% 50%; transform: rotate(45deg); }  /* une benne carrée et une goutte : on les distingue sans libellé */
 @media (max-width: 640px) {
   .pill.cache { display: none; } .titre-date { font-size: 15px; } .argent { font-size: 17px; } .etiquette { font-size: 9px; letter-spacing: 1px; }
   .barre { gap: 6px; } .pill { padding: 3px 7px; font-size: 12.5px; }
-  .nav button { font-size: 10px; } .nav button svg { width: 19px; height: 19px; }
+  .nav button { font-size: 9px; letter-spacing: -.3px; overflow: hidden; } .nav button svg { width: 19px; height: 19px; }
+  .vues button { padding: 0 5px; min-height: 34px; } .vues button svg { width: 15px; height: 15px; } .vues { gap: 0; padding: 2px; } .pills { flex: none; } .titre-date { font-size: 13px; } #freq { display: none; }  /* sur téléphone, la pastille de fréquence garde sa couleur d’état */
   .lentilles button { font-size: 11.5px; padding: 0 7px; }
   .temps button { min-width: 38px; }
 }

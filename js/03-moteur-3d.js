@@ -21,7 +21,7 @@ const CONT = new THREE.MeshBasicMaterial({ color: 0x24180f, side: THREE.BackSide
 const MAT_SOL = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: degrade });  // terrain et décor : assombris dans les vues réseau
 const MAT_RIV = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: degrade });  // rivières : restent vives dans la vue Eau
 const GHOST = new THREE.MeshToonMaterial({ color: 0xa3a89a, gradientMap: degrade, transparent: true, opacity: .32, depthWrite: false });
-const CONT_V = { eau: new THREE.MeshBasicMaterial({ color: 0x38b6ff, side: THREE.BackSide }), elec: new THREE.MeshBasicMaterial({ color: 0xffc94d, side: THREE.BackSide }) };
+const CONT_V = { eau: new THREE.MeshBasicMaterial({ color: 0x38b6ff, side: THREE.BackSide }), elec: new THREE.MeshBasicMaterial({ color: 0xffc94d, side: THREE.BackSide }), dechets: new THREE.MeshBasicMaterial({ color: 0xf0a35e, side: THREE.BackSide }) };
 
 const VA = new THREE.Vector3(), VB = new THREE.Vector3(), AXEY = new THREE.Vector3(0, 1, 0);
 const lot = () => ({ g: [], o: [] });

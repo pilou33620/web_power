@@ -22,6 +22,7 @@ function finValide(t, kv) {
   if (t.ville) return kv <= 63 ? null : 'Une ville se raccorde en 15 ou 63 kV, par son poste source';
   if (!t.occ) return 'Une ligne relie deux ouvrages : poste, centrale ou ville';
   if (estEauU(t.occ)) return 'Les ouvrages d’eau se relient par conduites, dans la vue Eau';
+  if (estDecU(t.occ) && !TYPES[t.occ.type].mw) return 'Les sites de déchets sont desservis par les camions de collecte';
   const ty = t.occ.type, mw = TYPES[ty].mw;
   if (ty === 'frontiere' && kv <= 63) return 'L’interconnexion se fait en 225 ou 400 kV';
   if (kv === 15 && mw > 15) return `${t.occ.nom} est trop puissante pour du 15 kV`;
@@ -117,20 +118,21 @@ function animParticules(dt) {
 
 // ------------------------------------------------------------ dessin des conduites et de l'eau qui circule (vue Eau)
 const EAU_G = new THREE.Group(); EAU_G.visible = false; scene.add(EAU_G);
+const CHAL_G = new THREE.Group(); scene.add(CHAL_G);  // le réseau de chaleur reste visible dans toutes les vues
 const MCONT_T = new THREE.MeshBasicMaterial({ color: 0x0b1410, side: THREE.BackSide }), MJONC = new THREE.MeshToonMaterial({ color: 0xe4e8ea, gradientMap: degrade });
 const posNoeud = (t, f) => new THREE.Vector3(t.x + DECAL[f][0], Math.max(t.top, -.6) + 1.1, t.z + DECAL[f][1]);
 let FLUX_EAU = [], PART_EAU = null;
 function dessinerEau() {
-  EAU_G.traverse(o => { if (o.isMesh) { o.geometry.dispose(); if (o.userData.propre) o.material.dispose(); } }); EAU_G.clear(); FLUX_EAU = [];
+  for (const G of [EAU_G, CHAL_G]) { G.traverse(o => { if (o.isMesh) { o.geometry.dispose(); if (o.userData.propre) o.material.dispose(); } }); G.clear(); } FLUX_EAU = [];
   const noeuds = new Map();
   for (const e of ARETES.values()) {
     for (const t of [e.a, e.b]) { const k = e.f + '|' + t.k; (noeuds.get(k) || noeuds.set(k, { t, f: e.f, es: [] }).get(k)).es.push(e); }
     const [col, ray] = TUYAU[e.type], A = posNoeud(e.a, e.f), B = posNoeud(e.b, e.f), seg = new THREE.LineCurve3(A, B);
     e.mat = new THREE.MeshToonMaterial({ color: col, gradientMap: degrade });
     const c = new THREE.Mesh(new THREE.TubeGeometry(seg, 1, ray, 10), e.mat); c.userData.propre = true;
-    EAU_G.add(c, new THREE.Mesh(new THREE.TubeGeometry(seg, 1, ray + .3, 10), MCONT_T));
+    (e.f === 'c' ? CHAL_G : EAU_G).add(c, new THREE.Mesh(new THREE.TubeGeometry(seg, 1, ray + .3, 10), MCONT_T));
     const h = new THREE.Vector3(0, ray * .8, 0);
-    FLUX_EAU.push({ e, a: A.clone().add(h), b: B.clone().add(h), col: new THREE.Color(col).lerp(new THREE.Color(0xffffff), .65), v: e.type === 'secondaire' ? 7 : 11, taille: ray * .75 });
+    if (e.f !== 'c') FLUX_EAU.push({ e, a: A.clone().add(h), b: B.clone().add(h), col: new THREE.Color(col).lerp(new THREE.Color(0xffffff), .65), v: e.type === 'secondaire' ? 7 : 11, taille: ray * .75 });
   }
   for (const { t, f, es } of noeuds.values()) {  // coude arrondi dans les virages, regard aux embranchements et aux extrémités
     const P = posNoeud(t, f), gros = es.reduce((a, e) => (TUYAU[e.type][1] > TUYAU[a.type][1] ? e : a)), ray = TUYAU[gros.type][1];
@@ -138,10 +140,10 @@ function dessinerEau() {
       const [n1, n2] = es.map(e => (e.a === t ? e.b : e.a));
       if (n1.q + n2.q === 2 * t.q && n1.r + n2.r === 2 * t.r) continue;
       const c = new THREE.Mesh(new THREE.SphereGeometry(ray, 12, 8), gros.mat), o = new THREE.Mesh(new THREE.SphereGeometry(ray + .3, 12, 8), MCONT_T);
-      c.position.copy(P); o.position.copy(P); EAU_G.add(c, o); continue;
+      c.position.copy(P); o.position.copy(P); (f === 'c' ? CHAL_G : EAU_G).add(c, o); continue;
     }
     const j = new THREE.Mesh(new THREE.CylinderGeometry(ray * 1.6, ray * 1.6, ray * 2.4, 12), MJONC), o = new THREE.Mesh(new THREE.CylinderGeometry(ray * 1.6 + .3, ray * 1.6 + .3, ray * 2.4 + .6, 12), MCONT_T);
-    j.position.copy(P); o.position.copy(P); EAU_G.add(j, o);
+    j.position.copy(P); o.position.copy(P); (f === 'c' ? CHAL_G : EAU_G).add(j, o);
   }
   // courant de la rivière
   const pts = []; for (const t of RIV) if (t.rivPts) for (const [x, z] of t.rivPts) pts.push(new THREE.Vector3(x, t.top + .4, z));

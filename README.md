@@ -4,7 +4,7 @@
 
 La partie est une campagne historique de 1900 à 2050. En 1900, une seule ville découvre l'électricité, alimentée par une petite usine au charbon et une usine au fil de l'eau, en 15 kV. Au fil des époques, les villes s'étendent, de nouveaux villages apparaissent et deviennent des villes, et les technologies arrivent à leur date historique : 63 kV, grands barrages, 225 kV et interconnexion, fioul, 400 kV, nucléaire, gaz, éolien, solaire, batteries, petits réacteurs, fusion.
 
-La région a deux réseaux à gérer : l'électricité et l'eau. Le but est de les étendre à mesure que la région se peuple. En 2050, l'électricité doit être bas carbone, sans coupure ni faillite, et l'eau potable servie et conforme aux normes.
+La région a trois réseaux à gérer : l'électricité, l'eau et les déchets. Le but est de les étendre à mesure que la région se peuple. En 2050, l'électricité doit être bas carbone, sans coupure ni faillite, l'eau potable servie et conforme aux normes, et les déchets valorisés.
 
 | Époque | À partir de | Ce qui change |
 |---|---|---|
@@ -39,11 +39,12 @@ La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu 
 - **Téléphone (iPhone)** : format portrait, avec la carte en haut et le panneau qui monte du bas.
 - Si l'appareil est tenu dans l'autre sens, un écran demande de le tourner. Le bouton « Continuer ainsi » passe outre.
 
-## Trois vues
+## Quatre vues
 
-- **Carte** (touche 1) : toute la région, les deux réseaux à la fois, sans les flux.
+- **Carte** (touche 1) : toute la région, tous les réseaux à la fois, sans les flux.
 - **Électricité** (touche 2) : centrales et postes en surbrillance dorée, courant dans les lignes ; les ouvrages de l'eau passent en fantôme.
 - **Eau** (touche 3) : captages, usines, châteaux d'eau et épurations en surbrillance bleue, conduites en transparence avec l'eau qui y coule ; les centrales passent en fantôme.
+- **Déchets** (touche 4) : décharges, centres de tri, incinérateurs et compostages en surbrillance orange ; les autres ouvrages passent en fantôme.
 
 On construit dans la vue de chaque réseau.
 
@@ -82,9 +83,10 @@ On construit dans la vue de chaque réseau.
 - **Météo** : saisons, vent, soleil, débit de la rivière, prévisions à 3 jours.
   - À l'écran : nuit bleutée sous la lune, aube et crépuscule dorés, nuages qui dérivent avec le vent et dont l'ombre court sur la carte, pluie, neige qui tient au sol puis fond, brouillard des matins d'hiver, éclairs pendant les tempêtes, feuilles mortes à l'automne, couleurs du sol selon la saison.
   - La nuit, seules les villes alimentées s'allument : une coupure se voit.
-- **Tutoriel** (s'ouvre seul à la première partie, puis Menu → Tutoriel) : la chaîne de l'électricité (centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville) et celle de l'eau (captage → potabilisation → château d'eau → ville → égout → épuration → rivière), étape par étape.
+- **Partie tutoriel guidée** (Menu → Partie tutoriel guidée, ou depuis le tutoriel en fiches) : une vraie partie en 15 étapes, avec une fiche de guidage en bas à gauche. On construit une usine et sa ligne, on épure les eaux usées avec un lagunage et un égout, on dimensionne la flotte de camions et la collecte, puis on découvre les malus d'un bâtiment et les liens entre les réseaux. Chaque étape se valide toute seule ; un bouton montre où aller.
+- **Tutoriel en fiches** (s'ouvre seul à la première partie, puis Menu → Tutoriel) : quatre sujets, électricité, eau, déchets et territoire. Il reprend la chaîne de l'électricité (centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville) celle de l'eau (captage → potabilisation → château d'eau → ville → égout → épuration → rivière) et celle des déchets (ville → bacs → camions → tri, compost, incinération → décharge), étape par étape.
 - **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts.
-- **R&D** : 37 technologies réparties en 5 branches et 5 niveaux.
+- **R&D** : 55 technologies réparties en 6 branches et 5 niveaux.
 - **Événements** : pannes, tempêtes, vagues de froid, canicules, sécheresses, crise du gaz.
 - **Ambiance** : fermes sur les plaines et les prairies, bateaux, oiseaux, vaches, cerfs et tracteurs.
   - Routes entre chaque ville et ses deux voisines (en terre, puis goudronnées en 1930), une desserte vers chaque ouvrage isolé et un chemin de terre vers chaque ferme isolée. Les routes se redessinent quand on construit ou démolit.
@@ -98,6 +100,58 @@ On construit dans la vue de chaque réseau.
   - Carrefour des frontières (marché ouvert) ;
   - carte aléatoire, définie par une graine.
 - **Difficultés** : Facile, Normal, Difficile.
+
+## Gestion des déchets
+
+La troisième filière se gère dans la vue **Déchets** (touche 4) et l'onglet Déchets.
+
+- **Production** : chaque ville remplit ses poubelles, environ 120 kg par habitant et par an en 1900, plus de 500 kg en 2000. La part des emballages grandit au fil du siècle ; les déchets verts reviennent au printemps et à l'automne, les emballages en fin d'année, les encombrants après une tempête.
+- **Camions de collecte** : le premier levier. Tombereaux à cheval (2,5 t par jour), camions (5 t, 1925), puis bennes tasseuses (recherche). Trop peu de camions : les bacs débordent et les ordures finissent dans la rue. Trop : chaque camion coûte cher pour rien. L'onglet compare la flotte au besoin ; les camions se voient sur la carte, dans les quartiers et sur les routes des sites.
+- **Collecte par flux** : passages par semaine pour les ordures, colonnes à verre (1974), bac jaune des emballages (1992, recherche), bac marron des biodéchets (2000, recherche).
+- **Sites** : dépôt de camions (1900), décharge (1900, se remplit, loin des habitations et de la rivière), quai de transfert (1970), usine d'incinération (1960), méthaniseur (2005), compostage (1980), déchèterie (1985, encombrants et déchets verts), centre de tri (1990). Décharges pleines : export d'urgence à prix d'or.
+- **Économie** : redevance par habitant, ventes des matières triées à des cours qui bougent (stocker quand un cours s'effondre), taxe sur l'enfouissement à partir de 1999.
+- **Gêne** : dépôts sauvages, bacs qui débordent et riverains des sites pèsent sur la satisfaction. Lentilles Remplissage des bacs et Nuisances.
+- **Événements** : grève de la collecte, incendie de centre de tri, effondrement d'un cours, décharge sauvage.
+- **Recherche** : une branche « Déchets » de 13 technologies.
+- **Diagramme des flux** : d'où viennent les tonnes et où elles vont sur 30 jours ; l'installation saturée est cerclée de rouge. Chaque tonne produite est retrouvée (vérifié chaque jour).
+- **Dépôt et quai de transfert** : les camions partent d'un dépôt, collectent, puis vident au site de traitement ou à un quai de transfert plus proche (1970). Plus le trajet est long, moins un camion collecte ; après un quai, de gros porteurs font le reste pour moins cher.
+- **Équipages et horaires** : des tournées trop chargées et la collecte de nuit usent les équipages, et des équipages usés font plus souvent grève. La collecte de nuit supprime la gêne du bruit mais coûte 25 % de plus. Recherche « Bennes ergonomiques ».
+- **Lien avec l'électricité** : l'incinérateur (4 MW) et le méthaniseur (2005, recherche) produisent selon les tonnes traitées, s'ils sont reliés au réseau en 15 ou 63 kV.
+- **Lien avec l'eau** : les stations d'épuration envoient leurs boues dans les flux de déchets (méthaniseur, compost, incinérateur ou décharge) ; les jus des décharges proches de la rivière la polluent, jusqu'aux prises d'eau.
+- **Objectif 2050** : 65 % des déchets valorisés, dont 30 % recyclés ou compostés.
+
+## Territoire et habitants
+
+Ce qui relie les trois réseaux et leurs habitants (`js/06c-territoire.js`) :
+
+- **Enquête publique** (à partir de 1960) avant une décharge, un incinérateur, un centre de déchets dangereux, une centrale nucléaire ou un barrage : passer en force (délai normal, riverains fâchés, risque d'un recours en justice qui suspend le chantier 9 mois), concerter (chantier 40 % plus long, aucun recours) ou indemniser la commune (coût +15 %, aucun recours).
+- **Réseau de chaleur** (outil Chaleur, vues Électricité et Déchets, à partir de 1925) : un tuyau orange relie une centrale thermique, un incinérateur ou un méthaniseur à une ville. La chaleur se vend et remplace une partie du chauffage électrique l'hiver.
+- **Quartiers aux attentes différentes** : le centre-ville veut au moins 3 passages par semaine et pas de bruit ; la zone industrielle produit des déchets dangereux à traiter à part (centre de traitement, 1955), sinon les fûts stockés finissent par fuir dans la rivière ; l'hôpital ne supporte aucune coupure d'électricité.
+- **Fêtes et vacances** : fête nationale, vacances d'été (plus de monde sur la côte et l'île, moins ailleurs), fêtes de fin d'année. Plus de déchets et d'eau à ces dates ; renforts saisonniers (camions et bacs loués 30 jours).
+- **Élections municipales** tous les 6 ans à partir de 1902 : le maire est réélu si la satisfaction dépasse 50 %, et fixe une priorité pour le mandat (ville propre, électricité pour tous, eau moins chère, chauffage urbain, zéro décharge, sortie du charbon). Tenue : prime et habitants satisfaits ; manquée : habitants déçus.
+- **Plan de crise** (onglet Région) : camions de réserve, groupes électrogènes, citernes, équipes d'astreinte. Coûte chaque année, mais grèves, tempêtes, pollutions, coupures d'hôpital et coupures en cascade comptent deux fois moins.
+- **Vieillissement** : chaque bâtiment a une durée de vie (25 à 40 ans). Usé, il tombe plus souvent en panne et gêne davantage ; on le rénove (40 % de son prix) ou on le démantèle (une décharge fermée reste 30 ans sous surveillance, un réacteur coûte 30 % de son prix à démanteler).
+- **Cyberattaque** (à partir de 2010) : quelques jours sans alertes, sans prévisions et sans optimisation des tournées. Recherche « Cybersécurité ».
+- **Coupure en cascade** (à partir de 1920) : quand une ville est privée d'électricité, les pompes, usines d'eau, épurations et sites de déchets voisins s'arrêtent, sauf s'ils ont un groupe électrogène de secours (amélioration) ou si le plan de crise est actif (moitié de la capacité).
+- **Sécheresse et canicule partagées** : en sécheresse, il faut choisir à qui va la rivière (onglet Eau) : l'eau potable (les centrales au bord de l'eau perdent 30 %) ou les centrales (les prises d'eau perdent 40 %). En canicule, les centrales sont bridées, la demande d'eau monte, les déchets sentent plus fort.
+
+## Malus et améliorations des bâtiments
+
+Beaucoup de bâtiments, dans les trois réseaux, ont un malus. La fiche du bâtiment le montre, avec l'équipement qui le réduit, débloqué par une recherche :
+
+| Bâtiments | Malus | Équipement | Recherche |
+|---|---|---|---|
+| Usine, centrales au charbon et au fioul | fumées : riverains gênés, malus du charbon | dépoussiérage et désulfuration | Production, 1970 |
+| Centrale au gaz, turbine | oxydes d'azote : riverains gênés | brûleurs bas NOx | Production, 1990 |
+| Station d'épuration, lagunage | odeurs près des villes | couverture et désodorisation | Eau, 1975 |
+| Station d'épuration, lagunage | boues à éliminer | déshydratation des boues (÷3) | Eau, 1980 |
+| Décharge | jus qui polluent la rivière | casiers étanches | Déchets, 1975 |
+| Décharge | odeurs et méthane | captage du biogaz | Déchets, 1990 |
+| Incinérateur | fumées | traitement des fumées | Déchets, 1990 |
+| Compostage, méthaniseur | odeurs | bâtiment fermé | à partir de 1995 |
+| Pompes, usines d'eau, épurations, sites de déchets | s'arrêtent pendant les coupures | groupe électrogène de secours | à partir de 1930 |
+
+La maquette autonome qui a servi à concevoir ce mode reste dans `maquettes/dechets.html`.
 
 ## Organisation des fichiers
 
@@ -114,6 +168,8 @@ Le découpage reprend celui de web_cao : une page, un dossier `css/` et des scri
 | `js/04-modeles.js` | modèles 3D des installations et des quartiers |
 | `js/05-catalogue.js` | catalogue des centrales et des postes, tensions des lignes |
 | `js/06-eau.js` | réseau d'eau : ouvrages, conduites, qualité, simulation |
+| `js/06b-dechets.js` | déchets : sites, collecte, tri, traitement, marché, simulation journalière |
+| `js/06c-territoire.js` | chaleur, fêtes, élections, plan de crise, vieillissement, cascades, déchets dangereux |
 | `js/07-epoques-rd.js` | époques de la campagne, recherche |
 | `js/08-installations.js` | état de la partie, construire et démolir |
 | `js/09-lignes.js` | lignes électriques et leurs règles de raccordement, dessin des conduites |
@@ -124,9 +180,9 @@ Le découpage reprend celui de web_cao : une page, un dossier `css/` et des scri
 | `js/14-superpositions.js` | survol, sélection, lentilles, fumées |
 | `js/15-camera.js` | caméra et commandes tactiles ou souris |
 | `js/16-interface.js` | barre de construction, survol, clics sur la carte |
-| `js/17-panneaux.js` | panneaux de gestion (électricité et eau) |
+| `js/17-panneaux.js` | panneaux de gestion (électricité, eau et déchets) |
 | `js/18-hud.js` | barre du haut, étiquettes, mini-carte |
-| `js/19-vues.js` | les trois vues : carte, électricité, eau |
+| `js/19-vues.js` | les quatre vues : carte, électricité, eau, déchets |
 | `js/20-actions.js` | boutons, menu, tutoriel, bilans annuels |
 | `js/21-partie.js` | nouvelle partie, sauvegarde, chargement |
 | `js/22-banc.js` | stratégies programmées du banc d'équilibrage |

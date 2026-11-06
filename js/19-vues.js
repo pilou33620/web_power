@@ -1,8 +1,8 @@
 "use strict";
-// ============================================================ trois vues : carte, électricité, eau
+// ============================================================ quatre vues : carte, électricité, eau, déchets
 // Dans la vue d'un réseau, ses ouvrages ont un contour coloré et un anneau, ceux de l'autre réseau deviennent des fantômes.
-const TEINTE = { carte: new THREE.Color(0xffffff), elec: new THREE.Color(0x77756c), eau: new THREE.Color(0x7a8a8f) };
-const HALO_M = { eau: new THREE.MeshBasicMaterial({ color: 0x38b6ff, transparent: true, opacity: .8, depthWrite: false, side: THREE.DoubleSide }), elec: new THREE.MeshBasicMaterial({ color: 0xffc94d, transparent: true, opacity: .8, depthWrite: false, side: THREE.DoubleSide }) };
+const TEINTE = { carte: new THREE.Color(0xffffff), elec: new THREE.Color(0x77756c), eau: new THREE.Color(0x7a8a8f), dechets: new THREE.Color(0x7a7a70) };
+const HALO_M = { eau: new THREE.MeshBasicMaterial({ color: 0x38b6ff, transparent: true, opacity: .8, depthWrite: false, side: THREE.DoubleSide }), elec: new THREE.MeshBasicMaterial({ color: 0xffc94d, transparent: true, opacity: .8, depthWrite: false, side: THREE.DoubleSide }), dechets: new THREE.MeshBasicMaterial({ color: 0xf0a35e, transparent: true, opacity: .8, depthWrite: false, side: THREE.DoubleSide }) };
 const GEO_HALO = (() => { const p = [], o = { x: 0, z: 0 }; for (let i = 0; i < 6; i++) { const a1 = coin(o, i, .99), b1 = coin(o, (i + 1) % 6, .99), a2 = coin(o, i, .84), b2 = coin(o, (i + 1) % 6, .84); p.push(a1[0], 0, a1[1], a2[0], 0, a2[1], b1[0], 0, b1[1], b1[0], 0, b1[1], a2[0], 0, a2[1], b2[0], 0, b2[1]); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); return g; })();
 const reseauU = u => TYPES[u.type].r || 'elec';
 function etatVue(r) { return vue === 'carte' ? 'normal' : r === vue ? 'vif' : 'fantome'; }
@@ -25,6 +25,7 @@ const LENT_VUE = {
   carte: [['relief', 'Relief', '#86c552'], ['accept', 'Acceptation', '#ff8a7a']],
   elec: [['relief', 'Réseau', '#ffc94d'], ['charge', 'Charge réseau', '#7be08a'], ['vent', 'Vent', '#4f9be0'], ['soleil', 'Soleil', '#ffb340'], ['accept', 'Acceptation', '#ff8a7a']],
   eau: [['relief', 'Réseau', '#3f9cff'], ['nappe', 'Nappes', '#1d64b8'], ['nitr', 'Nitrates', '#b4560f'], ['vetuste', 'Vétusté des conduites', '#e5533f']],
+  dechets: [['relief', 'Sites', '#f0a35e'], ['bacs', 'Remplissage des bacs', '#e5533f'], ['nuis', 'Nuisances', '#b4560f'], ['accept', 'Acceptation', '#ff8a7a']],
 };
 function choisirVue(v) {
   if (!LENT_VUE[v]) return;
@@ -34,5 +35,6 @@ function choisirVue(v) {
   for (const u of UNITES) stylerU(u); for (const l of LIGNES) stylerL(l);
   EAU_G.visible = v === 'eau';
   majBarre(); majLentilles(); majLentille(); couleurCables(); majVetuste(); dessinerMini(); hud();
-  if (!portrait() && S.enJeu) { if (v === 'eau' && S.onglet === 'dispatch') ouvrir('eau'); else if (v === 'elec' && S.onglet === 'eau') ouvrir('dispatch'); }
+  const PANV = { elec: 'dispatch', eau: 'eau', dechets: 'dechets' };  // chaque vue réseau ouvre son panneau à la place de celui d'un autre réseau
+  if (!portrait() && S.enJeu && PANV[v] && Object.values(PANV).includes(S.onglet)) ouvrir(PANV[v]);
 }
