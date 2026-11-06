@@ -31,7 +31,7 @@ Le jeu est une page web, sans installation, sans compilation ni serveur obligato
   - Options : `--port N`, `--local` (127.0.0.1 seulement), `--sans-navigateur`, `--sans-pause`, `--sans-maj` (au démarrage, le serveur met le dépôt à jour par `git pull --ff-only`, sauf sous `web_launcher`, qui s'en charge).
   - Banc du serveur : `python test/banc-serveur.py` (affiche `OK`).
 
-La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu : chaque appareil a donc sa propre partie, et le serveur ne stocke rien.
+La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu : chaque appareil a donc sa propre partie, et le serveur ne stocke rien. Menu → Exporter la partie la télécharge dans un fichier, Importer une partie la reprend (pour garder plusieurs parties ou changer d'appareil). Si le navigateur refuse d'enregistrer (navigation privée, stockage plein), le jeu prévient.
 
 ## Écrans
 

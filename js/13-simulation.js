@@ -59,7 +59,8 @@ function minuit(m) {
   S.hopPen = hopPen;
   if (S.crise) { const c = coutCrise() / 365; S.argent -= c; S.jour.opex += c; S.an.opex += c; }
   const d0 = date(m); if (d0.getUTCMonth() === 2 && d0.getUTCDate() === 1 && annee(m) >= (S.mandat?.fin ?? 1902)) elections(m);
-  const cible = 80 - hopPen - Math.min(70, S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8 - eauPen - S.dec.pen;
+  // au début du siècle, un village sans courant fâche mais ne fait pas révoquer : la pénalité plafonne à 35 points avant 1935
+  const cible = 80 - hopPen - Math.min(70 * Math.max(.5, exigence), S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8 - eauPen - S.dec.pen;
   S.eauPen = eauPen;
   S.sat = clamp(S.sat + (cible - S.sat) * .03, 0, 100); S.nimby *= .985;
   // recherche
