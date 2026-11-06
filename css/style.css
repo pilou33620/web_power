@@ -57,6 +57,14 @@ main { position: relative; overflow: hidden; background: var(--fond); touch-acti
 .aide { position: absolute; z-index: 4; left: 50%; transform: translateX(-50%); bottom: 116px; padding: 7px 12px; border-radius: 14px; background: var(--creme); color: var(--trait); border: 2.5px solid var(--bord); box-shadow: var(--ombre); font-weight: 800; font-size: 13px; width: max-content; max-width: min(560px, calc(100% - 24px)); text-align: center; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
 .aide button { min-height: 32px; padding: 0 10px; border-radius: 9px; border: 2px solid var(--bord); background: #efe3c8; color: var(--trait); font-weight: 800; cursor: pointer; }
 .aide button.actif { background: var(--or); }
+.guide { left: 12px; bottom: 120px; width: min(320px, calc(100% - 24px)); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; background: var(--creme); color: var(--trait); }
+.guide .g-etape { font-size: 10.5px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #6b5a3a; }
+.guide h3 { margin: 0; font-family: var(--titre); font-weight: 700; font-size: 17px; line-height: 1.15; }
+.guide p { margin: 0; font-size: 13px; font-weight: 700; line-height: 1.35; }
+.guide .jauge { height: 6px; background: #e6d9bb; } .guide .jauge i { background: var(--vert); }
+.guide .fait { color: #23752f; font-weight: 800; font-size: 13px; }
+.guide .btns { margin-top: 2px; } .guide .btn.secondaire { background: #efe3c8; color: var(--trait); }
+html[data-format="portrait"] .guide { bottom: auto; top: 60px; }
 .bulle { position: fixed; z-index: 9; pointer-events: none; padding: 6px 10px; border-radius: 11px; background: var(--creme); color: var(--trait); border: 2px solid var(--bord); box-shadow: 0 3px 0 rgba(0,0,0,.3); font-size: 12px; font-weight: 800; max-width: 260px; }
 .bulle b { font-family: var(--titre); font-weight: 600; font-size: 14px; }
 .bulle .non { color: #b3261e; } .bulle .oui { color: #23752f; }

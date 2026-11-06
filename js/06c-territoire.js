@@ -95,7 +95,8 @@ const SECOURS = ['forage', 'prise', 'potab', 'pompage', 'dessal', 'step', 'tri',
 const villeProche = u => VILLES.reduce((b, v) => (!b || dist(v.centre, u.t) < dist(b.centre, u.t) ? v : b), null);
 function alimente(u) {  // 1 : tourne ; .5 : sur les groupes électrogènes du plan de crise ; 0 : arrêté
   if (!SECOURS.includes(u.type) || amel(u, 'secours') || annee(S.min) < 1920) return 1;
-  const v = villeProche(u); return !v || v.servie ? 1 : S.crise ? .5 : 0;
+  const vs = [...(u.res?.villes || []), ...VILLES.filter(v => dist(v.centre, u.t) <= 6)];  // les villes de son réseau, ou une ville proche, peuvent l'alimenter
+  return !vs.length || vs.some(v => v.servie) ? 1 : S.crise ? .5 : 0;
 }
 
 const partCentre = () => VILLES.reduce((s, v) => s + v.tuiles.filter(t => t.quartier === 'centre').length * HAB.centre, 0) / habTot();

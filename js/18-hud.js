@@ -18,7 +18,7 @@ function hud() {
     ${S.delestage > 1 || S.demIlot > 1 ? `<small style="color:var(--rouge)">Coupé : ${nf(S.delestage + S.demIlot)} MW</small>` : ''}`;
   const vt = $('#temps'), html = VITESSES.map(([v, n, a], i) => `<button type="button" data-act="vitesse" data-id="${i}" class="${(i === 0 ? S.pause : !S.pause && S.vit === i) ? 'actif' : ''}" aria-label="${a}" title="${a}">${n}</button>`).join('');
   if (vt.dataset.h !== html) { vt.innerHTML = html; vt.dataset.h = html; }
-  majBanderoles();
+  majBanderoles(); majGuide();
 }
 const ETI = $('#etiquettes');
 function majBanderoles() {
