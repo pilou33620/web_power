@@ -105,7 +105,7 @@ function jourDangereux(m) {  // appelé par la journée des déchets ; renvoie [
   const D = S.dec, cap = UNITES.filter(u => u.type === 'dangereux' && !u.fin && !(u.panne > m)).reduce((s, u) => s + TYPES.dangereux.tj * alimente(u), 0);
   D.dd = (D.dd || 0) + ddJour(); const x = Math.min(D.dd, cap); D.dd -= x;
   for (const u of UNITES) if (u.type === 'dangereux') u.q = cap ? x * TYPES.dangereux.tj / cap : 0;
-  if (D.dd > 300 && !(S.eau.acc && S.eau.acc.fin > m) && RIV.length && alea() < D.dd / 4e5 * (S.crise ? .5 : 1)) {  // fuite d'un stock de fûts vers la rivière
+  if (annee(m) >= TYPES.dangereux.an && D.dd > 300 && !(S.eau.acc && S.eau.acc.fin > m) && RIV.length && alea() < D.dd / 4e5 * (S.crise ? .5 : 1)) {  // fuite d'un stock de fûts vers la rivière
     const v = VILLES.find(v => v.tuiles.some(t => t.quartier === 'industriel')) || VILLES[0], i = v ? rivProche(v.centre) : null;
     if (i !== null) { S.eau.acc = { genre: 'riviere', i, fin: m + 4 * 1440 * (S.crise ? .5 : 1), nom: 'Fuite de fûts de déchets dangereux', lieu: v.nom }; S.an.acc++; log(`Des fûts de déchets dangereux stockés à ${v.nom} fuient dans la rivière. Construisez un centre de traitement des déchets dangereux.`, 'mauvais'); toast('Fuite de déchets dangereux dans la rivière !'); }
   }

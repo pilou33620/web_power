@@ -35,7 +35,7 @@ Object.assign(TYPES, {
   compost: { role: 'compost', nom: 'Plateforme de compostage', court: 'Compostage', tj: 25, capex: 1.5, delai: 4, opexT: 40, nuis: 1.5, ok: t => plat(t) || t.t === 'colline', non: 'Plaine ou collines', pot: 'accept', an: 1980 },
   tri: { role: 'tri', nom: 'Centre de tri', court: 'Tri', tj: 30, capex: 12, delai: 12, opexT: 135, nuis: .5, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1990 },
   incin: { role: 'bruler', nom: 'Usine d’incinération', court: 'Incinérateur', tj: 120, capex: 60, delai: 30, opexT: 95, loin: 2, nuis: 3, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1960, mw: 4, mwhT: .65, f: 'dechets', fatal: true, cout: 0, co2: 450, ramp: 99, reseau: 63 },
-  dangereux: { role: 'dangereux', nom: 'Centre de traitement des déchets dangereux', court: 'Déchets dangereux', tj: 15, capex: 20, delai: 18, opexT: 400, loin: 3, nuis: 2, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1975 },
+  dangereux: { role: 'dangereux', nom: 'Centre de traitement des déchets dangereux', court: 'Déchets dangereux', tj: 15, capex: 20, delai: 18, opexT: 400, loin: 3, nuis: 2, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1955 },
   metha: { role: 'metha', nom: 'Méthaniseur', court: 'Méthaniseur', tj: 50, capex: 8, delai: 12, opexT: 60, loin: 2, nuis: 1.5, ok: plat, non: 'Terrain plat', pot: 'accept', an: 2005, rd: 'metha', mw: 1, mwhT: .3, f: 'biomasse', fatal: true, cout: 0, co2: 0, ramp: 99, reseau: 63 },
 });
 const ORDRE_DEC = ['garage', 'decharge', 'quai', 'decheterie', 'compost', 'tri', 'incin', 'metha', 'dangereux'];
@@ -190,7 +190,7 @@ function jourDechets(m) {
   const exig = clamp((a - 1900) / 70, .2, 1), hab = Math.max(1, popT);
   D.penD = { sauvage: Math.min(12, sauvageTotal() / (hab / 1000) * 3) * exig, debord: VILLES.filter(v => v.deborde).reduce((s, v) => s + v.hab, 0) / hab * 6 * exig,
     nuis: Math.min(4, VILLES.reduce((s, v) => s + nuisVille(v) * v.hab, 0) / hab) * exig, prix: Math.max(0, D.tarif - 110) * .15, passages: D.modes.res < 2 ? 3 : 0, bruit: a >= 1960 && !D.nuit ? 1.5 * (1 + partCentre()) : 0,
-    centre: D.modes.res < 3 ? 2 * partCentre() * exig : 0, dangereux: Math.min(4, (D.dd || 0) / 400) };  // le centre-ville veut une collecte fréquente et silencieuse
+    centre: D.modes.res < 3 ? 2 * partCentre() * exig : 0, dangereux: a >= TYPES.dangereux.an ? Math.min(4, (D.dd || 0) / 400) : 0 };  // pas de reproche tant qu'aucun centre n'existe  // le centre-ville veut une collecte fréquente et silencieuse
   D.pen = Object.values(D.penD).reduce((s, x) => s + x, 0);
   evenementsDec(m);
 }
