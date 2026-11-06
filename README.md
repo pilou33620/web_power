@@ -85,7 +85,7 @@ On construit dans la vue de chaque réseau.
   - La nuit, seules les villes alimentées s'allument : une coupure se voit.
 - **Tutoriel** (s'ouvre seul à la première partie, puis Menu → Tutoriel) : la chaîne de l'électricité (centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville) celle de l'eau (captage → potabilisation → château d'eau → ville → égout → épuration → rivière) et celle des déchets (ville → bacs → camions → tri, compost, incinération → décharge), étape par étape.
 - **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts.
-- **R&D** : 54 technologies réparties en 6 branches et 5 niveaux.
+- **R&D** : 55 technologies réparties en 6 branches et 5 niveaux.
 - **Événements** : pannes, tempêtes, vagues de froid, canicules, sécheresses, crise du gaz.
 - **Ambiance** : fermes sur les plaines et les prairies, bateaux, oiseaux, vaches, cerfs et tracteurs.
   - Routes entre chaque ville et ses deux voisines (en terre, puis goudronnées en 1930), une desserte vers chaque ouvrage isolé et un chemin de terre vers chaque ferme isolée. Les routes se redessinent quand on construit ou démolit.
@@ -119,6 +119,21 @@ La troisième filière se gère dans la vue **Déchets** (touche 4) et l'onglet 
 - **Lien avec l'eau** : les stations d'épuration envoient leurs boues dans les flux de déchets (méthaniseur, compost, incinérateur ou décharge) ; les jus des décharges proches de la rivière la polluent, jusqu'aux prises d'eau.
 - **Objectif 2050** : 65 % des déchets valorisés, dont 30 % recyclés ou compostés.
 
+## Territoire et habitants
+
+Ce qui relie les trois réseaux et leurs habitants (`js/06c-territoire.js`) :
+
+- **Enquête publique** (à partir de 1960) avant une décharge, un incinérateur, un centre de déchets dangereux, une centrale nucléaire ou un barrage : passer en force (délai normal, riverains fâchés, risque d'un recours en justice qui suspend le chantier 9 mois), concerter (chantier 40 % plus long, aucun recours) ou indemniser la commune (coût +15 %, aucun recours).
+- **Réseau de chaleur** (outil Chaleur, vues Électricité et Déchets, à partir de 1925) : un tuyau orange relie une centrale thermique, un incinérateur ou un méthaniseur à une ville. La chaleur se vend et remplace une partie du chauffage électrique l'hiver.
+- **Quartiers aux attentes différentes** : le centre-ville veut au moins 3 passages par semaine et pas de bruit ; la zone industrielle produit des déchets dangereux à traiter à part (centre de traitement, 1975), sinon les fûts stockés finissent par fuir dans la rivière ; l'hôpital ne supporte aucune coupure d'électricité.
+- **Fêtes et vacances** : fête nationale, vacances d'été (plus de monde sur la côte et l'île, moins ailleurs), fêtes de fin d'année. Plus de déchets et d'eau à ces dates ; renforts saisonniers (camions et bacs loués 30 jours).
+- **Élections municipales** tous les 6 ans à partir de 1902 : le maire est réélu si la satisfaction dépasse 50 %, et fixe une priorité pour le mandat (ville propre, électricité pour tous, eau moins chère, chauffage urbain, zéro décharge, sortie du charbon). Tenue : prime et habitants satisfaits ; manquée : habitants déçus.
+- **Plan de crise** (onglet Région) : camions de réserve, groupes électrogènes, citernes, équipes d'astreinte. Coûte chaque année, mais grèves, tempêtes, pollutions, coupures d'hôpital et coupures en cascade comptent deux fois moins.
+- **Vieillissement** : chaque bâtiment a une durée de vie (25 à 40 ans). Usé, il tombe plus souvent en panne et gêne davantage ; on le rénove (40 % de son prix) ou on le démantèle (une décharge fermée reste 30 ans sous surveillance, un réacteur coûte 30 % de son prix à démanteler).
+- **Cyberattaque** (à partir de 2010) : quelques jours sans alertes, sans prévisions et sans optimisation des tournées. Recherche « Cybersécurité ».
+- **Coupure en cascade** (à partir de 1920) : quand une ville est privée d'électricité, les pompes, usines d'eau, épurations et sites de déchets voisins s'arrêtent, sauf s'ils ont un groupe électrogène de secours (amélioration) ou si le plan de crise est actif (moitié de la capacité).
+- **Sécheresse et canicule partagées** : en sécheresse, il faut choisir à qui va la rivière (onglet Eau) : l'eau potable (les centrales au bord de l'eau perdent 30 %) ou les centrales (les prises d'eau perdent 40 %). En canicule, les centrales sont bridées, la demande d'eau monte, les déchets sentent plus fort.
+
 ## Malus et améliorations des bâtiments
 
 Beaucoup de bâtiments, dans les trois réseaux, ont un malus. La fiche du bâtiment le montre, avec l'équipement qui le réduit, débloqué par une recherche :
@@ -133,6 +148,7 @@ Beaucoup de bâtiments, dans les trois réseaux, ont un malus. La fiche du bâti
 | Décharge | odeurs et méthane | captage du biogaz | Déchets, 1990 |
 | Incinérateur | fumées | traitement des fumées | Déchets, 1990 |
 | Compostage, méthaniseur | odeurs | bâtiment fermé | à partir de 1995 |
+| Pompes, usines d'eau, épurations, sites de déchets | s'arrêtent pendant les coupures | groupe électrogène de secours | à partir de 1930 |
 
 La maquette autonome qui a servi à concevoir ce mode reste dans `maquettes/dechets.html`.
 
@@ -152,6 +168,7 @@ Le découpage reprend celui de web_cao : une page, un dossier `css/` et des scri
 | `js/05-catalogue.js` | catalogue des centrales et des postes, tensions des lignes |
 | `js/06-eau.js` | réseau d'eau : ouvrages, conduites, qualité, simulation |
 | `js/06b-dechets.js` | déchets : sites, collecte, tri, traitement, marché, simulation journalière |
+| `js/06c-territoire.js` | chaleur, fêtes, élections, plan de crise, vieillissement, cascades, déchets dangereux |
 | `js/07-epoques-rd.js` | époques de la campagne, recherche |
 | `js/08-installations.js` | état de la partie, construire et démolir |
 | `js/09-lignes.js` | lignes électriques et leurs règles de raccordement, dessin des conduites |

@@ -37,6 +37,11 @@ document.addEventListener('click', ev => {
   else if (act === 'vendre-dec') { S.dec.vendre[id] = b.dataset.k === '1'; ouvrir('dechets', true); }
   else if (act === 'solder-dec') { const D = S.dec, x = D.stock[id] * D.prix[id] * kDec(); S.argent += x; S.an.ventes += x; S.an.decV += x; D.L.vendu += D.stock[id]; D.stock[id] = 0; toast(`Stock vendu : ${euros(x)}.`, 'ok'); ouvrir('dechets', true); }
   else if (act === 'tarif-dec') { S.dec.tarif = clamp(S.dec.tarif + +b.dataset.dir, 30, 200); ouvrir('dechets', true); }
+  else if (act === 'enquete') { $('#modale').hidden = true; if (!ENQ) return; const u = acheterUnite(ENQ.t, ENQ.type, id); ENQ = null; if (typeof u === 'string') return toast(u); toast(`${u.nom} : chantier lancé, ${Math.round(u.mois)} mois.`, 'ok'); choisirMode(null); selectionner(u.t); }
+  else if (act === 'crise') { S.crise = !S.crise; log(S.crise ? `Plan de crise préparé (${euros(coutCrise())} par an) : réserves de camions, groupes électrogènes, citernes et équipes d’astreinte.` : 'Plan de crise abandonné.', 'alerte'); ouvrir(S.onglet, true); }
+  else if (act === 'renfort') { S.dec.renfort = S.min + 30 * 1440; log(`Renforts saisonniers pour 30 jours : camions loués et bacs en plus (${euros(renfortsCout())}).`, 'bon'); ouvrir('dechets', true); }
+  else if (act === 'prio-riv') { S.eau.prioRiv = id; log(id === 'centrales' ? 'Sécheresse : la rivière est réservée d’abord au refroidissement des centrales.' : 'Sécheresse : la rivière est réservée d’abord à l’eau potable.', 'alerte'); dispatch(S.min); ouvrir('eau', true); }
+  else if (act === 'renover') { const r = renover(unite(id)); if (r) toast(r); else toast('Bâtiment rénové.', 'ok'); ouvrir('hex', true); }
   else if (act === 'amelio') { const r = ameliorer(unite(id), b.dataset.k); if (r) toast(r); else toast('Bâtiment équipé.', 'ok'); ouvrir('hex', true); }
   else if (act === 'nuit-dec') { S.dec.nuit = !S.dec.nuit; log(S.dec.nuit ? 'La collecte des déchets passe de nuit.' : 'La collecte des déchets repasse de jour.', 'alerte'); ouvrir('dechets', true); }
   else if (act === 'brigade') { S.dec.brigade = !S.dec.brigade; log(S.dec.brigade ? 'Brigade de propreté en service.' : 'Brigade de propreté dissoute.', 'alerte'); ouvrir('dechets', true); }

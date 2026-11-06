@@ -12,7 +12,7 @@ const kDec = (a = annee(S.min)) => interp(K_DEC, a);
 const CAMION = [[1900, 40], [1950, 90], [1980, 150], [2020, 180]];  // k€ par camion et par an, équipage compris
 const coutCamion = (a = annee(S.min)) => interp(CAMION, a) * 1e3 * (S.dec.nuit ? 1.25 : 1);  // la collecte de nuit paie des majorations
 const achatCamion = (a = annee(S.min)) => coutCamion(a) * 1.5;
-const capCamion = (a = annee(S.min)) => (a < 1925 ? 2.5 : a < 1955 ? 5 : 7) * (rd('tasseuse') ? 1.6 : 1) * (rd('tournees') ? 1.2 : 1);  // t/j : tombereau à cheval, camion, benne
+const capCamion = (a = annee(S.min)) => (a < 1925 ? 2.5 : a < 1955 ? 5 : 7) * (rd('tasseuse') ? 1.6 : 1) * (rd('tournees') ? 1.2 : 1) * (S.evt.cyber > S.min ? .8 : 1);  // sans supervision, les tournées ne sont plus optimisées  // t/j : tombereau à cheval, camion, benne
 const nomCamion = (a = annee(S.min)) => (a < 1925 ? 'tombereaux à cheval' : rd('tasseuse') ? 'bennes tasseuses' : 'camions-bennes');
 const tgap = a => (a < 1999 ? 0 : Math.min(65, 9 + (a - 1999) * 2.2) + Math.max(0, a - 2025) * 2);  // taxe sur l'enfouissement, €/t
 const CAPJ_D = { res: 5, emb: 10, verre: 16, bio: 5 };  // autonomie des bacs, en jours de production
@@ -35,9 +35,10 @@ Object.assign(TYPES, {
   compost: { role: 'compost', nom: 'Plateforme de compostage', court: 'Compostage', tj: 25, capex: 1.5, delai: 4, opexT: 40, nuis: 1.5, ok: t => plat(t) || t.t === 'colline', non: 'Plaine ou collines', pot: 'accept', an: 1980 },
   tri: { role: 'tri', nom: 'Centre de tri', court: 'Tri', tj: 30, capex: 12, delai: 12, opexT: 135, nuis: .5, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1990 },
   incin: { role: 'bruler', nom: 'Usine d’incinération', court: 'Incinérateur', tj: 120, capex: 60, delai: 30, opexT: 95, loin: 2, nuis: 3, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1960, mw: 4, mwhT: .65, f: 'dechets', fatal: true, cout: 0, co2: 450, ramp: 99, reseau: 63 },
+  dangereux: { role: 'dangereux', nom: 'Centre de traitement des déchets dangereux', court: 'Déchets dangereux', tj: 15, capex: 20, delai: 18, opexT: 400, loin: 3, nuis: 2, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1975 },
   metha: { role: 'metha', nom: 'Méthaniseur', court: 'Méthaniseur', tj: 50, capex: 8, delai: 12, opexT: 60, loin: 2, nuis: 1.5, ok: plat, non: 'Terrain plat', pot: 'accept', an: 2005, rd: 'metha', mw: 1, mwhT: .3, f: 'biomasse', fatal: true, cout: 0, co2: 0, ramp: 99, reseau: 63 },
 });
-const ORDRE_DEC = ['garage', 'decharge', 'quai', 'decheterie', 'compost', 'tri', 'incin', 'metha'];
+const ORDRE_DEC = ['garage', 'decharge', 'quai', 'decheterie', 'compost', 'tri', 'incin', 'metha', 'dangereux'];
 for (const k of ORDRE_DEC) Object.assign(TYPES[k], { r: 'dechets', f: TYPES[k].f || null, mw: TYPES[k].mw || 0, groupe: 'dechets' });
 const estDecU = u => TYPES[u.type]?.r === 'dechets';
 const capTri = () => TYPES.tri.tj * (rd('optique') ? 2.2 : rd('trisemi') ? 1.7 : 1);
@@ -73,7 +74,7 @@ function bilanDec() {  // conservation de la matière
   return { prod: L.prod, ou, ecart: Math.abs(L.prod - ou) };
 }
 // nuisance ressentie par une ville : sites de déchets à moins de 3 hexagones, d'autant plus gênants qu'ils sont proches ; les améliorations la réduisent
-const nuisU = u => TYPES[u.type].nuis * (amel(u, 'biogaz') ? .5 : 1) * (amel(u, 'fumees') ? .4 : 1) * (amel(u, 'ferme') ? .3 : 1);
+const nuisU = u => TYPES[u.type].nuis * (amel(u, 'biogaz') ? .5 : 1) * (amel(u, 'fumees') ? .4 : 1) * (amel(u, 'ferme') ? .3 : 1) * (1 + .5 * vieux(u)) * (S.evt.canicule > S.min ? 1.5 : 1);  // vieux sites et canicule : plus d'odeurs
 const nuisVille = v => UNITES.reduce((s, u) => { if (!estDecU(u) || !TYPES[u.type].nuis || u.fin) return s; const d = Math.min(...v.tuiles.map(x => dist(x, u.t))); return d <= 3 ? s + nuisU(u) * (1 - (d - 1) / 3) : s; }, 0);
 const nuisHex = t => UNITES.reduce((s, u) => { if (!estDecU(u) || !TYPES[u.type].nuis) return s; const d = dist(t, u.t); return d <= 3 ? s + nuisU(u) * (1 - d / 4) : s; }, 0);
 // boues d'épuration : environ 1,5 kg par m³ épuré, trois fois moins si la station les déshydrate
@@ -87,7 +88,8 @@ function jourDechets(m) {
   const L = {}, lien = (x, y, t) => { if (t > 1e-9) L[x + '>' + y] = (L[x + '>' + y] || 0) + t; };
   const payer = x => { J.depenses += x; }, encaisser = x => { J.recettes += x; };
   const actifs = ty => UNITES.filter(u => u.type === ty && !u.fin && !(u.panne > m));
-  const cap = { tri: actifs('tri').length * capTri(), compost: actifs('compost').length * TYPES.compost.tj, incin: actifs('incin').length * TYPES.incin.tj, metha: actifs('metha').length * TYPES.metha.tj }, cap0 = { ...cap };
+  const capAl = ty => actifs(ty).reduce((s, u) => s + capDec(u) * alimente(u), 0);  // sans électricité, un site s'arrête (coupure en cascade)
+  const cap = { tri: capAl('tri'), compost: capAl('compost'), incin: capAl('incin'), metha: capAl('metha') }, cap0 = { ...cap }, renfort = D.renfort > m;
   const decheterie = actifs('decheterie').length > 0, greve = D.greve > m, canicule = S.evt.canicule > m, tempete = S.evt.tempete > m;
   const camp = D.campagne > m ? .08 : 0, inc = rd('incitative') ? 1 : 0, qualite = .76 + camp + inc * .04;  // part des objets bien triés dans le bac jaune
   const tri = { emb: D.modes.emb ? .55 + camp + inc * .15 : 0, verre: D.modes.verre ? .72 + inc * .1 : 0, bio: D.modes.bio ? .48 + camp / 2 + inc * .12 : 0 };
@@ -97,7 +99,7 @@ function jourDechets(m) {
   // 1. production et dépôt dans les bacs
   for (const v of VILLES) {
     const B = bacs(v), ind = v.tuiles.filter(t => t.quartier === 'industriel').length * 4 * (.3 + .7 * indusEau(a));
-    const tot = v.hab * interp(KG_HAB, a) / 365e3 + ind, p = {};
+    const tot = (v.hab * interp(KG_HAB, a) / 365e3 + ind) * facFete(m, 'dec'), p = {};  // fêtes et vacances
     for (const f of FLUX_D) p[f] = tot * p0[f] * (fac[f] || 1);
     const prod = FLUX_D.reduce((s, f) => s + p[f], 0); J.prod += prod; D.L.prod += prod; v.decProd = prod;
     const verts = decheterie ? p.bio * .15 : 0;  // déchets verts apportés en déchèterie
@@ -109,13 +111,13 @@ function jourDechets(m) {
     v.deborde = false;
     for (const f of ['res', 'emb', 'verre', 'bio']) {
       v.moy[f] = v.moy[f] * .9 + dans[f] * .1; B[f] += dans[f];
-      const capB = CAPJ_D[f] * Math.max(v.moy[f], .02) * (canicule && (f === 'bio' || f === 'res') ? .75 : 1);
+      const capB = CAPJ_D[f] * Math.max(v.moy[f], .02) * (canicule && (f === 'bio' || f === 'res') ? .75 : 1) * (renfort ? 1.5 : 1);  // bacs en plus loués pour la saison
       if (B[f] > capB) { rue(v, f, B[f] - capB); B[f] = capB; v.deborde = true; }
     }
   }
   // 2. collecte du lundi au samedi : avec f passages par semaine, les camions vident chaque jour f/6 des bacs ; capT compte les camions encore libres
   const par = { res: 0, emb: 0, verre: 0, bio: 0 }, vers = f => (f === 'res' ? (cap.incin ? 'incin' : 'decharge') : f === 'emb' ? (cap.tri ? 'tri' : 'decharge') : f === 'bio' ? (cap.metha ? 'metha' : cap.compost ? 'compost' : 'decharge') : 'decheterie');
-  let capT = greve ? 0 : D.camions;
+  let capT = (greve ? (S.crise ? .5 : 0) : 1) * D.camions * (renfort ? 1.3 : 1);  // en grève, seuls les camions de réserve du plan de crise roulent
   if (dow !== 0) for (const f of ['res', 'bio', 'emb', 'verre']) {
     const fr = D.modes[f]; if (!fr) continue;
     const poids = 1 + .06 * (fr - 2);  // des passages fréquents remplissent moins les camions
@@ -168,6 +170,7 @@ function jourDechets(m) {
   if (Dd > 0) { lien('enc', 'decheterie', Dd); lien('decheterie', 'recycle', Dd * .45); matiere('materiaux', Dd * .45); eliminer('decheterie', Dd * .55, false); }
   payer(actifs('decheterie').length * TYPES.decheterie.fixe * K / 365);
   if (par.res > 0) eliminer('res', par.res);
+  const [ddTraite, ddCout] = jourDangereux(m); payer(ddCout + coutSuivis() / 365 + (renfort ? renfortsCout() / 30 : 0)); J.dd = ddTraite;
   // propreté : les cantonniers ramassent 1 t/j par 50 000 habitants, la brigade trois fois plus ; les camions qui ont fini leur tournée ramassent le reste
   const popT = VILLES.reduce((s, v) => s + v.hab, 0);
   let reste = cantonniers() * (D.brigade ? 4 : 1) + (dow !== 0 ? capT * capCamion(a) * .7 : 0); payer(D.brigade ? brigadeCout() / 365 : 0);
@@ -186,7 +189,8 @@ function jourDechets(m) {
   // 7. gêne ressentie : dépôts sauvages, bacs qui débordent, riverains des sites, prix
   const exig = clamp((a - 1900) / 70, .2, 1), hab = Math.max(1, popT);
   D.penD = { sauvage: Math.min(12, sauvageTotal() / (hab / 1000) * 3) * exig, debord: VILLES.filter(v => v.deborde).reduce((s, v) => s + v.hab, 0) / hab * 6 * exig,
-    nuis: Math.min(4, VILLES.reduce((s, v) => s + nuisVille(v) * v.hab, 0) / hab) * exig, prix: Math.max(0, D.tarif - 110) * .15, passages: D.modes.res < 2 ? 3 : 0, bruit: a >= 1960 && !D.nuit ? 1.5 : 0 };
+    nuis: Math.min(4, VILLES.reduce((s, v) => s + nuisVille(v) * v.hab, 0) / hab) * exig, prix: Math.max(0, D.tarif - 110) * .15, passages: D.modes.res < 2 ? 3 : 0, bruit: a >= 1960 && !D.nuit ? 1.5 * (1 + partCentre()) : 0,
+    centre: D.modes.res < 3 ? 2 * partCentre() * exig : 0, dangereux: Math.min(4, (D.dd || 0) / 400) };  // le centre-ville veut une collecte fréquente et silencieuse
   D.pen = Object.values(D.penD).reduce((s, x) => s + x, 0);
   evenementsDec(m);
 }

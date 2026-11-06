@@ -16,6 +16,8 @@ function pas(m, silencieux = false) {
   const pv = prixVoisin(m), imp = Math.max(0, IMP.p) * .25 * pv, exp = Math.max(0, -IMP.p) * .25 * pv * (CARTE.exportK || .7) + (rd('h2') ? S.ecretement * .25 * 45 : 0);
   const opex = UNITES.reduce((a, u) => a + (u.fin ? 0 : u.cap * (TYPES[u.type].opex || 0) * 1e3), 0) / (365 * 96) + e * 12 + eDist * DISTRIB * tarifEre(annee(m)) + LIGNES.reduce((a, l) => a + l.len * ({ 15: 4e3, 63: 20e3, 225: 40e3, 400: 70e3 }[l.kv]), 0) / (365 * 96);
   const rdc = (S.rd.cours ? S.rd.budget : 0) * 1e6 / (365 * 96), prets = S.prets.reduce((a, p) => a + p.annuite, 0) / (365 * 96);
+  pasChaleur(m);
+  for (const v of VILLES) if (v.tuiles.some(t => t.quartier === 'hopital') && (!v.servie || S.delestage > 1)) v.hopCoupe = (v.hopCoupe || 0) + 15;  // l'hôpital exige une électricité sans coupure
   const W = pasEau(m), amendes = (annee(m) >= 2032 && UNITES.some(u => estCharbon(u) && !u.fin && u.dispo) ? 40e6 / (365 * 96) : 0) + W.amendes;
   const bas = (prod.solaire || 0) + (prod.eolien || 0) + Math.max(0, prod.hydro || 0) + (prod.nucleaire || 0) + (prod.biomasse || 0) + Math.max(0, prod.stockage || 0);
   const ren = bas - (prod.nucleaire || 0), coupure = (S.demIlot + S.delestage) / Math.max(1, S.demTot) * 15;
@@ -49,23 +51,30 @@ function minuit(m) {
   const charbon = annee(m) >= 1980 ? UNITES.filter(u => estCharbon(u) && enService(u) && !amel(u, 'filtres')).length : 0;  // la pollution n'est mal vue qu'à partir des années 1980
   const exigence = clamp((annee(m) - 1900) / 70, .05, 1);  // au début du siècle, les pannes faisaient partie de la vie
   const ex = exigenceEau(annee(m)), E = S.eau;  // eau : pénurie, eau non conforme, rejets non épurés, prix, restrictions
-  const eauPen = Math.min(30, j.m3m / Math.max(1, j.m3d) * 100 * .8 * ex) + Math.min(20, j.nc / Math.max(1, j.m3) * 60 * ex) + (annee(m) >= 1970 ? Math.min(8, j.ut / Math.max(1, j.eu) * 8) : 0) + Math.max(0, E.tarif - 3.6) * 8 + (E.restriction ? 3 : 0)
+  const eauPen = Math.min(30, j.m3m / Math.max(1, j.m3d) * 100 * .8 * ex) * (S.crise ? .75 : 1) + Math.min(20, j.nc / Math.max(1, j.m3) * 60 * ex) + (annee(m) >= 1970 ? Math.min(8, j.ut / Math.max(1, j.eu) * 8) : 0) + Math.max(0, E.tarif - 3.6) * 8 + (E.restriction ? 3 : 0)
     + (annee(m) >= 1970 ? Math.min(3, UNITES.filter(u => ['step', 'lagunage'].includes(u.type) && !u.fin && !amel(u, 'desodo') && VILLES.some(v => v.tuiles.some(x => dist(x, u.t) <= 2))).length) : 0)  // odeurs des stations près des villes
     + Math.min(15, (E.crises || []).filter(c => c.fin > m).reduce((s, c) => s + (VILLES.find(v => v.nom === c.v)?.hab || 0), 0) / Math.max(1, VILLES.reduce((s, v) => s + v.hab, 0)) * 40);  // une épidémie marque les esprits
-  const cible = 80 - Math.min(70, S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8 - eauPen - S.dec.pen;
+  const hopPen = Math.min(10, VILLES.reduce((s, v) => s + (v.hopCoupe || 0), 0) / 60 * 2) * exigence * (S.crise ? .5 : 1);  // groupes électrogènes du plan de crise
+  for (const v of VILLES) { if (v.hopCoupe) log(`L’hôpital de ${v.nom} a été privé d’électricité ${nf(v.hopCoupe)} minutes${S.crise ? ' (groupes électrogènes du plan de crise)' : ''}.`, 'mauvais'); v.hopCoupe = 0; }
+  S.hopPen = hopPen;
+  if (S.crise) { const c = coutCrise() / 365; S.argent -= c; S.jour.opex += c; S.an.opex += c; }
+  const d0 = date(m); if (d0.getUTCMonth() === 2 && d0.getUTCDate() === 1 && annee(m) >= (S.mandat?.fin ?? 1902)) elections(m);
+  const cible = 80 - hopPen - Math.min(70, S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8 - eauPen - S.dec.pen;
   S.eauPen = eauPen;
   S.sat = clamp(S.sat + (cible - S.sat) * .03, 0, 100); S.nimby *= .985;
   // recherche
   if (S.rd.cours) { S.rd.avance += S.rd.budget / 365; const r = RDI[S.rd.cours]; if (S.rd.avance >= r.cout) { S.rd.acquis.push(r.id); S.rd.cours = null; S.rd.avance = 0; log(`R&D : « ${r.nom} » acquise. ${r.effet}.`, 'bon'); toast(`Recherche terminée : ${r.nom}.`, 'ok'); majBarre(); } }
-  // pannes et aléas
+  // pannes et aléas (une vieille centrale tombe plus souvent en panne)
   cassesEau(m); crisesEau(m); accidentEau(m);
-  for (const u of UNITES) if (enService(u) && !TYPES[u.type].r && !TYPES[u.type].fatal && u.type !== 'poste' && u.type !== 'frontiere' && alea() < .0035 * dif.evt * (rd('maint') ? .5 : 1)) { u.panne = m + (1 + Math.floor(alea() * 4)) * 1440; log(`Panne : ${u.nom} s'arrête pour ${Math.round((u.panne - m) / 1440)} jours.`, 'mauvais'); toast(`Panne : ${u.nom} à l'arrêt (−${nf(u.p)} MW).`); }
+  for (const u of UNITES) if (enService(u) && !TYPES[u.type].r && !TYPES[u.type].fatal && u.type !== 'poste' && u.type !== 'frontiere' && alea() < .0035 * dif.evt * (rd('maint') ? .5 : 1) * (1 + 2 * vieux(u))) { u.panne = m + (1 + Math.floor(alea() * 4)) * 1440; log(`Panne : ${u.nom} s'arrête pour ${Math.round((u.panne - m) / 1440)} jours.`, 'mauvais'); toast(`Panne : ${u.nom} à l'arrêt (−${nf(u.p)} MW).`); }
   const mo = date(m).getUTCMonth(), hiver = mo <= 1 || mo === 11, ete = mo >= 5 && mo <= 7;
   if (alea() < (hiver ? .02 : .006) * dif.evt) evenement('tempete');
   if (hiver && alea() < .012 * dif.evt) evenement('froid');
   if (ete && alea() < .015 * dif.evt) evenement('canicule');
   if (ete && alea() < .006 * dif.evt) evenement('secheresse');
   if (alea() < .002 * dif.evt) evenement('gaz');
+  if (annee(m) >= 2010 && alea() < .003 * dif.evt * (rd('cyber') ? .25 : 1)) evenement('cyber');
+  { const arret = UNITES.filter(u => !u.fin && alimente(u) < 1); if (arret.length && !S.cascade) log(`Coupure en cascade : ${arret.map(u => u.nom).slice(0, 4).join(', ')}${arret.length > 4 ? '…' : ''} ${arret.length > 1 ? 'tournent' : 'tourne'} ${S.crise ? 'au ralenti sur groupes électrogènes' : 'plus'} faute d’électricité. Un groupe de secours (fiche du bâtiment) l’évite.`, 'mauvais'); S.cascade = arret.length > 0; }
   // événements historiques
   const d = date(m), HIST = { 1956: [1, 1, 'froid'], 1985: [0, 5, 'froid'], 1999: [11, 26, 'tempete'], 2003: [7, 1, 'canicule'], 2022: [8, 1, 'gaz'] }, hh = HIST[d.getUTCFullYear()];
   if (hh && hh[0] === d.getUTCMonth() && hh[1] === d.getUTCDate()) evenement(hh[2]);
@@ -78,14 +87,15 @@ function minuit(m) {
 function evenement(k) {
   const m = S.min;
   if (S.evt[k] > m) return;
-  if (k === 'tempete') { S.evt.tempete = m + 480 + alea() * 480; const ls = BR.filter(b => b.type === 'L' && actifB(b)); const l = ls[Math.floor(alea() * ls.length)]; if (l && alea() < .6) { l.hs = m + 360; log(`Tempête : la ligne ${l.nom} est tombée, réparation en 6 h.`, 'mauvais'); } toast('Tempête : rafales au-delà de 25 m/s, les éoliennes se mettent en sécurité.'); log('Tempête sur la région : arrêt de sécurité des éoliennes.', 'mauvais'); }
+  if (k === 'tempete') { S.evt.tempete = m + 480 + alea() * 480; const ls = BR.filter(b => b.type === 'L' && actifB(b)); const l = ls[Math.floor(alea() * ls.length)]; if (l && alea() < .6) { l.hs = m + (S.crise ? 180 : 360); log(`Tempête : la ligne ${l.nom} est tombée, réparation en ${S.crise ? 3 : 6} h${S.crise ? ' (équipes du plan de crise)' : ''}.`, 'mauvais'); } toast('Tempête : rafales au-delà de 25 m/s, les éoliennes se mettent en sécurité.'); log('Tempête sur la région : arrêt de sécurité des éoliennes.', 'mauvais'); }
   if (k === 'froid') { S.evt.froid = m + 3 * 1440; toast('Vague de froid : −10 °C pendant 3 jours, le chauffage fait bondir la demande.', 'info'); log('Vague de froid annoncée pour 3 jours. Les prix d’import montent.', 'alerte'); }
   if (k === 'canicule') { S.evt.canicule = m + 5 * 1440; toast('Canicule : les centrales thermiques refroidies par la rivière perdent 28 % de puissance.', 'info'); log('Canicule : limitation des centrales thermiques, climatisation en hausse.', 'alerte'); }
   if (k === 'secheresse') { S.evt.secheresse = m + 25 * 1440; toast('Sécheresse : le débit de la rivière chute de moitié.', 'info'); log('Sécheresse : apports au barrage divisés par deux pendant 25 jours.', 'alerte'); }
+  if (k === 'cyber') { S.evt.cyber = m + (2 + alea() * 4) * 1440 * (rd('cyber') ? .5 : 1); toast('Cyberattaque : la supervision est tombée, plus d’alertes ni de prévisions.'); log('Cyberattaque contre les systèmes de supervision : alertes, prévisions et optimisation des tournées indisponibles pendant quelques jours.', 'mauvais'); }
   if (k === 'gaz') { S.evt.gaz = m + 30 * 1440; toast('Flambée du prix du gaz : +60 % pendant un mois.', 'info'); log('Crise gazière : le gaz coûte 60 % plus cher pendant 30 jours.', 'alerte'); }
 }
-function finEvt(k) { log({ tempete: 'Fin de la tempête : les éoliennes redémarrent.', froid: 'Fin de la vague de froid.', canicule: 'Fin de la canicule.', secheresse: 'Fin de la sécheresse : la rivière retrouve son débit.', gaz: 'Le prix du gaz redescend.' }[k] || '', 'bon'); }
-const NOM_EVT = { tempete: 'Tempête', froid: 'Grand froid', canicule: 'Canicule', secheresse: 'Sécheresse', gaz: 'Gaz cher' };
+function finEvt(k) { log({ tempete: 'Fin de la tempête : les éoliennes redémarrent.', froid: 'Fin de la vague de froid.', canicule: 'Fin de la canicule.', secheresse: 'Fin de la sécheresse : la rivière retrouve son débit.', gaz: 'Le prix du gaz redescend.', cyber: 'Supervision rétablie après la cyberattaque.' }[k] || '', 'bon'); }
+const NOM_EVT = { tempete: 'Tempête', froid: 'Grand froid', canicule: 'Canicule', secheresse: 'Sécheresse', gaz: 'Gaz cher', cyber: 'Cyberattaque' };
 
 function nouvelAn(m) {
   const an = annee(m) - 1, a = S.an, e = Math.max(1, a.e);

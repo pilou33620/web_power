@@ -221,6 +221,13 @@ Object.assign(BAT, {
     const conv = boite(.8, .4, 5.2); conv.rotateX(-.4); put(L, conv, 0x6b6f75, 4.6, 2.3, -1.4, 0, .1);
     for (let i = 0; i < 6; i++) put(L, boite(1.3, 1.3, 1.3), [0xc98500, 0x3987e5, 0x8d8f96, 0xe9e3d3][i % 4], -3.4 + (i % 3) * 1.5, .65 + (i > 2 ? 1.3 : 0), 4.6, 0, .1);
   },
+  dangereux(L) {
+    sol(L, 0xbdb6a6);
+    put(L, boite(6.4, 3.4, 4.4), 0xe3e0d6, -1.4, 1.7, -1.4); put(L, boite(6.7, .45, 4.7), 0xf2c94c, -1.4, 3.6, -1.4);
+    for (let i = 0; i < 4; i++) put(L, boite(.5, 3.4, .1), i % 2 ? 0x2f2c2a : 0xf2c94c, -4 + i * .6, 1.7, .85, 0, 0);
+    for (let i = 0; i < 6; i++) { put(L, cyl(.6, .6, 1.4, 10), 0xf2c94c, 1.6 + (i % 3) * 1.4, .7, 2.8 + (i > 2 ? 1.4 : 0)); put(L, cyl(.62, .62, .2, 10), 0x2f2c2a, 1.6 + (i % 3) * 1.4, .9, 2.8 + (i > 2 ? 1.4 : 0), 0, 0); }
+    put(L, cyl(.5, .6, 7, 8), 0xc9c4b6, 4.6, 3.5, -3.6); put(L, cyl(.55, .55, .5, 8), 0xf2c94c, 4.6, 6.8, -3.6, 0, .1);
+  },
   garage(L) {
     sol(L, 0xb8b2a2);
     put(L, boite(8, 3.4, 5), 0xe8e2d4, -1, 1.7, -1.8); put(L, boite(8.4, .4, 5.4), 0x5fae3e, -1, 3.6, -1.8);

@@ -58,6 +58,7 @@ function creerUnite(t, type, { immediat = false, nom = null, fin = 0 } = {}) {
   const u = { id: 'u' + (++uid), type, t, nom: nom || nomUnite(type, t), cap: ty.mw, p: 0, c: 0, dispo: true, panne: 0, fin: immediat ? 0 : fin, soc: ty.stock && !ty.r ? .7 : ty.mwh ? .5 : 0, mode: 'auto', debut: S.min };
   if (ty.r === 'eau') { u.niv = .8; if (type === 'potab') u.etapes = ['sable']; EAU_SALE = true; }
   if (type === 'decharge') u.rempli = 0;
+  if (CHALEUR[type]) EAU_SALE = true;  // une source de chaleur change les réseaux de chaleur
   t.occ = u; UNITES.push(u); retirerFerme(t); routesSale = true;
   dessinerUnite(u, !immediat);
   return u;
@@ -89,7 +90,7 @@ function trierOrdre() { S.ordre.sort((a, b) => coutMarginal(unite(a)) - coutMarg
 function demolir(u) {
   const ls = LIGNES.filter(l => l.a === u.t || l.b === u.t), garder = u.type !== 'poste' && ls.length >= 2;  // le poste de la centrale reste en place
   if (!garder) for (const l of ls) demolirLigne(l, true);
-  jeter(u.grp); jeter(u.grue); jeter(u.halo); u.eti?.remove(); if (estEauU(u)) EAU_SALE = true; if (u.reut) retirerReut(u);
+  jeter(u.grp); jeter(u.grue); jeter(u.halo); u.eti?.remove(); if (estEauU(u) || CHALEUR[u.type]) EAU_SALE = true; if (u.reut) retirerReut(u);
   ROTORS.splice(0, ROTORS.length, ...ROTORS.filter(r => r.u !== u)); FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.u !== u));
   UNITES.splice(UNITES.indexOf(u), 1); S.ordre = S.ordre.filter(id => id !== u.id); u.t.occ = null; routesSale = true;
   if (garder) { creerUnite(u.t, 'poste', { immediat: true, nom: `Poste ${/^[aeiouéèh]/i.test(lieu(u.t)) ? 'd’' : 'de '}${lieu(u.t)}`.replace('de le ', 'du ').replace('de les ', 'des ') }); log(`Le poste électrique de ${u.nom} est conservé : ses ${ls.length} lignes restent en service.`); }
@@ -120,6 +121,7 @@ const AMELIO = {
   casiers: { nom: 'Casiers étanches et traitement des lixiviats', pour: ['decharge'], rd: 'lixiviats', cout: () => 1.5, malus: 'Jus de décharge (lixiviats) : polluent la rivière', effet: 'La rivière n’est plus polluée' },
   biogaz: { nom: 'Captage du biogaz', pour: ['decharge'], rd: 'biogaz', cout: () => 2, malus: 'Odeurs et méthane', effet: 'Gêne des riverains divisée par deux' },
   fumees: { nom: 'Traitement des fumées', pour: ['incin'], rd: 'fumees', cout: () => 10, malus: 'Fumées : riverains gênés', effet: 'Gêne des riverains −60 %' },
+  secours: { nom: 'Groupe électrogène de secours', pour: SECOURS, an: 1930, cout: u => (estDecU(u) ? .8 : .4), malus: 'S’arrête quand la ville voisine est privée d’électricité (coupure en cascade)', effet: 'Continue de tourner pendant les coupures' },
   ferme: { nom: 'Bâtiment fermé et traitement de l’air', pour: ['compost', 'metha'], an: 1995, cout: () => 1, malus: 'Odeurs : riverains gênés', effet: 'Gêne des riverains −70 %' },
 };
 const amel = (u, k) => !!u.amelio?.includes(k);

@@ -32,6 +32,7 @@ const ICONES = {
   step: '<circle cx="11" cy="12" r="7" fill="#8f9a5c" stroke="#0f130e" stroke-width="2.4"/><circle cx="24" cy="12" r="6" fill="#8f9a5c" stroke="#0f130e" stroke-width="2.4"/><rect x="4" y="22" width="26" height="7" rx="2" fill="#7c8a52" stroke="#0f130e" stroke-width="2.4"/><path d="M5 12h12" stroke="#0f130e" stroke-width="1.6"/>',
   lagunage: '<ellipse cx="11" cy="13" rx="8" ry="5" fill="#6f9a6a" stroke="#0f130e" stroke-width="2.2"/><ellipse cx="22" cy="24" rx="9" ry="5.5" fill="#6f9a6a" stroke="#0f130e" stroke-width="2.2"/><path d="M27 6v8M30 8v6M24 9v5" stroke="#4f8a3a" stroke-width="2.2"/>',
   dessal: '<path d="M2 26c4-3 7 3 11 0s7-3 11 0" stroke="#1d5a86" stroke-width="3" fill="none"/><rect x="9" y="8" width="20" height="13" rx="2" fill="#eef1f3" stroke="#0f130e" stroke-width="2.4"/><path d="M12 12h14M12 16h14" stroke="#3f9cff" stroke-width="2"/>',
+  chaleur: '<path d="M3 22h10c4 0 4-10 8-10h10" stroke="#0f130e" stroke-width="7.5" fill="none" stroke-linecap="round"/><path d="M3 22h10c4 0 4-10 8-10h10" stroke="#ff7a3a" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M12 6c-2 2 2 3 0 5M18 4c-2 2 2 3 0 5" stroke="#ff9a4a" stroke-width="2" fill="none" stroke-linecap="round"/>',
   conduite: '<path d="M3 22h10c4 0 4-10 8-10h10" stroke="#0f130e" stroke-width="7.5" fill="none" stroke-linecap="round"/><path d="M3 22h10c4 0 4-10 8-10h10" stroke="#3f9cff" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="9" cy="22" r="1.6" fill="#fff"/><circle cx="24" cy="12" r="1.6" fill="#fff"/>',
   egout: '<path d="M3 12h10c4 0 4 10 8 10h10" stroke="#0f130e" stroke-width="7.5" fill="none" stroke-linecap="round"/><path d="M3 12h10c4 0 4 10 8 10h10" stroke="#b07f4c" stroke-width="4" fill="none" stroke-linecap="round"/>',
   forageP: '<path d="M11 4h12M13 4l-3 26M21 4l3 26" stroke="#0f130e" stroke-width="2.6" fill="none"/><rect x="12" y="20" width="10" height="8" rx="2" fill="#3f7fb5" stroke="#0f130e" stroke-width="2.2"/><path d="M17 28v4" stroke="#3f9cff" stroke-width="3"/>',
@@ -40,6 +41,7 @@ const ICONES = {
   compost: '<path d="M2 28c3-8 9-8 12 0zM12 28c3-9 10-9 13 0zM22 28c2-6 8-6 10 0z" fill="#8a6a3a" stroke="#0f130e" stroke-width="2.2" stroke-linejoin="round"/><path d="M17 13c-5-1-6-6-4-9 4 1 6 4 4 9z" fill="#7be08a" stroke="#0f130e" stroke-width="2" stroke-linejoin="round"/>',
   tri: '<path d="M3 30V14l14-8 14 8v16z" fill="#e8e2d4" stroke="#0f130e" stroke-width="2.4" stroke-linejoin="round"/><path d="M9 20h12l-3-3M25 25H13l3 3" stroke="#3987e5" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
   incin: '<rect x="3" y="16" width="18" height="13" rx="1.5" fill="#d8d4c8" stroke="#0f130e" stroke-width="2.4"/><rect x="23" y="6" width="6" height="23" fill="#c9c4b6" stroke="#0f130e" stroke-width="2.2"/><path d="M23 10h6" stroke="#f0a35e" stroke-width="2.6"/><path d="M9 25c0-3 3-4 3-7 2 2 3 4 3 7z" fill="#ff9a4a" stroke="#0f130e" stroke-width="1.6"/><circle cx="27" cy="3.5" r="2.4" fill="#c9c6bc"/>',
+  dangereux: '<rect x="8" y="6" width="18" height="24" rx="4" fill="#f2c94c" stroke="#0f130e" stroke-width="2.4"/><path d="M8 12h18M8 24h18" stroke="#0f130e" stroke-width="2"/><path d="M17 14l4 7h-8z" fill="#2f2c2a" stroke="#0f130e" stroke-width="1.2" stroke-linejoin="round"/>',
   garage: '<path d="M3 30V13l14-7 14 7v17z" fill="#e8e2d4" stroke="#0f130e" stroke-width="2.4" stroke-linejoin="round"/><rect x="9" y="18" width="16" height="12" fill="#6b6f75" stroke="#0f130e" stroke-width="2"/><path d="M9 22h16M9 26h16" stroke="#0f130e" stroke-width="1.4"/><path d="M3 13l14-7 14 7" stroke="#5fae3e" stroke-width="2.6" fill="none"/>',
   quai: '<path d="M2 24h20v6H2z" fill="#cfcac0" stroke="#0f130e" stroke-width="2.2"/><rect x="4" y="15" width="8" height="9" rx="1" fill="#3f7fb5" stroke="#0f130e" stroke-width="2"/><rect x="13" y="15" width="8" height="9" rx="1" fill="#5fae3e" stroke="#0f130e" stroke-width="2"/><path d="M22 30l10-8" stroke="#0f130e" stroke-width="2.4"/><path d="M24 12h7l-3-3M31 12l-3 3" stroke="#f0a35e" stroke-width="2.4" fill="none" stroke-linecap="round"/>',
   metha: '<path d="M3 28v-8a6 6 0 0 1 12 0v8z" fill="#86b85a" stroke="#0f130e" stroke-width="2.4"/><path d="M16 28v-9a6.5 6.5 0 0 1 13 0v9z" fill="#86b85a" stroke="#0f130e" stroke-width="2.4"/><path d="M2 28h30" stroke="#0f130e" stroke-width="2.4"/><path d="M30 12c0-3 2-4 2-7 1.5 2 2 3.5 2 5a2 2 0 0 1-4 2z" fill="#ff9a4a" stroke="#0f130e" stroke-width="1.4"/>',
@@ -55,8 +57,9 @@ function majBarre() {
   const kvs = Object.entries(KV).filter(([, v]) => v.an <= a).map(([k]) => k).join(' · ');
   $('#chantier').innerHTML = [...dispo, ...bientot].map(k => { const ty = TYPES[k], futur = ty.an > a, verrou = futur || (ty.rd && !rd(ty.rd));
     return `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" ${verrou ? 'disabled' : ''} title="${futur ? `Disponible en ${ty.an}` : ty.rd && !rd(ty.rd) ? 'Recherche : ' + RDI[ty.rd].nom : ty.nom + ' · ' + ty.non}"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k] || ICONES.charbon}</svg><b>${ty.court}</b><span>${futur ? `en ${ty.an}` : verrou ? 'R&D' : `${ty.mw ? nf(ty.mw) + ' MW · ' : ''}${nf(coutType(k))} M€`}</span></button>`; }).join('') +
-    `<button type="button" class="carte-c${mode === 'ligne' ? ' actif' : ''}" data-act="mode" data-id="ligne" title="Relier deux ouvrages"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES.ligne}</svg><b>Ligne</b><span>${kvs} kV</span></button>`;
+    `<button type="button" class="carte-c${mode === 'ligne' ? ' actif' : ''}" data-act="mode" data-id="ligne" title="Relier deux ouvrages"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES.ligne}</svg><b>Ligne</b><span>${kvs} kV</span></button>` + carteChaleur();
 }
+const carteChaleur = () => (annee(S.min) >= 1925 ? `<button type="button" class="carte-c${mode === 'chaleur' ? ' actif' : ''}" data-act="mode" data-id="chaleur" title="Réseau de chaleur : d’une centrale thermique, d’un incinérateur ou d’un méthaniseur vers une ville"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES.chaleur}</svg><b>Chaleur</b><span>${nf(COUT_TUYAU.c, 2)} M€ / hex.</span></button>` : '');
 function majBarreEau() {
   const a = annee(S.min), dispo = ORDRE_EAU.filter(k => dispoType(k)), bientot = ORDRE_EAU.filter(k => TYPES[k].an > a).sort((x, y) => TYPES[x].an - TYPES[y].an).slice(0, 2);
   $('#chantier').innerHTML = [...dispo, ...bientot].map(k => { const ty = TYPES[k], futur = ty.an > a;
@@ -67,11 +70,11 @@ function majBarreDec() {
   const a = annee(S.min), dispo = ORDRE_DEC.filter(k => dispoType(k)), bientot = ORDRE_DEC.filter(k => TYPES[k].an > a).sort((x, y) => TYPES[x].an - TYPES[y].an).slice(0, 2);
   $('#chantier').innerHTML = `<button type="button" class="carte-c" data-act="camion" data-id="1" title="Acheter un camion de collecte (${euros(coutCamion())} par an ensuite)"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES.camion}</svg><b>Camion</b><span>${S.dec.camions} · +${euros(achatCamion())}</span></button>` +
     [...dispo, ...bientot].map(k => { const ty = TYPES[k], futur = ty.an > a, verrou = futur || (ty.rd && !rd(ty.rd));
-    return `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" ${verrou ? 'disabled' : ''} title="${futur ? `Disponible en ${ty.an}` : verrou ? 'Recherche : ' + RDI[ty.rd].nom : ty.nom + ' · ' + ty.non}"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k]}</svg><b>${ty.court}</b><span>${futur ? `en ${ty.an}` : verrou ? 'R&D' : `${capTexte(ty) ? capTexte(ty) + ' · ' : ''}${prixM(coutType(k))} M€`}</span></button>`; }).join('');
+    return `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" ${verrou ? 'disabled' : ''} title="${futur ? `Disponible en ${ty.an}` : verrou ? 'Recherche : ' + RDI[ty.rd].nom : ty.nom + ' · ' + ty.non}"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k]}</svg><b>${ty.court}</b><span>${futur ? `en ${ty.an}` : verrou ? 'R&D' : `${capTexte(ty) ? capTexte(ty) + ' · ' : ''}${prixM(coutType(k))} M€`}</span></button>`; }).join('') + carteChaleur();
 }
 function majAide() {
   const a = $('#aide'); a.hidden = !mode;
-  if (TRACES[mode]) { a.innerHTML = `<span>${mode === 'egout' ? 'Égout : reliez une ville à une épuration.' : 'Conduite : reliez un captage, une usine ou un château d’eau à une ville.'} ${depart ? 'Cliquez sur l’arrivée.' : 'Cliquez sur le départ.'}</span><button type="button" data-act="mode" data-id="${mode}">Annuler</button>`; return; }
+  if (TRACES[mode]) { a.innerHTML = `<span>${mode === 'egout' ? 'Égout : reliez une ville à une épuration.' : mode === 'chaleur' ? 'Chaleur : reliez une centrale thermique, un incinérateur ou un méthaniseur à une ville.' : 'Conduite : reliez un captage, une usine ou un château d’eau à une ville.'} ${depart ? 'Cliquez sur l’arrivée.' : 'Cliquez sur le départ.'}</span><button type="button" data-act="mode" data-id="${mode}">Annuler</button>`; return; }
   if (mode === 'ligne') a.innerHTML = `<span>${depart ? `Départ : ${nomCourt(depart)}. Cliquez sur l’arrivée.` : 'Cliquez sur l’ouvrage de départ.'}</span>${Object.entries(KV).map(([k, v]) => `<button type="button" data-act="kv" data-id="${k}" class="${+k === kvMode ? 'actif' : ''}" ${v.an > annee(S.min) ? 'disabled' : ''}>${v.nom} · ${nf(v.cap)} MW</button>`).join('')}<button type="button" data-act="mode" data-id="ligne">Annuler</button>`;
   else if (mode) a.innerHTML = `<span>${TYPES[mode].nom} : posez-la sur un hexagone vert. Plus il est foncé, meilleur est le site.</span><button type="button" data-act="mode" data-id="${mode}">Annuler</button>`;
 }
@@ -109,13 +112,18 @@ function survoler(t, cx, cy) {
 }
 const avancement = u => (u.fin ? clamp((S.min - u.debut) / Math.max(1, u.fin - u.debut), 0, 1) : 1);
 // achats communs au joueur et au banc : renvoient l'ouvrage, ou un message d'erreur
-function acheterUnite(t, type) {
+// enquête publique avant un gros chantier : passer en force, concerter (plus lent) ou indemniser la commune (plus cher)
+const ENQUETE = ['decharge', 'incin', 'nucleaire', 'smr', 'barrage', 'dangereux'];
+const STRAT_ENQ = { force: ['Passer en force', 'Délai normal, mais les riverains se fâchent et peuvent attaquer en justice (chantier suspendu 9 mois)'], concerter: ['Concerter', 'Réunions publiques : chantier 40 % plus long, aucun recours, aucune colère'], indemniser: ['Indemniser la commune', 'Coût +15 % versé à la commune : délai normal, aucun recours'] };
+const enqueteRequise = type => ENQUETE.includes(type) && annee(S.min) >= 1960;
+function acheterUnite(t, type, strat = null) {
   const r = raison(t, type); if (r) return r;
-  const c = coutType(type) * 1e6; if (c > S.argent + 200e6) return 'Trésorerie insuffisante : empruntez depuis l’onglet Économie.';
-  const rc = recours(t), mois = delaiType(type) * [1, 1.5, 2][rc];
-  S.argent -= c; S.an.capex += c; S.nimby += [0, 3, 6][rc];
+  const c = coutType(type) * 1e6 * (strat === 'indemniser' ? 1.15 : 1); if (c > S.argent + 200e6) return 'Trésorerie insuffisante : empruntez depuis l’onglet Économie.';
+  const rc = strat === 'concerter' || strat === 'indemniser' ? 0 : recours(t), proces = strat === 'force' && rc > 0 && alea() < .25 * rc;
+  const mois = delaiType(type) * [1, 1.5, 2][rc] * (strat === 'concerter' ? 1.4 : 1) + (proces ? 9 : 0);
+  S.argent -= c; S.an.capex += c; S.nimby += strat === 'concerter' ? 0 : strat === 'indemniser' ? 1 : [0, 3, 6][rc] + (strat === 'force' ? 2 : 0) + (proces ? 4 : 0);
   const u = creerUnite(t, type, { fin: S.min + mois * MOIS_MIN }); u.mois = mois; u.recours = rc;
-  log(`Chantier lancé : ${u.nom}, ${nf(c / 1e6)} M€, mise en service prévue le ${dateTxt(u.fin)}.${rc ? ' ' + textesRecours[rc] + '.' : ''}`, rc ? 'alerte' : '');
+  log(`Chantier lancé : ${u.nom}, ${nf(c / 1e6)} M€, mise en service prévue le ${dateTxt(u.fin)}.${strat ? ` Enquête publique : ${STRAT_ENQ[strat][0].toLowerCase()}.` : ''}${rc ? ' ' + textesRecours[rc] + '.' : ''}${proces ? ' Les riverains attaquent en justice : chantier suspendu 9 mois.' : ''}`, rc || proces ? 'alerte' : '');
   majAcceptation(); return u;
 }
 function acheterLigne(a, b, kv) {
@@ -143,7 +151,7 @@ function emprunter(mEUR, duree = 20) {
 function fermer(u) {
   const ch = estCharbon(u), c = ch ? Math.max(.5, u.cap * .07) * 1e6 : TYPES[u.type].capex * .05e6; S.argent -= c;
   log(`${u.nom} ${ch ? 'fermée définitivement' : 'démolie'} (${nf(c / 1e6, 1)} M€).`, ch ? 'bon' : 'alerte');
-  demolir(u);
+  finDeVie(u); demolir(u);
 }
 function cliquer(t, e) {
   if (!t) return;
@@ -163,16 +171,25 @@ function cliquer(t, e) {
     if (t === depart) return;
     const p = cheminEau(depart, t, f); if (!p) return toast('Aucun tracé possible entre ces deux hexagones.');
     const c = (p.length - 1) * COUT_TUYAU[f] * 1e6; if (c > S.argent + 200e6) return toast('Trésorerie insuffisante.');
-    const ty = f === 'a' ? 'usee' : [depart, t].some(x => x.occ?.type === 'prise') && [depart, t].some(x => x.occ?.type === 'potab') ? 'brute' : 'potable';
+    const ty = f === 'c' ? 'chaleur' : f === 'a' ? 'usee' : [depart, t].some(x => x.occ?.type === 'prise') && [depart, t].some(x => x.occ?.type === 'potab') ? 'brute' : 'potable';
     S.argent -= c; S.an.capex += c; poserConduite(null, null, ty, p);
-    log(`${f === 'a' ? 'Collecteur d’eaux usées' : 'Conduite d’eau'} posé sur ${p.length - 1} hexagones (${nf(c / 1e6, 2)} M€).`); toast(`${f === 'a' ? 'Égout' : 'Conduite'} posé (${nf(c / 1e6, 2)} M€).`, 'ok');
+    const nomT = { a: ['Collecteur d’eaux usées', 'Égout'], c: ['Réseau de chaleur', 'Réseau de chaleur'], p: ['Conduite d’eau', 'Conduite'] }[f];
+    log(`${nomT[0]} posé sur ${p.length - 1} hexagones (${nf(c / 1e6, 2)} M€).`); toast(`${nomT[1]} posé (${nf(c / 1e6, 2)} M€).`, 'ok');
     choisirMode(null); selectionner(t); return;
   }
   if (mode) {
+    if (enqueteRequise(mode)) { const r = raison(t, mode); if (r) return toast(r); return enquete(t, mode); }
     const u = acheterUnite(t, mode); if (typeof u === 'string') return toast(u);
     toast(`${u.nom} : chantier lancé, ${Math.round(u.mois)} mois.${u.recours ? ' Recours des riverains.' : ''}`, u.recours ? 'info' : 'ok');
     choisirMode(null); selectionner(t); return;
   }
   selectionner(t);
+}
+let ENQ = null;
+function enquete(t, type) {
+  ENQ = { t, type }; const rc = recours(t), c = coutType(type);
+  modale(`<h2 id="modale-titre">Enquête publique</h2><p>${TYPES[type].nom} ${('près de ' + lieu(t)).replace('de les ', 'des ').replace('de le ', 'du ')} : acceptation des habitants ${nf(t.accept)} %.${rc ? ` ${textesRecours[rc]} si vous passez en force.` : ' Peu d’opposition attendue.'}</p>
+    ${Object.entries(STRAT_ENQ).map(([k, [n, d]]) => `<button type="button" class="btn ${k === 'concerter' ? '' : 'secondaire'}" data-act="enquete" data-id="${k}">${n} · ${prixM(c * (k === 'indemniser' ? 1.15 : 1))} M€<small style="display:block;font-weight:700;opacity:.85">${d}</small></button>`).join('')}
+    <button type="button" class="btn secondaire petit" data-act="fermer-modale">Renoncer</button>`);
 }
 function selectionner(t) { selT = t; placeAnneau(selR, t); ouvrir('hex'); }

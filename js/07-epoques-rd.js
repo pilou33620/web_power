@@ -56,6 +56,7 @@ const RD = [
   { id: 'maint', an: 1995, b: 3, niv: 1, nom: 'Maintenance prédictive', cout: 10, effet: 'Pannes de centrales divisées par deux' },
   { id: 'effac', an: 1980, b: 3, niv: 2, nom: 'Effacement industriel', cout: 12, effet: 'Débloque l’effacement (−8 % industrie)', pre: ['compteurs'] },
   { id: 'tarifs', an: 1975, b: 3, niv: 2, nom: 'Heures creuses dynamiques', cout: 15, effet: 'Pointe du soir −4 %', pre: ['compteurs', 'maint'] },
+  { id: 'cyber', an: 2008, b: 3, niv: 2, nom: 'Cybersécurité', cout: 10, effet: 'Cyberattaques quatre fois plus rares et deux fois plus courtes', pre: ['compteurs'] },
   { id: 'previ', an: 2012, b: 3, niv: 3, nom: 'Prévisions météo fines', cout: 20, effet: 'Incertitude des prévisions −50 %', pre: ['effac', 'tarifs'] },
   { id: 'ia', an: 2028, b: 3, niv: 5, nom: 'Pilotage par IA', cout: 80, effet: 'Pertes −10 %, demande −3 %', pre: ['previ'] },
   { id: 'fuites', an: 1960, b: 4, niv: 1, nom: 'Recherche acoustique des fuites', cout: 6, effet: 'Fuites des conduites −30 %' },

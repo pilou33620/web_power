@@ -34,7 +34,7 @@ LENT.renderOrder = 1; scene.add(LENT);
 const CA = new THREE.Color(), CB = new THREE.Color(), CC = new THREE.Color();
 const RAMPES = { vent: [0xe9f2f7, 0x2f6fc4], soleil: [0xfff3c4, 0xf07a1a], accept: [0xe5533f, 0x5cc46a], bon: [0xfaf6c8, 0x0f9a52], nappe: [0xe6f3fb, 0x1d64b8], nitr: [0xeaf6d6, 0xb4560f], bacs: [0x7be08a, 0xe5533f], nuis: [0xfff3c4, 0xb4560f] };
 const valeur = (t, k) => (k === 'vent' ? (t.vent - 3) / 7 : k === 'soleil' ? (t.soleil - 1) / 4 : k === 'eau' ? 1 : k === 'nappe' ? t.nappe : k === 'nitr' ? t.nitr : k === 'bacs' ? (t.ville ? remplissage(t.ville) : 0) : k === 'nuis' ? nuisHex(t) / 8 : t.accept / 100);
-const TRACES = { conduite: 'p', egout: 'a' };  // outils de tracé de l'eau : famille de conduite
+const TRACES = { conduite: 'p', egout: 'a', chaleur: 'c' };  // outils de tracé de l'eau : famille de conduite
 let mode = null, kvMode = 225, depart = null, apercu = null;
 function majLentille() {
   const k = mode ? (mode === 'ligne' || TRACES[mode] ? null : TYPES[mode].pot) : S.lentille;
