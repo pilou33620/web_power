@@ -6,7 +6,7 @@ function toutEffacer() {
   for (const l of [...LIGNES]) jeter(l.grp);
   UNITES = []; LIGNES = []; TRANSFOS = new Map(); ROTORS.length = 0; FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.q && f.q.ville && f.q.ville.tuiles.indexOf(f.q) < f.q.ville.base));
   for (const t of LISTE) t.npyl = 0;
-  for (const v of VILLES) { for (const t of v.tuiles.slice(v.base)) { jeter(t.grpQ); t.grpQ = null; t.ville = null; t.quartier = null; t.t = t.t0; t.top = TERR[t.t].h; FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.q !== t)); } v.tuiles.length = v.base; v.i = 0; v.hab = v.hab0; v.etaitServie = undefined; v.prochaine = 1905; v.rang = v.rang0 || v.rang; if (!v.base) v.el?.remove(); }
+  for (const v of VILLES) { for (const t of v.tuiles.slice(v.base)) { jeter(t.grpQ); t.grpQ = null; t.ville = null; t.quartier = null; t.t = t.t0; t.top = TERR[t.t].h; FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => f.q !== t)); } v.tuiles.length = v.base; v.i = 0; v.hab = v.hab0; v.etaitServie = undefined; v.prochaine = 1905; v.rang = v.rang0 || v.rang; v.bac = null; if (!v.base) v.el?.remove(); }
   VILLES = VILLES.filter(v => v.base > 0);
   IMP.p = IMP.c = 0;
 }
@@ -34,6 +34,10 @@ function installationsDepart() {  // 1900 : une usine au charbon et, s'il y a un
   for (const ty of ['forage', 'source', 'prise']) { const t = pres2(ty, 2, 4); if (t) { creerUnite(t, ty, { immediat: true, nom: `${TYPES[ty].court} de ${v0.nom}` }); poserConduite(t, entree(t), 'potable'); break; } }
   const ch = pres2('chateau', 1, 3); if (ch) { creerUnite(ch, 'chateau', { immediat: true, nom: `Château d’eau de ${v0.nom}` }); poserConduite(ch, entree(ch), 'potable'); }
   topoEau();
+  // déchets : une décharge brute à l'écart et des tombereaux pour vider les poubelles de la capitale
+  const dch = LISTE.filter(t => !raison(t, 'decharge') && dist(t, cap) <= 7).sort((a, b) => dist(a, cap) - dist(b, cap) || hache(a.q, a.r, 15) - hache(b.q, b.r, 15))[0];
+  if (dch) creerUnite(dch, 'decharge', { immediat: true, nom: `Décharge de ${v0.nom}` });
+  S.dec.camions = Math.ceil(VILLES.reduce((s, v) => s + v.hab, 0) * interp(KG_HAB, annee(S.min)) / 365e3 * 7 / 6 / capCamion() * 1.15);
 }
 function prechauffer() {
   majAcceptation(); topologie();
@@ -59,9 +63,9 @@ const CLE = 'gridmaster-campagne-v1';
 function sauver() {
   if (!S?.enJeu || BANC_ON) return;
   const d = { S: { ...S, hist: S.hist.slice(-96), fhist: undefined, D: undefined }, uid, gs, carte: CARTE,
-    unites: UNITES.map(u => ({ id: u.id, type: u.type, k: u.t.k, nom: u.nom, dispo: u.dispo, panne: u.panne, fin: u.fin, debut: u.debut, soc: u.soc, mode: u.mode, niv: u.niv, etapes: u.etapes, reut: u.reut })),
+    unites: UNITES.map(u => ({ id: u.id, type: u.type, k: u.t.k, nom: u.nom, dispo: u.dispo, panne: u.panne, fin: u.fin, debut: u.debut, soc: u.soc, mode: u.mode, niv: u.niv, etapes: u.etapes, reut: u.reut, rempli: u.rempli })),
     aretes: [...ARETES.values()].map(e => [e.a.k, e.b.k, e.type, e.an]),
-    lignes: LIGNES.map(l => ({ id: l.id, a: l.a.k, b: l.b.k, kv: l.kv, fin: l.fin, hs: l.hs, chemin: l.tuiles.map(t => t.k) })), villes: VILLES.map(v => ({ nom: v.nom, couleur: v.couleur, rang: v.rang, rayon: v.rayon, i: v.i, prochaine: v.prochaine, fondee: v.fondee, grace: v.grace, base: v.base, centre: v.centre.k, tuiles: v.tuiles.map(t => [t.k, t.quartier]) })) };
+    lignes: LIGNES.map(l => ({ id: l.id, a: l.a.k, b: l.b.k, kv: l.kv, fin: l.fin, hs: l.hs, chemin: l.tuiles.map(t => t.k) })), villes: VILLES.map(v => ({ nom: v.nom, couleur: v.couleur, rang: v.rang, rayon: v.rayon, i: v.i, prochaine: v.prochaine, fondee: v.fondee, grace: v.grace, base: v.base, bac: v.bac, moy: v.moy, sauvage: v.sauvage, centre: v.centre.k, tuiles: v.tuiles.map(t => [t.k, t.quartier]) })) };
   try { localStorage.setItem(CLE, JSON.stringify(d)); } catch (e) { /* stockage indisponible : la partie continue sans sauvegarde */ }
 }
 function lireSauvegarde() { try { const d = JSON.parse(localStorage.getItem(CLE)); return d && d.S && d.unites && d.carte ? d : null; } catch (e) { return null; } }
@@ -76,7 +80,8 @@ function charger() {
     for (const [k, q] of x.tuiles) { const t = T.get(k); Object.assign(t, { ville: v, quartier: q, t: 'ville' }); t.top = Math.max(t.top, TERR.ville.h); v.tuiles.push(t); dessinerQuartier(t, false); }
     v.hab = v.hab0 = habVille(v); v.rang0 = v.base ? 'capitale' : v.rang; VILLES.push(v);
   }
-  for (const s of d.unites) { const u = creerUnite(T.get(s.k), s.type, { immediat: !s.fin, nom: s.nom, fin: s.fin }); Object.assign(u, { id: s.id, dispo: s.dispo, panne: s.panne, debut: s.debut, soc: s.soc, mode: s.mode }); if (s.niv !== undefined) u.niv = s.niv; if (s.etapes) u.etapes = s.etapes; if (s.reut) u.reut = true; }
+  if (!d.S.dec) S.dec.camions = Math.ceil(VILLES.reduce((s, v) => s + v.hab, 0) * interp(KG_HAB, annee(S.min)) / 365e3 * 7 / 6 / capCamion() * 1.15);  // partie enregistrée avant les déchets
+  for (const s of d.unites) { const u = creerUnite(T.get(s.k), s.type, { immediat: !s.fin, nom: s.nom, fin: s.fin }); Object.assign(u, { id: s.id, dispo: s.dispo, panne: s.panne, debut: s.debut, soc: s.soc, mode: s.mode }); if (s.niv !== undefined) u.niv = s.niv; if (s.etapes) u.etapes = s.etapes; if (s.reut) u.reut = true; if (s.rempli !== undefined) u.rempli = s.rempli; }
   for (const [a, b, ty, an] of d.aretes || []) ajouteArete(T.get(a), T.get(b), ty, an);
   dessinerEau(); dessinerRoutes(); topoEau();
   for (const s of d.lignes) { const l = tracerLigne(T.get(s.a), T.get(s.b), s.kv, { immediat: !s.fin, chemin: s.chemin.map(k => T.get(k)) }); if (l) Object.assign(l, { id: s.id, fin: s.fin, hs: s.hs }); if (l && l.fin) dessinerLigne(l); }

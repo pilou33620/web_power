@@ -18,8 +18,8 @@ function tic(maintenant) {
   for (const r of ROTORS) if (actifU(r.u) && r.u.p > .5) r.g.rotation.z -= dt * r.v * 2 * Math.min(1, .3 + r.u.p / r.u.cap);
   for (let i = ANIMS.length - 1; i >= 0; i--) { const a = ANIMS[i], q = Math.min(1, (maintenant - a.t0) / 650); a.grp.scale.y = q < 1 ? 1 + Math.sin(q * Math.PI * 1.5) * (1 - q) * .5 - (1 - q) ** 3 : 1; if (q >= 1) ANIMS.splice(i, 1); }
   if (fant) FANT.opacity = .6 + Math.sin(maintenant / 220) * .15;
-  const kt = Math.min(1, dt * 6); animCiel(dt, kt); MAT_RIV.color.lerp(vue === 'elec' ? TEINTE.elec : TEINTE.carte, kt);
-  HALO_M.eau.opacity = HALO_M.elec.opacity = DOUX ? .8 : .55 + Math.sin(maintenant / 330) * .3;
+  const kt = Math.min(1, dt * 6); animCiel(dt, kt); MAT_RIV.color.lerp(vue === 'elec' || vue === 'dechets' ? TEINTE[vue] : TEINTE.carte, kt);
+  HALO_M.eau.opacity = HALO_M.elec.opacity = HALO_M.dechets.opacity = DOUX ? .8 : .55 + Math.sin(maintenant / 330) * .3;
   animParticules(dt); animEau(dt); animAmbiance(dt); animFumees(dt); placerEtiquettes();
   if (image++ % 8 === 0) majMini();
   if ((rafraichi += dt) > .25) {
@@ -32,4 +32,4 @@ majBarre(); majLentilles(); majLentille();
 cible.set(VILLES[0].centre.x + 30, 0, VILLES[0].centre.z + 20); majCam(); redim();
 requestAnimationFrame(tic);
 menu();
-window.GM = { get AMB() { return AMB; }, __routes: () => dessinerRoutes(), __cam(t, d) { cible.set(t.x, 0, t.z + 12); distc = d; majCam(); }, topoEau, get ARETES() { return ARETES; }, get RESEAUX() { return RESEAUX; }, choisirVue, poserConduite, cheminEau, botEau, pasEau, accidentEau, crisesEau, demolir, botPollution, blocEauHex, panneauEau, panneauRD, equiperReut, etapeOk, bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };
+window.GM = { get AMB() { return AMB; }, __routes: () => dessinerRoutes(), __cam(t, d) { cible.set(t.x, 0, t.z + 12); distc = d; majCam(); }, topoEau, get ARETES() { return ARETES; }, get RESEAUX() { return RESEAUX; }, choisirVue, poserConduite, cheminEau, botEau, pasEau, accidentEau, crisesEau, demolir, botPollution, blocEauHex, panneauEau, panneauRD, panneauDechets, jourDechets, bilanDec, changerCamions, deployerMode, botDechets, equiperReut, etapeOk, bancPartie, botMois, STRATS, carteDef, CARTES, get CARTE() { return CARTE; }, get S() { return S; }, UNITES: () => UNITES, LIGNES: () => LIGNES, get VILLES() { return VILLES; }, get T() { return T; }, get LISTE() { return LISTE; }, TYPES, nouvellePartie, raison, finValide, chemin, n1, creerUnite, tracerLigne, terminer, pas, integrer, choisirMode, cliquer: (t, e = {}) => cliquer(t, e), avancer(jours) { S.min = Math.ceil(S.min / 15) * 15; const fin = S.min + jours * 1440; while (S.min < fin) { S.imb = integrer(15); S.min += 15; pas(S.min); } } };

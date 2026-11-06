@@ -31,6 +31,14 @@ document.addEventListener('click', ev => {
   else if (act === 'restriction') { S.eau.restriction = !S.eau.restriction; log(S.eau.restriction ? 'Restrictions d’eau : arrosage et lavage interdits.' : 'Fin des restrictions d’eau.', 'alerte'); ouvrir('eau', true); }
   else if (act === 'renouveler') { const r = renouveler(); if (r) toast(r); else toast('Conduites renouvelées.', 'ok'); ouvrir('eau', true); }
   else if (act === 'etape') { const r = ajouterEtape(unite(id), b.dataset.k); if (r) toast(r); ouvrir('hex', true); }
+  else if (act === 'camion') { changerCamions(S.dec.camions + +id); if (vue === 'dechets') majBarre(); ouvrir(S.onglet === 'carte' ? 'carte' : S.onglet, true); }
+  else if (act === 'freq-dec') { S.dec.modes[id] = +b.dataset.k; ouvrir('dechets', true); }
+  else if (act === 'mode-dec') { const r = deployerMode(id); if (r) toast(r); else toast(`${NOM_FLUX_D[id]} : collecte déployée.`, 'ok'); ouvrir('dechets', true); }
+  else if (act === 'vendre-dec') { S.dec.vendre[id] = b.dataset.k === '1'; ouvrir('dechets', true); }
+  else if (act === 'solder-dec') { const D = S.dec, x = D.stock[id] * D.prix[id] * kDec(); S.argent += x; S.an.ventes += x; S.an.decV += x; D.L.vendu += D.stock[id]; D.stock[id] = 0; toast(`Stock vendu : ${euros(x)}.`, 'ok'); ouvrir('dechets', true); }
+  else if (act === 'tarif-dec') { S.dec.tarif = clamp(S.dec.tarif + +b.dataset.dir, 30, 200); ouvrir('dechets', true); }
+  else if (act === 'brigade') { S.dec.brigade = !S.dec.brigade; log(S.dec.brigade ? 'Brigade de propreté en service.' : 'Brigade de propreté dissoute.', 'alerte'); ouvrir('dechets', true); }
+  else if (act === 'campagne-dec') { const c = .2e6 * kDec(); S.argent -= c; S.an.capex += c; S.dec.campagne = S.min + 365 * 1440; log(`Campagne d’information sur le tri lancée pour un an (${euros(c)}).`, 'bon'); ouvrir('dechets', true); }
   else if (act === 'menu') menu();
   else if (act === 'fermer-modale') { $('#modale').hidden = true; if (S.enJeu && S.pauseModale) { S.pause = false; S.pauseModale = false; } hud(); }
   else if (act === 'diff') { b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('actif', x === b)); diffChoisie = id; }
@@ -53,7 +61,7 @@ document.addEventListener('click', ev => {
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (mode) choisirMode(null); else if (!$('#modale').hidden && S.enJeu) document.querySelector('[data-act=fermer-modale]')?.click(); }
   if (e.key === ' ' && e.target === document.body && S.enJeu) { S.pause = !S.pause; hud(); e.preventDefault(); }
-  if (['1', '2', '3'].includes(e.key) && !e.target.closest('input, textarea, select') && $('#modale').hidden) choisirVue(['carte', 'elec', 'eau'][+e.key - 1]);
+  if (['1', '2', '3', '4'].includes(e.key) && !e.target.closest('input, textarea, select') && $('#modale').hidden) choisirVue(['carte', 'elec', 'eau', 'dechets'][+e.key - 1]);
 });
 let diffChoisie = 'normal', carteChoisie = 'valmont', graineAlea = 1 + Math.floor(Math.random() * 99998);
 function modale(html) { $('#modale-contenu').innerHTML = html; $('#modale').hidden = false; }
@@ -70,9 +78,9 @@ function menu() {
     <div class="section" style="margin-top:4px">Difficulté</div>
     <div class="choix-l">${Object.entries(DIFF).map(([k, d]) => `<button type="button" data-act="diff" data-id="${k}" class="${k === diffChoisie ? 'actif' : ''}">${d.nom}<small>${nf(d.argent)} M€ · croissance ${d.croit < 1 ? 'lente' : d.croit > 1 ? 'rapide' : 'normale'}</small></button>`).join('')}</div>
     <button type="button" class="btn ${S.enJeu || sv ? 'secondaire' : ''}" data-act="nouvelle">Nouvelle campagne · 1900 → 2050</button>
-    <div class="encart"><h3>Trois vues</h3><p>Carte (touche 1) montre toute la région. Électricité (2) montre les centrales, les lignes et le courant. Eau (3) montre les captages, les usines, les châteaux d’eau, les conduites et l’eau qui y coule. On construit dans la vue de chaque réseau.</p></div>
+    <div class="encart"><h3>Quatre vues</h3><p>Carte (touche 1) montre toute la région. Électricité (2) montre les centrales, les lignes et le courant. Eau (3) montre les captages, les usines, les châteaux d’eau, les conduites et l’eau qui y coule. Déchets (4) montre les décharges, les centres de tri, les incinérateurs et les camions de collecte. On construit dans la vue de chaque réseau.</p></div>
     <div class="encart"><h3>Comment jouer</h3><p>Posez centrales et postes sur les hexagones (barre du bas), puis reliez-les avec l’outil Ligne : centrale → 225 kV → poste 225/63 kV → 63 kV → ville. Une centrale non reliée ne produit rien. Surveillez la fréquence, la charge des lignes (lentille « Charge réseau ») et le critère N-1 dans l’onglet Réseau. Accélérez le temps en haut à gauche.</p></div>
-    <button type="button" class="btn secondaire" data-act="tuto" data-id="elec:0">Tutoriel · électricité et eau</button>
+    <button type="button" class="btn secondaire" data-act="tuto" data-id="elec:0">Tutoriel · électricité, eau et déchets</button>
     <button type="button" class="btn secondaire petit" data-act="banc">Banc d’équilibrage</button>
     <p class="verrou">La partie est enregistrée automatiquement dans ce navigateur chaque jour de jeu.</p>`);
 }
@@ -86,6 +94,7 @@ const icT = k => TUTO_IC[k] || ICONES[k];
 // n : [icône, nom, classe] ; f : [texte de la flèche, couleur]
 const CH_ELEC = [['nucleaire', 'Centrale'], ['transfo', 'Transfo élévateur', 'inclus'], ['225 / 400 kV'], ['poste', 'Poste 225/63 kV'], ['63 kV'], ['transfo', 'Poste source', 'inclus'], ['ville', 'Ville']];
 const CH_PION = [['usine', 'Usine'], ['15 kV'], ['ville', 'Ville']];
+const CH_DEC = [['ville', 'Ville'], ['bac', 'Bacs'], ['camion', 'Camions'], ['tri', 'Tri, compost'], ['matières', '#7be08a'], ['incin', 'Incinérateur'], ['decharge', 'Décharge']];
 const CH_EAU = [['prise', 'Captage'], ['eau brute', '#3ad1c4'], ['potab', 'Potabili­sation'], ['potable', '#3f9cff'], ['chateau', 'Château d’eau'], ['ville', 'Ville'], ['eaux usées', '#b07f4c'], ['step', 'Épuration'], ['épurée', '#9fe0b5'], ['riviere', 'Rivière']];
 const chaine = (ch, on) => `<div class="tuto-ch" aria-hidden="true">${ch.map((e, i) => e.length === 1 || e[1]?.startsWith('#') ? `<span class="tuto-fl"><i style="--c:${e[1] || 'var(--or)'}"></i>${e[0]}</span>` : `<span class="tuto-n${on.includes(i) ? ' on' : ''}${e[2] ? ' ' + e[2] : ''}"><svg viewBox="0 0 34 34">${icT(e[0])}</svg><b>${e[1]}</b></span>`).join('')}</div>`;
 const TOUT = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -106,16 +115,23 @@ const TUTO = {
     { t: '4. Assainir', ch: CH_EAU, on: [5, 7, 9], l: ['L’outil Égout trace un collecteur (marron) de la ville vers une épuration.', 'Lagunage dès 1900 pour une petite ville (5 000 habitants). Station d’épuration en 1950, au bord d’une rivière ou de la mer.', 'Les eaux non épurées polluent la rivière en aval et les prises d’eau qui s’y trouvent. Elles coûtent des amendes à partir de 1992.'] },
     { t: '5. Réutiliser', ch: CH_EAU, on: [7, 5], l: ['Avec la recherche, une épuration peut être équipée pour la réutilisation (à partir de 2010).', 'Des conduites vertes portent l’eau traitée vers les fermes, puis vers l’industrie.', 'Autant d’eau potable et de prélèvements en rivière économisés.'] },
   ],
+  dechets: [
+    { t: 'La chaîne des déchets', ch: CH_DEC, on: TOUT, l: ['Chaque ville remplit ses poubelles : environ 120 kg par habitant et par an en 1900, plus de 500 kg en 2000.', 'Les camions de collecte vident les bacs du lundi au samedi et portent les tonnes vers les sites de traitement.', 'Tout se construit dans la vue Déchets (touche 4) ; la flotte, la collecte et le marché se règlent dans l’onglet Déchets.'] },
+    { t: '1. Collecter', ch: CH_DEC, on: [0, 1, 2], l: ['Le nombre de camions est le premier levier : trop peu, les bacs débordent et les ordures finissent dans la rue ; trop, chaque camion coûte cher pour rien.', 'L’onglet Déchets compare la flotte au besoin. Les tombereaux à cheval de 1900 portent 2,5 t par jour, les camions 5 t, puis la benne tasseuse (recherche) bien plus.', 'Choisissez le nombre de passages par semaine : deux pour les ordures, c’est le minimum pour que les habitants soient contents.'] },
+    { t: '2. Enfouir, puis brûler', ch: CH_DEC, on: [5, 6], l: ['Au début, tout part à la décharge. Elle se remplit : anticipez la suivante, loin des habitations et de la rivière.', 'L’incinérateur (1960) brûle les résiduels ; avec la recherche, il vend sa chaleur. Les riverains n’aiment ni l’un ni l’autre.', 'Décharges pleines : les déchets partent en export d’urgence, à prix d’or. La taxe sur l’enfouissement arrive en 1999 et monte chaque année.'] },
+    { t: '3. Trier et recycler', ch: CH_DEC, on: [1, 3, 4], l: ['Colonnes à verre (1974), déchèterie (1985) pour les encombrants et les déchets verts, compostage (1980).', 'Collecte sélective (recherche, 1992) : le bac jaune alimente le centre de tri (1990), qui vend papier, plastiques et métaux.', 'Les cours des matières bougent : quand l’un s’effondre, stockez et revendez plus tard.'] },
+    { t: '4. Objectif 2050', ch: CH_DEC, on: TOUT, l: ['Valoriser 65 % des déchets (recyclage, compost et énergie), dont 30 % de recyclage et de compost.', 'Brûler ne suffit pas : il faut aussi trier. Les biodéchets (recherche, 2000) et la redevance incitative aident.', 'Le diagramme des flux de l’onglet Déchets montre où va chaque tonne et où ça coince.'] },
+  ],
 };
 function tuto(sujet = 'elec', i = 0) {
   const L = TUTO[sujet], e = L[i];
   modale(`<h2 id="modale-titre">Tutoriel</h2>
-    <div class="choix-l" style="grid-template-columns:1fr 1fr">${[['elec', 'Électricité'], ['eau', 'Eau']].map(([k, n]) => `<button type="button" data-act="tuto" data-id="${k}:0" class="${k === sujet ? 'actif' : ''}">${n}</button>`).join('')}</div>
+    <div class="choix-l" style="grid-template-columns:1fr 1fr 1fr">${[['elec', 'Électricité'], ['eau', 'Eau'], ['dechets', 'Déchets']].map(([k, n]) => `<button type="button" data-act="tuto" data-id="${k}:0" class="${k === sujet ? 'actif' : ''}">${n}</button>`).join('')}</div>
     <div class="section" style="margin-top:0">${e.t}</div>
     ${chaine(e.ch, e.on)}
     <ul class="tuto-l">${e.l.map(x => `<li>${x}</li>`).join('')}</ul>
     <div class="tuto-pts" role="img" aria-label="Étape ${i + 1} sur ${L.length}">${L.map((_, k) => `<span class="${k === i ? 'on' : ''}"></span>`).join('')}</div>
-    <div style="display:flex;gap:8px"><button type="button" class="btn secondaire" style="flex:1" data-act="tuto" data-id="${sujet}:${i - 1}" ${i ? '' : 'disabled'}>Précédent</button>${i < L.length - 1 ? `<button type="button" class="btn" style="flex:1" data-act="tuto" data-id="${sujet}:${i + 1}">Suivant</button>` : sujet === 'elec' ? '<button type="button" class="btn" style="flex:1" data-act="tuto" data-id="eau:0">Passer à l’eau</button>' : ''}</div>
+    <div style="display:flex;gap:8px"><button type="button" class="btn secondaire" style="flex:1" data-act="tuto" data-id="${sujet}:${i - 1}" ${i ? '' : 'disabled'}>Précédent</button>${i < L.length - 1 ? `<button type="button" class="btn" style="flex:1" data-act="tuto" data-id="${sujet}:${i + 1}">Suivant</button>` : sujet === 'elec' ? '<button type="button" class="btn" style="flex:1" data-act="tuto" data-id="eau:0">Passer à l’eau</button>' : sujet === 'eau' ? '<button type="button" class="btn" style="flex:1" data-act="tuto" data-id="dechets:0">Passer aux déchets</button>' : ''}</div>
     <button type="button" class="btn secondaire petit" data-act="${S.enJeu ? 'fermer-modale' : 'menu'}">${S.enJeu ? 'Reprendre la partie' : 'Retour au menu'}</button>`);
 }
 function rapportAnnuel(r, er) {
@@ -129,7 +145,7 @@ function rapportAnnuel(r, er) {
   modale(`<h2 id="modale-titre">${fin ? (gagne ? 'Objectif 2050 atteint !' : 'Objectif 2050 manqué') : `${er.an} · ${er.nom}`}</h2>
     ${fin ? `<p>${gagne ? `${CARTE.nom} produit une électricité bas carbone, fiable et abordable. Bravo, dispatcheur.` : 'La région n’a pas atteint tous ses objectifs. Vous pouvez continuer à jouer pour les remplir.'}</p>` : `<p>${er.txt}</p>${neufs.length ? `<div class="chips">${neufs.map(n => `<span class="chip or">${n}</span>`).join('')}</div>` : ''}`}
     <div class="section" style="margin-top:0">Bilan de ${r.an}</div>
-    <div class="stat"><span>Villes</span><b>${VILLES.length} · ${nf(VILLES.reduce((a, v) => a + v.hab, 0))} habitants</b><span>Énergie livrée</span><b>${nf(r.e / 1e3, r.e < 1e4 ? 1 : 0)} GWh</b><span>Pointe</span><b>${nf(r.pointe, r.pointe < 50 ? 1 : 0)} MW</b><span>Émissions</span><b>${nf(r.co2)} gCO₂/kWh</b><span>Coupure</span><b>${nf(r.coupure)} min</b><span>Eau servie · conforme</span><b>${nf(r.eauServi ?? 0)} % · ${nf(r.eauConf ?? 0)} %</b><span>Résultat</span><b class="${r.res < 0 ? 'neg' : 'pos'}">${nf(r.res / 1e6, 1)} M€</b></div>
+    <div class="stat"><span>Villes</span><b>${VILLES.length} · ${nf(VILLES.reduce((a, v) => a + v.hab, 0))} habitants</b><span>Énergie livrée</span><b>${nf(r.e / 1e3, r.e < 1e4 ? 1 : 0)} GWh</b><span>Pointe</span><b>${nf(r.pointe, r.pointe < 50 ? 1 : 0)} MW</b><span>Émissions</span><b>${nf(r.co2)} gCO₂/kWh</b><span>Coupure</span><b>${nf(r.coupure)} min</b><span>Eau servie · conforme</span><b>${nf(r.eauServi ?? 0)} % · ${nf(r.eauConf ?? 0)} %</b><span>Déchets valorisés · recyclés</span><b>${nf(r.decVal ?? 0)} % · ${nf(r.decRec ?? 0)} %</b><span>Résultat</span><b class="${r.res < 0 ? 'neg' : 'pos'}">${nf(r.res / 1e6, 1)} M€</b></div>
     ${fin ? `<div class="section">Objectifs 2050</div>${ok.map(([n, b, v]) => `<div class="barre-l"><span style="width:auto;flex:1">${b ? '✓' : '✕'} ${n}</span><span style="width:auto;color:${b ? 'var(--vert)' : 'var(--rouge)'}">${v}</span></div>`).join('')}` : ''}
     <button type="button" class="btn" data-act="${fin ? 'continuer-apres' : 'fermer-modale'}">${fin ? 'Continuer à jouer' : 'Continuer'}</button>`);
 }

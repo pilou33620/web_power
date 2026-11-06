@@ -14,7 +14,7 @@ const dateTxt = m => { const d = date(m); return `${d.getUTCDate()} ${MOIS[d.get
 const saison = m => ['Hiver', 'Hiver', 'Printemps', 'Printemps', 'Printemps', 'Été', 'Été', 'Été', 'Automne', 'Automne', 'Automne', 'Hiver'][date(m).getUTCMonth()];
 const MOIS_MIN = 30.44 * 1440;
 const DISTRIB = 45;  // €/MWh livré en basse et moyenne tension (les industriels raccordés en 63 kV n'en paient pas)
-const nouveauCumul = () => ({ ventes: 0, comb: 0, carbone: 0, opex: 0, imp: 0, exp: 0, rd: 0, prets: 0, amendes: 0, capex: 0, e: 0, co2: 0, bas: 0, ren: 0, coupure: 0, pointe: 0, m3: 0, m3d: 0, m3m: 0, nc: 0, eu: 0, ut: 0, eauV: 0, eauO: 0, crises: 0, acc: 0 });
+const nouveauCumul = () => ({ ventes: 0, comb: 0, carbone: 0, opex: 0, imp: 0, exp: 0, rd: 0, prets: 0, amendes: 0, capex: 0, e: 0, co2: 0, bas: 0, ren: 0, coupure: 0, pointe: 0, m3: 0, m3d: 0, m3m: 0, nc: 0, eu: 0, ut: 0, eauV: 0, eauO: 0, crises: 0, acc: 0, decV: 0, decO: 0, decP: 0, decR: 0, decE: 0, decS: 0 });
 let S, UNITES = [], LIGNES = [], uid = 0;
 let routesSale = false;  // une installation posée ou démolie : routes redessinées au prochain rafraîchissement
 const IMP = { id: 'imp', type: 'import', nom: 'Interconnexion avec la région voisine', p: 0, c: 0, dispo: true };
@@ -25,7 +25,7 @@ function etatInitial(diff) {
     ere: 0, evt: {}, hist: [], fhist: Array(200).fill(50), jour: nouveauCumul(), an: nouveauCumul(), anPrec: null, journal: [], rapports: [],
     pertes: 0, charge: 0, demServie: 0, demIlot: 0, delestage: 0, ecretement: 0, spot: 40, nimby: 0, pertesNiv: {},
     rd: { acquis: [], cours: null, avance: 0, budget: 10 }, quartiers: [], fini: false,
-    eau: { nappe: .85, profonde: 1, tarif: 3, restriction: false, pollu: [], taux: 1, conf: 1, epure: 0 },
+    eau: { nappe: .85, profonde: 1, tarif: 3, restriction: false, pollu: [], taux: 1, conf: 1, epure: 0 }, dec: etatDec(),
   };
 }
 
@@ -57,6 +57,7 @@ function creerUnite(t, type, { immediat = false, nom = null, fin = 0 } = {}) {
   const ty = TYPES[type];
   const u = { id: 'u' + (++uid), type, t, nom: nom || nomUnite(type, t), cap: ty.mw, p: 0, c: 0, dispo: true, panne: 0, fin: immediat ? 0 : fin, soc: ty.stock && !ty.r ? .7 : ty.mwh ? .5 : 0, mode: 'auto', debut: S.min };
   if (ty.r === 'eau') { u.niv = .8; if (type === 'potab') u.etapes = ['sable']; EAU_SALE = true; }
+  if (type === 'decharge') u.rempli = 0;
   t.occ = u; UNITES.push(u); retirerFerme(t); routesSale = true;
   dessinerUnite(u, !immediat);
   return u;
@@ -73,7 +74,7 @@ function terminer(u) {
   u.fin = 0; dessinerUnite(u, true);
   if (TYPES[u.type].f && !TYPES[u.type].fatal && u.type !== 'batterie') insererOrdre(u);
   if (estEauU(u)) { EAU_SALE = true; if (TYPES[u.type].role === 'epuration') { const n = voisins(u.t).find(x => x.riviere !== undefined) || voisins(u.t).find(x => x.t === 'cote'); if (n) { ajouteArete(u.t, n, 'rejet'); dessinerEau(); } } }
-  log(`${u.nom} mise en service (${estEauU(u) ? capTexte(TYPES[u.type]) : nf(u.cap) + ' MW'}).`, 'bon'); toast(`${u.nom} est en service.`, 'ok');
+  log(`${u.nom} mise en service (${TYPES[u.type].r ? capTexte(TYPES[u.type]) : nf(u.cap) + ' MW'}).`, 'bon'); toast(`${u.nom} est en service.`, 'ok');
   majAcceptation(); dessinerMini();
 }
 function insererOrdre(u) { if (S.ordre.includes(u.id)) return; S.ordre.push(u.id); trierOrdre(); }
@@ -106,6 +107,7 @@ function raison(t, type) {
   if (t === FRONT_T && type !== 'frontiere') return `Réservé à l’interconnexion (${TYPES.frontiere.an})`;
   if (type !== 'barrage' && type !== 'fil' && t.riviere !== undefined) return 'Rivière : usine hydraulique seulement';
   if (t.npyl > 0 && type !== 'poste') return 'Des pylônes passent ici';
+  if (ty.loin && VILLES.some(v => v.tuiles.some(x => dist(x, t) < ty.loin))) return `Trop près des habitations : ${ty.loin} hexagones au moins`;
   if (!ty.ok(t)) return ty.non;
   return null;
 }

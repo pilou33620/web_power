@@ -109,7 +109,7 @@ function majAcceptation() {
     t.vent = clamp(4.2 + ({ colline: 2.3, montagne: 2.9, foret: -.9, cote: 2.6, mer: 3 }[t.t] || 0) + (mer ? 1.5 : 0) + bruit(t.col * .25 + 7, t.row * .25) * 1.6, 3, 10);
     const dv = Math.min(...VILLES.map(c => Math.min(...c.tuiles.map(x => dist(t, x)))));
     let a = 22 + 16 * Math.min(dv, 4) + (hache(t.q, t.r, 9) - .5) * 14 - (t.t === 'foret' ? 9 : 0);
-    for (const u of UNITES) if ((estCharbon(u) || ['nucleaire', 'gaz', 'fioul'].includes(u.type)) && dist(u.t, t) <= 2 && u.t !== t) a -= 12;
+    for (const u of UNITES) if ((estCharbon(u) || ['nucleaire', 'gaz', 'fioul', 'incin', 'decharge'].includes(u.type)) && dist(u.t, t) <= 2 && u.t !== t) a -= 12;
     t.accept = clamp(a, 5, 96);
   }
 }

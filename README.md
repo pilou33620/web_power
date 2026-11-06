@@ -4,7 +4,7 @@
 
 La partie est une campagne historique de 1900 à 2050. En 1900, une seule ville découvre l'électricité, alimentée par une petite usine au charbon et une usine au fil de l'eau, en 15 kV. Au fil des époques, les villes s'étendent, de nouveaux villages apparaissent et deviennent des villes, et les technologies arrivent à leur date historique : 63 kV, grands barrages, 225 kV et interconnexion, fioul, 400 kV, nucléaire, gaz, éolien, solaire, batteries, petits réacteurs, fusion.
 
-La région a deux réseaux à gérer : l'électricité et l'eau. Le but est de les étendre à mesure que la région se peuple. En 2050, l'électricité doit être bas carbone, sans coupure ni faillite, et l'eau potable servie et conforme aux normes.
+La région a trois réseaux à gérer : l'électricité, l'eau et les déchets. Le but est de les étendre à mesure que la région se peuple. En 2050, l'électricité doit être bas carbone, sans coupure ni faillite, l'eau potable servie et conforme aux normes, et les déchets valorisés.
 
 | Époque | À partir de | Ce qui change |
 |---|---|---|
@@ -39,11 +39,12 @@ La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu 
 - **Téléphone (iPhone)** : format portrait, avec la carte en haut et le panneau qui monte du bas.
 - Si l'appareil est tenu dans l'autre sens, un écran demande de le tourner. Le bouton « Continuer ainsi » passe outre.
 
-## Trois vues
+## Quatre vues
 
-- **Carte** (touche 1) : toute la région, les deux réseaux à la fois, sans les flux.
+- **Carte** (touche 1) : toute la région, tous les réseaux à la fois, sans les flux.
 - **Électricité** (touche 2) : centrales et postes en surbrillance dorée, courant dans les lignes ; les ouvrages de l'eau passent en fantôme.
 - **Eau** (touche 3) : captages, usines, châteaux d'eau et épurations en surbrillance bleue, conduites en transparence avec l'eau qui y coule ; les centrales passent en fantôme.
+- **Déchets** (touche 4) : décharges, centres de tri, incinérateurs et compostages en surbrillance orange ; les autres ouvrages passent en fantôme.
 
 On construit dans la vue de chaque réseau.
 
@@ -82,9 +83,9 @@ On construit dans la vue de chaque réseau.
 - **Météo** : saisons, vent, soleil, débit de la rivière, prévisions à 3 jours.
   - À l'écran : nuit bleutée sous la lune, aube et crépuscule dorés, nuages qui dérivent avec le vent et dont l'ombre court sur la carte, pluie, neige qui tient au sol puis fond, brouillard des matins d'hiver, éclairs pendant les tempêtes, feuilles mortes à l'automne, couleurs du sol selon la saison.
   - La nuit, seules les villes alimentées s'allument : une coupure se voit.
-- **Tutoriel** (s'ouvre seul à la première partie, puis Menu → Tutoriel) : la chaîne de l'électricité (centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville) et celle de l'eau (captage → potabilisation → château d'eau → ville → égout → épuration → rivière), étape par étape.
+- **Tutoriel** (s'ouvre seul à la première partie, puis Menu → Tutoriel) : la chaîne de l'électricité (centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville) celle de l'eau (captage → potabilisation → château d'eau → ville → égout → épuration → rivière) et celle des déchets (ville → bacs → camions → tri, compost, incinération → décharge), étape par étape.
 - **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts.
-- **R&D** : 37 technologies réparties en 5 branches et 5 niveaux.
+- **R&D** : 45 technologies réparties en 6 branches et 5 niveaux.
 - **Événements** : pannes, tempêtes, vagues de froid, canicules, sécheresses, crise du gaz.
 - **Ambiance** : fermes sur les plaines et les prairies, bateaux, oiseaux, vaches, cerfs et tracteurs.
   - Routes entre chaque ville et ses deux voisines (en terre, puis goudronnées en 1930), une desserte vers chaque ouvrage isolé et un chemin de terre vers chaque ferme isolée. Les routes se redessinent quand on construit ou démolit.
@@ -99,9 +100,22 @@ On construit dans la vue de chaque réseau.
   - carte aléatoire, définie par une graine.
 - **Difficultés** : Facile, Normal, Difficile.
 
-## Maquette : gestion des déchets
+## Gestion des déchets
 
-`maquettes/dechets.html` est une maquette jouable du futur mode « Déchets », dans une page autonome : quatrième vue, collecte et tournées, tri, compostage, incinération, décharge qui se remplit, marché des matières, diagramme des flux, R&D réduite, événements, et scénario « Ville en transition » (65 % de valorisation, dont 30 % de recyclage). Ouvrez-la directement dans le navigateur. Elle ne touche pas au jeu.
+La troisième filière se gère dans la vue **Déchets** (touche 4) et l'onglet Déchets.
+
+- **Production** : chaque ville remplit ses poubelles, environ 120 kg par habitant et par an en 1900, plus de 500 kg en 2000. La part des emballages grandit au fil du siècle ; les déchets verts reviennent au printemps et à l'automne, les emballages en fin d'année, les encombrants après une tempête.
+- **Camions de collecte** : le premier levier. Tombereaux à cheval (2,5 t par jour), camions (5 t, 1925), puis bennes tasseuses (recherche). Trop peu de camions : les bacs débordent et les ordures finissent dans la rue. Trop : chaque camion coûte cher pour rien. L'onglet compare la flotte au besoin ; les camions se voient sur la carte, dans les quartiers et sur les routes des sites.
+- **Collecte par flux** : passages par semaine pour les ordures, colonnes à verre (1974), bac jaune des emballages (1992, recherche), bac marron des biodéchets (2000, recherche).
+- **Sites** : décharge (1900, se remplit, loin des habitations et de la rivière), usine d'incinération (1960), compostage (1980), déchèterie (1985, encombrants et déchets verts), centre de tri (1990). Décharges pleines : export d'urgence à prix d'or.
+- **Économie** : redevance par habitant, ventes des matières triées à des cours qui bougent (stocker quand un cours s'effondre), taxe sur l'enfouissement à partir de 1999.
+- **Gêne** : dépôts sauvages, bacs qui débordent et riverains des sites pèsent sur la satisfaction. Lentilles Remplissage des bacs et Nuisances.
+- **Événements** : grève de la collecte, incendie de centre de tri, effondrement d'un cours, décharge sauvage.
+- **Recherche** : une branche « Déchets » de 8 technologies.
+- **Diagramme des flux** : d'où viennent les tonnes et où elles vont sur 30 jours ; l'installation saturée est cerclée de rouge. Chaque tonne produite est retrouvée (vérifié chaque jour).
+- **Objectif 2050** : 65 % des déchets valorisés, dont 30 % recyclés ou compostés.
+
+La maquette autonome qui a servi à concevoir ce mode reste dans `maquettes/dechets.html`.
 
 ## Organisation des fichiers
 
@@ -118,6 +132,7 @@ Le découpage reprend celui de web_cao : une page, un dossier `css/` et des scri
 | `js/04-modeles.js` | modèles 3D des installations et des quartiers |
 | `js/05-catalogue.js` | catalogue des centrales et des postes, tensions des lignes |
 | `js/06-eau.js` | réseau d'eau : ouvrages, conduites, qualité, simulation |
+| `js/06b-dechets.js` | déchets : sites, collecte, tri, traitement, marché, simulation journalière |
 | `js/07-epoques-rd.js` | époques de la campagne, recherche |
 | `js/08-installations.js` | état de la partie, construire et démolir |
 | `js/09-lignes.js` | lignes électriques et leurs règles de raccordement, dessin des conduites |
@@ -128,9 +143,9 @@ Le découpage reprend celui de web_cao : une page, un dossier `css/` et des scri
 | `js/14-superpositions.js` | survol, sélection, lentilles, fumées |
 | `js/15-camera.js` | caméra et commandes tactiles ou souris |
 | `js/16-interface.js` | barre de construction, survol, clics sur la carte |
-| `js/17-panneaux.js` | panneaux de gestion (électricité et eau) |
+| `js/17-panneaux.js` | panneaux de gestion (électricité, eau et déchets) |
 | `js/18-hud.js` | barre du haut, étiquettes, mini-carte |
-| `js/19-vues.js` | les trois vues : carte, électricité, eau |
+| `js/19-vues.js` | les quatre vues : carte, électricité, eau, déchets |
 | `js/20-actions.js` | boutons, menu, tutoriel, bilans annuels |
 | `js/21-partie.js` | nouvelle partie, sauvegarde, chargement |
 | `js/22-banc.js` | stratégies programmées du banc d'équilibrage |

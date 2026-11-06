@@ -25,7 +25,7 @@ function dessinerRoutes() {
   // puis une desserte vers chaque ouvrage qui ne touche ni une ville ni une route, du plus proche au plus loin
   const ouvrages = UNITES.filter(u => u.type !== 'frontiere' && !estEau(u.t)).sort((x, y) => Math.min(...VILLES.map(v => dist(v.centre, x.t))) - Math.min(...VILLES.map(v => dist(v.centre, y.t))));
   const goudron = annee(S.min) >= 1930;
-  const tracer = (p, acces, chemin = false) => {
+  const tracer = (p, acces, chemin = false, benne = false) => {
     p.forEach(t => reseau.add(t));
     const pts = p.map((t, i) => [t.x + (i && i < p.length - 1 ? (hache(t.q, t.r, 17) - .5) * 3 : 0), t.z + (i && i < p.length - 1 ? (hache(t.q, t.r, 19) - .5) * 3 : 0)]);
     if (acces) { pts[0][0] += (pts[1][0] - pts[0][0]) * .45; pts[0][1] += (pts[1][1] - pts[0][1]) * .45; }  // la desserte s'arrête au pied de l'ouvrage
@@ -34,10 +34,10 @@ function dessinerRoutes() {
     for (let i = 0; i < lisse.length - 1; i++) { const y = Math.max(haut(i), haut(i + 1)) + .18; put(L, ruban([lisse[i], lisse[i + 1]], chemin ? .6 : acces ? .9 : 1.15, y), goudron && !chemin ? 0x6f6c66 : 0xc9a874, 0, 0, 0, 0, 0); }
     if (chemin) return;  // chemin de ferme : pas de trafic
     const v3 = lisse.map((q, i) => new THREE.Vector3(q[0], haut(i) + .7, q[1])), long = [0]; for (let i = 1; i < v3.length; i++) long.push(long[i - 1] + v3[i].distanceTo(v3[i - 1]));
-    for (let k = 0, n = Math.max(1, Math.round(long.at(-1) / (acces ? 40 : 30))); k < n; k++) VEHIC.push({ pts: v3, long, s: k / n, sens: k % 2 ? 1 : -1, v: .8 + hache(k, n, 3) * .4, h: hache(k, VEHIC.length, 5), h2: hache(VEHIC.length, k, 6), acces });
+    for (let k = 0, n = benne ? clamp(Math.round(S.dec.camions / 6), 1, 6) : Math.max(1, Math.round(long.at(-1) / (acces ? 40 : 30))); k < n; k++) VEHIC.push({ pts: v3, long, s: k / n, sens: k % 2 ? 1 : -1, v: .8 + hache(k, n, 3) * .4, h: hache(k, VEHIC.length, 5), h2: hache(VEHIC.length, k, 6), acces, benne });  // vers un site de déchets : les camions de collecte
   };
   for (const [a, b] of liens) { const p = cheminRoute(a, b, reseau); if (p && p.length >= 2) tracer(p, false); }
-  for (const u of ouvrages) { if (voisins(u.t).some(n => reseau.has(n)) || reseau.has(u.t)) continue; const p = cheminRoute(u.t, reseau, reseau); if (p && p.length >= 2) tracer(p, true); }
+  for (const u of ouvrages) { if (voisins(u.t).some(n => reseau.has(n)) || reseau.has(u.t)) continue; const p = cheminRoute(u.t, reseau, reseau); if (p && p.length >= 2) tracer(p, true, false, estDecU(u)); }
   // chemins de terre vers les fermes isolées
   for (const t of LISTE.filter(t => t.ferme && !t.occ && !t.ville)) { if (reseau.has(t) || voisins(t).some(n => reseau.has(n))) continue; const p = cheminRoute(t, reseau, reseau); if (p && p.length >= 2) tracer(p, true, true); }
   if (L.g.length) fige(L, ROUTES, MAT_SOL);
@@ -45,7 +45,7 @@ function dessinerRoutes() {
 }
 function vehicules(ronde) {  // répartit routes et rondes de quartier entre les véhicules de l'époque
   const an = annee(S.min), n = {}, m = {};
-  for (const c of [...VEHIC, ...ronde]) { c.genre = choixVeh(an, c.h, c.acces); c.vis = c.h2 < mixVeh(an, c.acces)[1]; c.idx = n[c.genre] = (n[c.genre] || 0) + 1; c.idx--; }
+  for (const c of [...VEHIC, ...ronde]) { c.genre = c.benne ? (an < 1925 ? 'char' : 'benne') : choixVeh(an, c.h, c.acces); c.vis = c.benne || c.h2 < mixVeh(an, c.acces)[1]; c.idx = n[c.genre] = (n[c.genre] || 0) + 1; c.idx--; }
   for (const k of Object.keys(VEH_GEO)) m['v_' + k] = instancesC(VEH_GEO[k], n[k] || 0, PAL_VEH[k](an));
   PHARES.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array((VEHIC.length + ronde.length) * 3), 3));
   return m;
@@ -64,15 +64,16 @@ const VEH_GEO = {
   char: geoMergeC([[boite(1.7, .3, 1), -.4, .75, 0, 0x9a6a3a], [boite(1.7, .35, .1), -.4, 1.05, .45, 0x7a4f2a], [boite(1.7, .35, .1), -.4, 1.05, -.45, 0x7a4f2a], roue(-.4, .55, .45), roue(-.4, -.55, .45), [boite(1.1, .55, .4), 1.2, 1.05, 0, 0x6b4226], [boite(.45, .4, .3), 1.85, 1.45, 0, 0x6b4226], [boite(.12, .75, .12), .8, .4, 0, 0x4a2e1a], [boite(.12, .75, .12), 1.6, .4, 0, 0x4a2e1a]]),
   ancienne: geoMergeC([[boite(1.9, .5, .95), 0, .65, 0, BL], [boite(.9, .75, .9), -.35, 1.3, 0, BL], [boite(.92, .3, .92), -.35, 1.35, 0, VITRE], [boite(.5, .35, .7), .75, 1.05, 0, BL], roue(.6, .5), roue(.6, -.5), roue(-.6, .5), roue(-.6, -.5)]),
   voiture: geoMergeC([[boite(2, .55, 1), 0, .6, 0, BL], [boite(1.15, .5, .9), -.1, 1.1, 0, BL], [boite(1.17, .25, .92), -.1, 1.12, 0, VITRE], roue(.6, .5, .3), roue(.6, -.5, .3), roue(-.6, .5, .3), roue(-.6, -.5, .3)]),
+  benne: geoMergeC([[boite(.9, 1.05, 1.05), 1.35, 1, 0, BL], [boite(.92, .35, 1.07), 1.35, 1.25, 0, VITRE], [boite(2.4, 1.35, 1.12), -.4, 1.2, 0, BL], [boite(.5, 1.15, 1.08), -1.8, 1.05, 0, 0x6b6f75], roue(1.2, .55), roue(1.2, -.55), roue(-1, .55), roue(-1, -.55)]),
   camion: geoMergeC([[boite(.9, 1.05, 1.05), 1.25, 1, 0, BL], [boite(.92, .35, 1.07), 1.25, 1.25, 0, VITRE], [boite(2.3, 1.3, 1.1), -.45, 1.2, 0, 0xe9e3d3], roue(1.2, .55), roue(1.2, -.55), roue(-1, .55), roue(-1, -.55)]),
   bus: geoMergeC([[boite(3.4, 1.2, 1.05), 0, 1.1, 0, BL], [boite(3.42, .35, 1.07), 0, 1.35, 0, VITRE], roue(1.1, .55), roue(1.1, -.55), roue(-1.1, .55), roue(-1.1, -.55)]),
 };
 const PAL_VEH = {
-  char: () => [BL], ancienne: () => [0x2d2d2d, 0x2f4f3a, 0x6b2a2a, 0x23324a],
+  benne: a => (a < 1970 ? [0x5fae3e, 0x4a7a3a] : [0x7be08a, 0xf2f2f2]), char: () => [BL], ancienne: () => [0x2d2d2d, 0x2f4f3a, 0x6b2a2a, 0x23324a],
   voiture: a => (a < 2000 ? [0xd9573b, 0x3f7fb5, 0xf2c94c, 0xf6f2ea, 0x5fae3e, 0xe08a3c] : [0xf2f2f2, 0xb9bec4, 0x3a3a3a, 0x3f7fb5, 0xc8423a]),
   camion: a => (a < 1960 ? [0x4a5a3a, 0x6b3a2a, 0x34495e] : [0xd9573b, 0x3f7fb5, 0xf2f2f2, 0x5fae3e]), bus: a => (a < 1970 ? [0x3f6f9f, 0x9f3f3f] : [0x2f9e8f, 0xf2c94c, 0x3f7fb5]),
 };
-const VIT_VEH = { char: 4, ancienne: 8, voiture: 13, camion: 10, bus: 9 };
+const VIT_VEH = { benne: 7, char: 4, ancienne: 8, voiture: 13, camion: 10, bus: 9 };
 function mixVeh(a, acces) {  // part de chaque véhicule selon l'époque (les dessertes d'ouvrages voient passer les camions), et densité du trafic
   if (a < 1910) return [{ char: 1 }, .35];
   if (a < 1930) return [acces ? { char: .5, camion: .5 } : { char: .6, ancienne: .4 }, .45];
@@ -103,7 +104,8 @@ function majAmbiance() {
   const vaches = pres.flatMap(t => [0, 1, 2].map(k => ({ t, x: (hache(t.q, t.r, k + 40) - .5) * 8, z: (hache(t.q, t.r, k + 50) - .5) * 5 + 2, a: hache(t.q, t.r, k + 60) * 6, ph: k * 2.1 })));
   const cerfs = forets.map((t, k) => ({ t, ph: k * 1.3, v: .25 + hache(t.q, t.r, 7) * .2 }));
   const tracts = champs.map((t, k) => ({ t, ph: k * 2.3 }));
-  const ronde = VILLES.flatMap(v => v.tuiles.filter(t => t.quartier !== 'hopital').map((t, k) => ({ t, ph: k * 1.9 + v.nom.length, v: .35 + hache(t.q, t.r, 9) * .2, h: hache(t.q, t.r, 11), h2: hache(t.q, t.r, 13) * .8 })));
+  const hab = Math.max(1, VILLES.reduce((s, v) => s + v.hab, 0));  // les camions de collecte font la tournée des quartiers, au prorata des habitants
+  const ronde = VILLES.flatMap(v => { const nb = Math.round(S.dec.camions * v.hab / hab / 2); return v.tuiles.filter(t => t.quartier !== 'hopital').map((t, k) => ({ t, ph: k * 1.9 + v.nom.length, v: .35 + hache(t.q, t.r, 9) * .2, h: hache(t.q, t.r, 11), h2: hache(t.q, t.r, 13) * .8, benne: k < nb })); });
   const oiseaux = [0, 1, 2, 3].flatMap(g => [0, 1, 2, 3, 4].map(k => ({ g, k })));
   AMB = { bateaux, vaches, cerfs, tracts, ronde, oiseaux, m: {
     ...vehicules(ronde), bat: instances(GEO_BATEAU, bateaux.length, [0xf6f2ea, 0xd9573b]),

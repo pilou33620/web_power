@@ -39,7 +39,7 @@ Object.assign(TYPES, {
 const ORDRE_EAU = ['source', 'forage', 'prise', 'potab', 'chateau', 'reservoir', 'pompage', 'lagunage', 'forageP', 'step', 'dessal'];
 for (const k of ORDRE_EAU) Object.assign(TYPES[k], { r: 'eau', f: null, mw: 0, groupe: 'eau' });
 const estEauU = u => TYPES[u.type]?.r === 'eau';
-const capTexte = ty => (ty.m3 ? `${nf(ty.m3)} m³/j` : ty.stock ? `${nf(ty.stock)} m³` : ty.eh ? `${nf(ty.eh)} hab.` : '');
+const capTexte = ty => (ty.m3 ? `${nf(ty.m3)} m³/j` : ty.stock ? `${nf(ty.stock)} m³` : ty.eh ? `${nf(ty.eh)} hab.` : ty.tj ? `${nf(ty.tj)} t/j` : ty.volume ? `${nf(ty.volume / 1000)} kt` : '');
 const ORDRE_CAPT = { source: 0, forage: 1, prise: 2, forageP: 3, dessal: 4 };  // on appelle d'abord l'eau la moins chère
 
 // ------------------------------------------------------------ conduites : graphe d'arêtes entre hexagones voisins

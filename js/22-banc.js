@@ -3,9 +3,9 @@
 // Aucune IA : chaque stratégie applique des règles fixes une fois par mois de jeu, ce qui rend le banc reproductible.
 const STRATS = {
   passif: { nom: 'Passif', desc: 'Ne construit rien : la région manque vite d’électricité, la partie doit être perdue.' },
-  fossile: { nom: 'Fossile', desc: 'Charbon, puis fioul, puis gaz : suit la croissance au moindre coût, sans viser le bas carbone.', budget: .3, ferme: true, rd: ['fuites', 'cag', 'ozone', 'alerte', 'denitr', 'membranes', 'maint', 'compteurs', 'locales', 'ccga', 'compens', 'scada', 'effac', 'tarifs', 'htls'], ferme2: ['gaz', 'charbonG', 'fioul', 'charbon', 'tac', 'usine'] },
+  fossile: { nom: 'Fossile', desc: 'Charbon, puis fioul, puis gaz : suit la croissance au moindre coût, sans viser le bas carbone.', budget: .3, ferme: true, rd: ['fuites', 'cag', 'ozone', 'tasseuse', 'selective', 'alerte', 'chaleur', 'biodechets', 'trisemi', 'denitr', 'membranes', 'maint', 'compteurs', 'locales', 'ccga', 'compens', 'scada', 'effac', 'tarifs', 'htls'], ferme2: ['gaz', 'charbonG', 'fioul', 'charbon', 'tac', 'usine'] },
   vert: { nom: 'Bas carbone', desc: 'Hydraulique dès que possible, nucléaire à partir de 1974, puis renouvelables, stockage et petits réacteurs.', budget: 1, ferme: true, vert: true,
-    rd: ['fuites', 'cag', 'ozone', 'alerte', 'denitr', 'telerel', 'membranes', 'bioMB', 'reut', 'osmose', 'reversible', 'compens', 'tarifs', 'effac', 'scada', 'pales', 'maint', 'locales', 'volants', 'htls', 'ccga', 'epr', 'compteurs', 'li', 'offshore', 'dlr', 'previ', 'bifacial', 'b4h', 'sodium', 'gridf', 'smr', 'v2g', 'h2', 'ia', 'hvdc', 'fusion'], ferme2: ['smr', 'nucleaire', 'barrage', 'fil', 'biomasse', 'charbonG', 'charbon', 'usine', 'tac'] },
+    rd: ['fuites', 'cag', 'ozone', 'tasseuse', 'selective', 'alerte', 'chaleur', 'biodechets', 'trisemi', 'tournees', 'incitative', 'optique', 'denitr', 'telerel', 'membranes', 'bioMB', 'reut', 'osmose', 'reversible', 'compens', 'tarifs', 'effac', 'scada', 'pales', 'maint', 'locales', 'volants', 'htls', 'ccga', 'epr', 'compteurs', 'li', 'offshore', 'dlr', 'previ', 'bifacial', 'b4h', 'sodium', 'gridf', 'smr', 'v2g', 'h2', 'ia', 'hvdc', 'fusion'], ferme2: ['smr', 'nucleaire', 'barrage', 'fil', 'biomasse', 'charbonG', 'charbon', 'usine', 'tac'] },
 };
 let BANC_ON = false;
 const CF = { fil: .55, solaire: .13, eolien: .27, offshore: .42, barrage: .45, biomasse: .7, nucleaire: .85, smr: .85, fusion: .85 };
@@ -133,6 +133,18 @@ function botEau() {
   }
   if (vieilles().length > 12 && S.argent > coutRenouv() + seuilFaillite()) renouveler();
 }
+function botDechets() {  // en gestionnaire prudent : flotte au besoin, décharge d'avance, puis tri, compost et incinération
+  const D = S.dec, a = annee(S.min), n = Math.max(1, Math.min(30, D.jours.length)), p = surJ(30, 'prod') / n, nb = ty => UNITES.filter(u => u.type === ty).length, enCours = ty => UNITES.some(u => u.type === ty && u.fin);
+  const cible = Math.ceil(besoinCamions() * 1.15); if (D.jours.length >= 7 && (D.camions < cible || D.camions > cible + 2)) changerCamions(cible);
+  const poser = ty => { const t = LISTE.filter(x => !raison(x, ty) && Math.min(...VILLES.map(v => dist(v.centre, x))) <= 7).sort((x, y) => Math.min(...VILLES.map(v => dist(v.centre, x))) - Math.min(...VILLES.map(v => dist(v.centre, y))) || hache(x.q, x.r, 16) - hache(y.q, y.r, 16))[0]; return t && typeof acheterUnite(t, ty) !== 'string'; };
+  const de = etatDecharges();
+  if (de.ans < 4 && !enCours('decharge')) poser('decharge');
+  if (dispoType('decheterie') && !nb('decheterie')) poser('decheterie');
+  for (const f of ['verre', 'emb', 'bio']) if (!D.modes[f] && modeDispo(f) && S.argent > coutMode(f) + seuilFaillite()) deployerMode(f);
+  if (D.modes.emb && nb('tri') * capTri() < p * .2 && !enCours('tri')) poser('tri');
+  if (dispoType('compost') && nb('compost') * TYPES.compost.tj < p * (D.modes.bio ? .12 : .03) && !enCours('compost')) poser('compost');
+  if (dispoType('incin') && nb('incin') * TYPES.incin.tj < p * .45 && !enCours('incin') && (a >= 1975 || de.ans < 6) && S.argent > coutType('incin') * 1e6 + seuilFaillite()) poser('incin');
+}
 function ajouterEtape(u, k) {
   const e = ETAPES[k]; if (!u.etapes) u.etapes = ['sable']; if (u.etapes.includes(k) || !etapeOk(k)) return 'Étape indisponible.';
   S.argent -= e.cout * 1e6; S.an.capex += e.cout * 1e6; u.etapes.push(k); log(`${u.nom} : nouvelle étape « ${e.nom} » (${e.cout} M€).`, 'bon'); return null;
@@ -143,7 +155,7 @@ function botMois(st, suivi) {
   S.rd.budget = Math.max(1, Math.round(st.budget * pointeEstimee() / 10));  // budget de recherche proportionnel à la taille du réseau
   if (!S.rd.cours) { const r = st.rd.map(id => RDI[id]).find(r => r && rdDispo(r)); if (r) { S.rd.cours = r.id; S.rd.avance = 0; } }
   if (rd('effac')) S.effacement = S.delestage > 0 || marge() < 60;
-  reparerBot(suivi); botEau();
+  reparerBot(suivi); botEau(); botDechets();
   const ch = UNITES.find(estCharbon);
   if (ch && st.ferme && (an > 2031 || (an === 2031 && mo >= 6) || (an >= 2026 && capFerme(true) > pointeEstimee(1) * 1.2))) fermer(ch);
   const plusGros = Math.max(0, ...UNITES.filter(u => TYPES[u.type].mw && !TYPES[u.type].fatal).map(u => u.cap));  // on garde de quoi perdre la plus grosse centrale
@@ -176,7 +188,7 @@ async function bancPartie(carte, diff, strat, graine) {
   for (const u of UNITES) compte[u.type] = (compte[u.type] || 0) + 1;
   return { carte: CARTE.nom, carteId: carte, graine: CARTE.graine, diff, strat, issue: S.fini || 'en cours', fin: dateTxt(S.min), duree: Math.round((performance.now() - t0) / 1000),
     argent: Math.round(S.argent / 1e6), dette: Math.round(S.dette / 1e6), sat: Math.round(S.sat), villesKO, compte, lignes: LIGNES.length, objectifs: OBJ.map(([n, f]) => [n, !!f(r49)]),
-    rapports: S.rapports.map(r => ({ an: r.an, bas: Math.round(r.bas), co2: Math.round(r.co2), coupure: Math.round(r.coupure * 10) / 10, res: Math.round(r.res / 1e6), sat: Math.round(r.sat), pointe: Math.round(r.pointe), capex: Math.round(r.capex / 1e6), eau: Math.round(r.eauServi ?? 0), conf: Math.round(r.eauConf ?? 0), epure: Math.round(r.eauEpure ?? 0), crises: r.crises, acc: r.acc })) };
+    rapports: S.rapports.map(r => ({ an: r.an, bas: Math.round(r.bas), co2: Math.round(r.co2), coupure: Math.round(r.coupure * 10) / 10, res: Math.round(r.res / 1e6), sat: Math.round(r.sat), pointe: Math.round(r.pointe), capex: Math.round(r.capex / 1e6), eau: Math.round(r.eauServi ?? 0), conf: Math.round(r.eauConf ?? 0), epure: Math.round(r.eauEpure ?? 0), crises: r.crises, acc: r.acc, decVal: Math.round(r.decVal ?? 0), decRec: Math.round(r.decRec ?? 0) })) };
 }
 let bancEtat = null;
 const ISSUES = { victoire: ['Victoire', 'vert'], echec: ['Objectifs manqués', 'or'], faillite: ['Faillite', 'rouge'], revocation: ['Révocation', 'rouge'] };

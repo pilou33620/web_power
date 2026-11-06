@@ -27,7 +27,7 @@ function prixCombustible(type, a) {
 }
 
 // ============================================================ R&D (5 branches, 5 niveaux)
-const BRANCHES = ['Production', 'Réseau et transport', 'Stockage et flexibilité', 'Gestion et smart grid', 'Eau et assainissement'];
+const BRANCHES = ['Production', 'Réseau et transport', 'Stockage et flexibilité', 'Gestion et smart grid', 'Eau et assainissement', 'Déchets'];
 const RD = [
   { id: 'locales', an: 1995, b: 0, niv: 1, nom: 'Filières locales', cout: 8, effet: 'Débloque la centrale biomasse' },
   { id: 'pales', an: 1990, b: 0, niv: 1, nom: 'Pales composites', cout: 6, effet: '+8 % de production éolienne' },
@@ -66,6 +66,14 @@ const RD = [
   { id: 'bioMB', an: 2005, b: 4, niv: 4, nom: 'Bioréacteurs à membranes', cout: 20, effet: 'Stations d’épuration +50 % de capacité', pre: ['membranes'] },
   { id: 'reut', an: 2010, b: 4, niv: 5, nom: 'Réutilisation des eaux usées traitées', cout: 20, effet: 'Les épurations peuvent arroser les fermes et fournir l’industrie', pre: ['bioMB', 'telerel'] },
   { id: 'osmose', an: 2012, b: 4, niv: 5, nom: 'Osmose inverse basse énergie', cout: 25, effet: 'Dessalement −40 % d’électricité et de coût', pre: ['membranes'] },
+  { id: 'tasseuse', an: 1950, b: 5, niv: 1, nom: 'Benne tasseuse', cout: 4, effet: 'Camions de collecte : +60 % de capacité' },
+  { id: 'chaleur', an: 1965, b: 5, niv: 1, nom: 'Récupération de chaleur', cout: 5, effet: 'Les incinérateurs vendent leur chaleur' },
+  { id: 'selective', an: 1988, b: 5, niv: 2, nom: 'Collecte sélective', cout: 6, effet: 'Débloque le bac jaune des emballages (dès 1992)', pre: ['tasseuse'] },
+  { id: 'tournees', an: 1995, b: 5, niv: 2, nom: 'Optimisation des tournées', cout: 6, effet: 'Camions +20 % de capacité, transport −15 %', pre: ['tasseuse'] },
+  { id: 'trisemi', an: 1998, b: 5, niv: 3, nom: 'Tri semi-automatique', cout: 10, effet: 'Centres de tri : capacité ×1,7, refus −5 points', pre: ['selective'] },
+  { id: 'biodechets', an: 2000, b: 5, niv: 3, nom: 'Collecte des biodéchets', cout: 8, effet: 'Débloque le bac marron des biodéchets', pre: ['selective'] },
+  { id: 'incitative', an: 2005, b: 5, niv: 4, nom: 'Redevance incitative', cout: 8, effet: 'Les habitants trient bien mieux, mais 3 % des résiduels finissent dans la nature', pre: ['trisemi'] },
+  { id: 'optique', an: 2015, b: 5, niv: 5, nom: 'Tri optique et robotisé', cout: 15, effet: 'Centres de tri : capacité ×2,2, refus −5 points de plus', pre: ['trisemi', 'incitative'] },
 ];
 const RDI = Object.fromEntries(RD.map(r => [r.id, r]));
 const rd = id => S.rd.acquis.includes(id);

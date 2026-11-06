@@ -35,11 +35,19 @@ const ICONES = {
   conduite: '<path d="M3 22h10c4 0 4-10 8-10h10" stroke="#0f130e" stroke-width="7.5" fill="none" stroke-linecap="round"/><path d="M3 22h10c4 0 4-10 8-10h10" stroke="#3f9cff" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="9" cy="22" r="1.6" fill="#fff"/><circle cx="24" cy="12" r="1.6" fill="#fff"/>',
   egout: '<path d="M3 12h10c4 0 4 10 8 10h10" stroke="#0f130e" stroke-width="7.5" fill="none" stroke-linecap="round"/><path d="M3 12h10c4 0 4 10 8 10h10" stroke="#b07f4c" stroke-width="4" fill="none" stroke-linecap="round"/>',
   forageP: '<path d="M11 4h12M13 4l-3 26M21 4l3 26" stroke="#0f130e" stroke-width="2.6" fill="none"/><rect x="12" y="20" width="10" height="8" rx="2" fill="#3f7fb5" stroke="#0f130e" stroke-width="2.2"/><path d="M17 28v4" stroke="#3f9cff" stroke-width="3"/>',
+  decharge: '<path d="M2 28c4-10 9-14 15-14s11 4 15 14z" fill="#b07a4a" stroke="#0f130e" stroke-width="2.4" stroke-linejoin="round"/><path d="M9 23l4-2M17 19l5 1M13 26l6-1" stroke="#6d4c2f" stroke-width="2"/><path d="M24 9h6v5h-6z" fill="#ffc94d" stroke="#0f130e" stroke-width="2"/><path d="M20 14h4" stroke="#0f130e" stroke-width="2"/>',
+  decheterie: '<rect x="3" y="14" width="13" height="12" rx="1.5" fill="#ffc94d" stroke="#0f130e" stroke-width="2.4"/><rect x="18" y="14" width="13" height="12" rx="1.5" fill="#5fb3ff" stroke="#0f130e" stroke-width="2.4"/><path d="M3 18h13M18 18h13" stroke="#0f130e" stroke-width="1.8"/><path d="M5 10h24" stroke="#0f130e" stroke-width="2.4" stroke-linecap="round"/>',
+  compost: '<path d="M2 28c3-8 9-8 12 0zM12 28c3-9 10-9 13 0zM22 28c2-6 8-6 10 0z" fill="#8a6a3a" stroke="#0f130e" stroke-width="2.2" stroke-linejoin="round"/><path d="M17 13c-5-1-6-6-4-9 4 1 6 4 4 9z" fill="#7be08a" stroke="#0f130e" stroke-width="2" stroke-linejoin="round"/>',
+  tri: '<path d="M3 30V14l14-8 14 8v16z" fill="#e8e2d4" stroke="#0f130e" stroke-width="2.4" stroke-linejoin="round"/><path d="M9 20h12l-3-3M25 25H13l3 3" stroke="#3987e5" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  incin: '<rect x="3" y="16" width="18" height="13" rx="1.5" fill="#d8d4c8" stroke="#0f130e" stroke-width="2.4"/><rect x="23" y="6" width="6" height="23" fill="#c9c4b6" stroke="#0f130e" stroke-width="2.2"/><path d="M23 10h6" stroke="#f0a35e" stroke-width="2.6"/><path d="M9 25c0-3 3-4 3-7 2 2 3 4 3 7z" fill="#ff9a4a" stroke="#0f130e" stroke-width="1.6"/><circle cx="27" cy="3.5" r="2.4" fill="#c9c6bc"/>',
+  camion: '<rect x="3" y="11" width="17" height="13" rx="2" fill="#7be08a" stroke="#0f130e" stroke-width="2.4"/><path d="M20 15h6l4 5v4H20z" fill="#f3efe6" stroke="#0f130e" stroke-width="2.4" stroke-linejoin="round"/><circle cx="9" cy="26" r="3" fill="#2a2622" stroke="#0f130e" stroke-width="1.6"/><circle cx="25" cy="26" r="3" fill="#2a2622" stroke="#0f130e" stroke-width="1.6"/><path d="M8 15v5M12 15v5M16 15v5" stroke="#0f130e" stroke-width="1.6"/>',
+  bac: '<path d="M8 10h18l-2 19H10z" fill="#5c7184" stroke="#0f130e" stroke-width="2.4" stroke-linejoin="round"/><path d="M6 10h22M13 7h8" stroke="#0f130e" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="30" r="2" fill="#2a2622"/><circle cx="22" cy="30" r="2" fill="#2a2622"/>',
 };
 const prixM = c => nf(c, c < 10 ? 1 : 0);
 function majBarre() {
-  if (vue === 'carte') { $('#chantier').innerHTML = '<div class="vide-chantier">Pour construire, passez en vue Électricité (2) ou Eau (3).</div>'; return; }
+  if (vue === 'carte') { $('#chantier').innerHTML = '<div class="vide-chantier">Pour construire, passez en vue Électricité (2), Eau (3) ou Déchets (4).</div>'; return; }
   if (vue === 'eau') return majBarreEau();
+  if (vue === 'dechets') return majBarreDec();
   const a = annee(S.min), dispo = ORDRE_BARRE.filter(k => dispoType(k)), bientot = ORDRE_BARRE.filter(k => TYPES[k].an > a).sort((x, y) => TYPES[x].an - TYPES[y].an).slice(0, 3);
   const kvs = Object.entries(KV).filter(([, v]) => v.an <= a).map(([k]) => k).join(' · ');
   $('#chantier').innerHTML = [...dispo, ...bientot].map(k => { const ty = TYPES[k], futur = ty.an > a, verrou = futur || (ty.rd && !rd(ty.rd));
@@ -51,6 +59,12 @@ function majBarreEau() {
   $('#chantier').innerHTML = [...dispo, ...bientot].map(k => { const ty = TYPES[k], futur = ty.an > a;
     return `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" ${futur ? 'disabled' : ''} title="${futur ? `Disponible en ${ty.an}` : ty.nom + ' · ' + ty.non}"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k] || ICONES.forage}</svg><b>${ty.court}</b><span>${futur ? `en ${ty.an}` : `${capTexte(ty)} · ${prixM(coutType(k))} M€`}</span></button>`; }).join('') +
     [['conduite', 'Conduite', `${nf(COUT_TUYAU.p, 2)} M€ / hex.`], ['egout', 'Égout', `${nf(COUT_TUYAU.a, 2)} M€ / hex.`]].map(([k, n, c]) => `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" title="Relier deux ouvrages"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k]}</svg><b>${n}</b><span>${c}</span></button>`).join('');
+}
+function majBarreDec() {
+  const a = annee(S.min), dispo = ORDRE_DEC.filter(k => dispoType(k)), bientot = ORDRE_DEC.filter(k => TYPES[k].an > a).sort((x, y) => TYPES[x].an - TYPES[y].an).slice(0, 2);
+  $('#chantier').innerHTML = `<button type="button" class="carte-c" data-act="camion" data-id="1" title="Acheter un camion de collecte (${euros(coutCamion())} par an ensuite)"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES.camion}</svg><b>Camion</b><span>${S.dec.camions} · +${euros(achatCamion())}</span></button>` +
+    [...dispo, ...bientot].map(k => { const ty = TYPES[k], futur = ty.an > a;
+    return `<button type="button" class="carte-c${mode === k ? ' actif' : ''}" data-act="mode" data-id="${k}" ${futur ? 'disabled' : ''} title="${futur ? `Disponible en ${ty.an}` : ty.nom + ' · ' + ty.non}"><svg viewBox="0 0 34 34" aria-hidden="true">${ICONES[k]}</svg><b>${ty.court}</b><span>${futur ? `en ${ty.an}` : `${capTexte(ty) ? capTexte(ty) + ' · ' : ''}${prixM(coutType(k))} M€`}</span></button>`; }).join('');
 }
 function majAide() {
   const a = $('#aide'); a.hidden = !mode;
@@ -85,6 +99,7 @@ function survoler(t, cx, cy) {
     if (depart && t !== depart) { apercu = r ? null : cheminEau(depart, t, f); majLentille(); }
     h = `<b>${nomTuile(t)}</b><br>${r ? `<span class="non">✕ ${r}</span>` : depart ? (apercu ? `<span class="oui">✓ ${apercu.length - 1} hexagones · ${nf((apercu.length - 1) * COUT_TUYAU[f], 2)} M€</span>` : '<span class="non">✕ Pas de tracé : la conduite évite la mer, la montagne et les autres ouvrages</span>') : '<span class="oui">✓ Départ possible</span>'}`;
   } else if (vue === 'eau') h = `<b>${nomTuile(t)}</b><br>${t.occ && estEauU(t.occ) ? (t.occ.fin ? `Chantier ${nf(avancement(t.occ) * 100)} %` : texteEtiEau(t.occ)[0]) : t.quartier ? `${nf((t.ville.m3d || 0) * 96)} m³/j pour toute la ville` : `Nappe ${pc(t.nappe)} · nitrates ${pc(t.nitr)}${t.ferme ? ` · ferme ${t.ferme === 'culture' ? 'céréalière' : 'd’élevage'}` : ''}`}`;
+  else if (vue === 'dechets') h = `<b>${nomTuile(t)}</b><br>${t.occ && estDecU(t.occ) ? (t.occ.fin ? `Chantier ${nf(avancement(t.occ) * 100)} %` : texteEtiDec(t.occ)[0]) : t.quartier ? `${nf(t.ville.decProd || 0, 1)} t/j pour toute la ville · bacs ${pc(Math.min(1, remplissage(t.ville)))}${t.ville.sauvage > 1 ? ` · ${nf(t.ville.sauvage)} t de dépôts sauvages` : ''}` : `Acceptation ${nf(t.accept)} %${nuisHex(t) > .5 ? ` · nuisances des sites ${nf(nuisHex(t), 1)}` : ''}`}`;
   else h = `<b>${nomTuile(t)}</b><br>${t.occ ? (t.occ.fin ? `Chantier ${nf(avancement(t.occ) * 100)} %` : `${nf(Math.max(0, t.occ.p))} MW`) : t.quartier ? `${nf(t.ville.dem || 0)} MW pour toute la ville` : `Vent ${nf(t.vent, 1)} m/s · Soleil ${nf(t.soleil, 1)}/5 · Acceptation ${nf(t.accept)} %`}`;
   bul.innerHTML = h;
   if (cx !== undefined) { bul.hidden = false; bul.style.left = Math.min(cx + 16, innerWidth - 270) + 'px'; bul.style.top = Math.min(cy + 18, innerHeight - 80) + 'px'; }

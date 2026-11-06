@@ -29,11 +29,11 @@ function dessinerFrontieres() {
   FRONT = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })); FRONT.material.userData = {}; FRONT.renderOrder = 2; scene.add(FRONT);
 }
 const hexPlat = new THREE.CircleGeometry(R * .94, 6, Math.PI / 6); hexPlat.rotateX(-Math.PI / 2);
-const LENT = new THREE.InstancedMesh(hexPlat, new THREE.MeshBasicMaterial({ transparent: true, opacity: .66, depthWrite: false }), LISTE.length);
+const LENT = new THREE.InstancedMesh(hexPlat, new THREE.MeshBasicMaterial({ transparent: true, opacity: .66, depthWrite: false }), COLS * ROWS);  // la grille n'existe pas encore au chargement : LISTE est vide
 LENT.renderOrder = 1; scene.add(LENT);
 const CA = new THREE.Color(), CB = new THREE.Color(), CC = new THREE.Color();
-const RAMPES = { vent: [0xe9f2f7, 0x2f6fc4], soleil: [0xfff3c4, 0xf07a1a], accept: [0xe5533f, 0x5cc46a], bon: [0xfaf6c8, 0x0f9a52], nappe: [0xe6f3fb, 0x1d64b8], nitr: [0xeaf6d6, 0xb4560f] };
-const valeur = (t, k) => (k === 'vent' ? (t.vent - 3) / 7 : k === 'soleil' ? (t.soleil - 1) / 4 : k === 'eau' ? 1 : k === 'nappe' ? t.nappe : k === 'nitr' ? t.nitr : t.accept / 100);
+const RAMPES = { vent: [0xe9f2f7, 0x2f6fc4], soleil: [0xfff3c4, 0xf07a1a], accept: [0xe5533f, 0x5cc46a], bon: [0xfaf6c8, 0x0f9a52], nappe: [0xe6f3fb, 0x1d64b8], nitr: [0xeaf6d6, 0xb4560f], bacs: [0x7be08a, 0xe5533f], nuis: [0xfff3c4, 0xb4560f] };
+const valeur = (t, k) => (k === 'vent' ? (t.vent - 3) / 7 : k === 'soleil' ? (t.soleil - 1) / 4 : k === 'eau' ? 1 : k === 'nappe' ? t.nappe : k === 'nitr' ? t.nitr : k === 'bacs' ? (t.ville ? remplissage(t.ville) : 0) : k === 'nuis' ? nuisHex(t) / 8 : t.accept / 100);
 const TRACES = { conduite: 'p', egout: 'a' };  // outils de tracé de l'eau : famille de conduite
 let mode = null, kvMode = 225, depart = null, apercu = null;
 function majLentille() {
@@ -42,8 +42,8 @@ function majLentille() {
     let vis = false;
     if (mode === 'ligne' || TRACES[mode]) { vis = !!apercu && apercu.includes(t); CC.setHex(mode === 'ligne' ? 0xffe27a : 0x7cc4ff); }
     else if (mode) { vis = !t.brume && (!estEau(t) || TYPES[mode].eau); const r = raison(t, mode); if (r) CC.setHex(0x0c0f0b); else { CA.setHex(RAMPES.bon[0]); CB.setHex(RAMPES.bon[1]); CC.lerpColors(CA, CB, .15 + .85 * valeur(t, k)); } }
-    else if (RAMPES[k]) { vis = !t.brume && !estEau(t); const [a, b] = RAMPES[k]; CA.setHex(a); CB.setHex(b); CC.lerpColors(CA, CB, clamp(valeur(t, k), 0, 1)); }
-    MD.makeScale(vis ? 1 : 0, 1, vis ? 1 : 0).setPosition(t.x, surf(t) - .2, t.z);
+    else if (RAMPES[k]) { vis = !t.brume && !estEau(t) && (k !== 'bacs' || !!t.ville) && (k !== 'nuis' || nuisHex(t) > .3); const [a, b] = RAMPES[k]; CA.setHex(a); CB.setHex(b); CC.lerpColors(CA, CB, clamp(valeur(t, k), 0, 1)); }
+    MD.makeScale(vis ? 1 : 0, 1, vis ? 1 : 0).setPosition(t.x, surf(t) - .2 + (k === 'bacs' && t.ville ? .35 : 0), t.z);  // au-dessus du sol des quartiers
     LENT.setMatrixAt(i, MD); LENT.setColorAt(i, CC);
   });
   LENT.instanceMatrix.needsUpdate = true; LENT.instanceColor.needsUpdate = true; majVetuste();
@@ -56,7 +56,7 @@ const BOULE = new THREE.IcosahedronGeometry(1, 1), MFUM = new THREE.MeshToonMate
 const BOULES = []; for (let i = 0; i < 110; i++) { const m = new THREE.Mesh(BOULE, MFUM); m.visible = false; scene.add(m); BOULES.push({ m, vie: 0 }); }
 function animFumees(dt) {
   for (const f of FUMEES) {
-    const marche = f.u ? actifU(f.u) && f.u.p > 1 : true; if (!marche) continue;
+    const marche = f.u ? (estDecU(f.u) ? enService(f.u) && f.u.q > 1 : actifU(f.u) && f.u.p > 1) : true; if (!marche) continue;
     f.tic -= dt; if (f.tic <= 0) { f.tic = f.vap ? .55 : .7; const b = BOULES.find(b => b.vie <= 0); if (b) { b.vie = 1; b.p = f.p.clone(); b.vap = f.vap; b.m.material = f.vap ? MVAP : MFUM; b.m.visible = true; } }
   }
   for (const b of BOULES) {

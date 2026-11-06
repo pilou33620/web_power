@@ -44,20 +44,21 @@ function minuit(m) {
   const j = S.jour, dif = DIFF[S.diff];
   log(`Bilan du jour : ${nf(j.e)} MWh livrés, ${nf(j.co2 / Math.max(1, j.e))} gCO₂/kWh, ${nf(j.bas / Math.max(1, j.e) * 100)} % bas carbone${j.coupure > .5 ? `, ${nf(j.coupure)} min de coupure` : ''}.`);
   S.jourPrec = { ...j }; S.jour = nouveauCumul();
+  jourDechets(m); if (!BANC_ON && vue === 'dechets' && !mode && ['bacs', 'nuis'].includes(S.lentille)) majLentille();
   // satisfaction
   const charbon = annee(m) >= 1980 ? UNITES.filter(u => estCharbon(u) && enService(u)).length : 0;  // la pollution n'est mal vue qu'à partir des années 1980
   const exigence = clamp((annee(m) - 1900) / 70, .05, 1);  // au début du siècle, les pannes faisaient partie de la vie
   const ex = exigenceEau(annee(m)), E = S.eau;  // eau : pénurie, eau non conforme, rejets non épurés, prix, restrictions
   const eauPen = Math.min(30, j.m3m / Math.max(1, j.m3d) * 100 * .8 * ex) + Math.min(20, j.nc / Math.max(1, j.m3) * 60 * ex) + (annee(m) >= 1970 ? Math.min(8, j.ut / Math.max(1, j.eu) * 8) : 0) + Math.max(0, E.tarif - 3.6) * 8 + (E.restriction ? 3 : 0)
     + Math.min(15, (E.crises || []).filter(c => c.fin > m).reduce((s, c) => s + (VILLES.find(v => v.nom === c.v)?.hab || 0), 0) / Math.max(1, VILLES.reduce((s, v) => s + v.hab, 0)) * 40);  // une épidémie marque les esprits
-  const cible = 80 - Math.min(70, S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8 - eauPen;
+  const cible = 80 - Math.min(70, S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8 - eauPen - S.dec.pen;
   S.eauPen = eauPen;
   S.sat = clamp(S.sat + (cible - S.sat) * .03, 0, 100); S.nimby *= .985;
   // recherche
   if (S.rd.cours) { S.rd.avance += S.rd.budget / 365; const r = RDI[S.rd.cours]; if (S.rd.avance >= r.cout) { S.rd.acquis.push(r.id); S.rd.cours = null; S.rd.avance = 0; log(`R&D : « ${r.nom} » acquise. ${r.effet}.`, 'bon'); toast(`Recherche terminée : ${r.nom}.`, 'ok'); majBarre(); } }
   // pannes et aléas
   cassesEau(m); crisesEau(m); accidentEau(m);
-  for (const u of UNITES) if (enService(u) && !estEauU(u) && !TYPES[u.type].fatal && u.type !== 'poste' && u.type !== 'frontiere' && alea() < .0035 * dif.evt * (rd('maint') ? .5 : 1)) { u.panne = m + (1 + Math.floor(alea() * 4)) * 1440; log(`Panne : ${u.nom} s'arrête pour ${Math.round((u.panne - m) / 1440)} jours.`, 'mauvais'); toast(`Panne : ${u.nom} à l'arrêt (−${nf(u.p)} MW).`); }
+  for (const u of UNITES) if (enService(u) && !TYPES[u.type].r && !TYPES[u.type].fatal && u.type !== 'poste' && u.type !== 'frontiere' && alea() < .0035 * dif.evt * (rd('maint') ? .5 : 1)) { u.panne = m + (1 + Math.floor(alea() * 4)) * 1440; log(`Panne : ${u.nom} s'arrête pour ${Math.round((u.panne - m) / 1440)} jours.`, 'mauvais'); toast(`Panne : ${u.nom} à l'arrêt (−${nf(u.p)} MW).`); }
   const mo = date(m).getUTCMonth(), hiver = mo <= 1 || mo === 11, ete = mo >= 5 && mo <= 7;
   if (alea() < (hiver ? .02 : .006) * dif.evt) evenement('tempete');
   if (hiver && alea() < .012 * dif.evt) evenement('froid');
@@ -88,7 +89,7 @@ const NOM_EVT = { tempete: 'Tempête', froid: 'Grand froid', canicule: 'Canicule
 function nouvelAn(m) {
   const an = annee(m) - 1, a = S.an, e = Math.max(1, a.e);
   const res = a.ventes + a.exp - a.comb - a.carbone - a.imp - a.opex - a.rd - a.prets - a.amendes;
-  const r = { an, co2: a.co2 / e, bas: a.bas / e * 100, ren: a.ren / e * 100, coupure: a.coupure, res, capex: a.capex, sat: S.sat, pointe: a.pointe, e: a.e, ...statsAnEau(a) };
+  const r = { an, co2: a.co2 / e, bas: a.bas / e * 100, ren: a.ren / e * 100, coupure: a.coupure, res, capex: a.capex, sat: S.sat, pointe: a.pointe, e: a.e, ...statsAnEau(a), ...statsAnDec(a) };
   S.rapports.push(r); S.anPrec = { ...a }; S.an = nouveauCumul();
   const nv = an + 1;
   // les villes grandissent, de nouveaux villages apparaissent
