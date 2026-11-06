@@ -99,6 +99,10 @@ On construit dans la vue de chaque réseau.
   - carte aléatoire, définie par une graine.
 - **Difficultés** : Facile, Normal, Difficile.
 
+## Maquette : gestion des déchets
+
+`maquettes/dechets.html` est une maquette jouable du futur mode « Déchets », dans une page autonome : quatrième vue, collecte et tournées, tri, compostage, incinération, décharge qui se remplit, marché des matières, diagramme des flux, R&D réduite, événements, et scénario « Ville en transition » (65 % de valorisation, dont 30 % de recyclage). Ouvrez-la directement dans le navigateur. Elle ne touche pas au jeu.
+
 ## Organisation des fichiers
 
 Le découpage reprend celui de web_cao : une page, un dossier `css/` et des scripts numérotés dans `js/`.
