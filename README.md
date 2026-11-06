@@ -82,7 +82,7 @@ On construit dans la vue de chaque réseau.
 - **Météo** : saisons, vent, soleil, débit de la rivière, prévisions à 3 jours.
   - À l'écran : nuit bleutée sous la lune, aube et crépuscule dorés, nuages qui dérivent avec le vent et dont l'ombre court sur la carte, pluie, neige qui tient au sol puis fond, brouillard des matins d'hiver, éclairs pendant les tempêtes, feuilles mortes à l'automne, couleurs du sol selon la saison.
   - La nuit, seules les villes alimentées s'allument : une coupure se voit.
-- **Tutoriel** (Menu → Tutoriel) : la chaîne de l'électricité (centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville) et celle de l'eau (captage → potabilisation → château d'eau → ville → égout → épuration → rivière), étape par étape.
+- **Tutoriel** (s'ouvre seul à la première partie, puis Menu → Tutoriel) : la chaîne de l'électricité (centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville) et celle de l'eau (captage → potabilisation → château d'eau → ville → égout → épuration → rivière), étape par étape.
 - **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts.
 - **R&D** : 37 technologies réparties en 5 branches et 5 niveaux.
 - **Événements** : pannes, tempêtes, vagues de froid, canicules, sécheresses, crise du gaz.

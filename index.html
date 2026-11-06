@@ -2580,7 +2580,11 @@ document.addEventListener('click', ev => {
   else if (act === 'menu') menu();
   else if (act === 'fermer-modale') { $('#modale').hidden = true; if (S.enJeu && S.pauseModale) { S.pause = false; S.pauseModale = false; } hud(); }
   else if (act === 'diff') { b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('actif', x === b)); diffChoisie = id; }
-  else if (act === 'nouvelle') { nouvellePartie(diffChoisie, carteDef(carteChoisie, graineAlea)); $('#modale').hidden = true; }
+  else if (act === 'nouvelle') {
+    nouvellePartie(diffChoisie, carteDef(carteChoisie, graineAlea)); $('#modale').hidden = true;
+    let vu = true; try { vu = !!localStorage.getItem('gridmaster-tuto'); localStorage.setItem('gridmaster-tuto', '1'); } catch (e) { /* stockage indisponible : pas de tuto automatique */ }
+    if (!vu) { S.pause = true; S.pauseModale = true; tuto('elec', 0); }  // première partie sur cet appareil : le tuto s'ouvre, partie en pause
+  }
   else if (act === 'carte') { carteChoisie = id; menu(); }
   else if (act === 'graine') { graineAlea = 1 + Math.floor(Math.random() * 99998); carteChoisie = 'aleatoire'; menu(); }
   else if (act === 'tuto') { const [k, n] = id.split(':'); tuto(k, +n); }
