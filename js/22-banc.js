@@ -167,10 +167,11 @@ function botMois(st, suivi) {
   const pe = pointeEstimee(2), besoin = pe * 1.1 + plusGros * .9 - capFerme(st.ferme && an >= 2026);
   const tropGros = ty => TYPES[ty].mw > Math.max(pe * .6, 15) && st.ferme2.some(x => x !== ty && dispoType(x) && (!TYPES[x].rd || rd(TYPES[x].rd)) && TYPES[x].mw <= Math.max(pe * .6, 15));  // pas de groupe démesuré
   if (besoin > 0) for (const ty of st.ferme2) { if (tropGros(ty)) continue; if (construireBot(ty)) break; }
-  if (st.vert && an >= 1996) {
+  if (st.vert && an >= 1974) {
     const cible = clamp(.35 + (an - 2027) * .045, .3, .96), mesure = (S.rapports.at(-1)?.bas ?? 35) / 100, Edem = pointeEstimee(0) * .62 * 8760;
-    const nb = mesure < cible - .1 ? 2 : mesure < cible ? 1 : 0;  // on mesure la part bas carbone réelle de l'année passée
-    if (rd('smr') && mesure < cible - .03 && mo === 2) construireBot('smr');
+    const nb = an < 1996 ? 0 : mesure < cible - .1 ? 2 : mesure < cible ? 1 : 0;  // on mesure la part bas carbone réelle de l'année passée
+    // un réacteur par an tant que la part bas carbone reste sous la cible, s'il ne dépasse pas la pointe
+    if (mesure < cible - .03 && mo === 2) for (const ty of ['smr', 'nucleaire']) if (TYPES[ty].mw <= pe * .9 && construireBot(ty)) break;
     for (let k = 0; k < nb && energieBas() < (FRONT_T ? 1.8 : 1.15) * Edem; k++)  // sans export possible, la surproduction est perdue
       if (!['offshore', 'eolien', 'solaire'].some(construireBot)) break;
     const ren = UNITES.filter(u => TYPES[u.type].fatal && u.type !== 'fil').reduce((a, u) => a + u.cap, 0), bat = UNITES.filter(u => u.type === 'batterie').reduce((a, u) => a + u.cap, 0);

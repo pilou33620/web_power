@@ -85,7 +85,7 @@ On construit dans la vue de chaque réseau.
   - La nuit, seules les villes alimentées s'allument : une coupure se voit.
 - **Partie tutoriel guidée** (Menu → Partie tutoriel guidée, ou depuis le tutoriel en fiches) : une vraie partie en 15 étapes, avec une fiche de guidage en bas à gauche. On construit une usine et sa ligne, on épure les eaux usées avec un lagunage et un égout, on dimensionne la flotte de camions et la collecte, puis on découvre les malus d'un bâtiment et les liens entre les réseaux. Chaque étape se valide toute seule ; un bouton montre où aller.
 - **Tutoriel en fiches** (s'ouvre seul à la première partie, puis Menu → Tutoriel) : quatre sujets, électricité, eau, déchets et territoire. Il reprend la chaîne de l'électricité (centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville) celle de l'eau (captage → potabilisation → château d'eau → ville → égout → épuration → rivière) et celle des déchets (ville → bacs → camions → tri, compost, incinération → décharge), étape par étape.
-- **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts.
+- **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts. Chaque 1er janvier, l'impôt sur les bénéfices (taux historiques simplifiés : 15 % en 1917, 50 % en 1948, 33 % en 1993, 25 % en 2022) puis, à partir de 1946, un dividende à l'État (la moitié du reste) sont prélevés ; les investissements de l'année sont déduits, l'argent qui dort ne l'est pas.
 - **R&D** : 55 technologies réparties en 6 branches et 5 niveaux.
 - **Événements** : pannes, tempêtes, vagues de froid, canicules, sécheresses, crise du gaz.
 - **Ambiance** : fermes sur les plaines et les prairies, bateaux, oiseaux, vaches, cerfs et tracteurs.

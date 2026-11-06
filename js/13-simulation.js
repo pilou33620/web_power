@@ -98,10 +98,17 @@ function evenement(k) {
 function finEvt(k) { log({ tempete: 'Fin de la tempête : les éoliennes redémarrent.', froid: 'Fin de la vague de froid.', canicule: 'Fin de la canicule.', secheresse: 'Fin de la sécheresse : la rivière retrouve son débit.', gaz: 'Le prix du gaz redescend.', cyber: 'Supervision rétablie après la cyberattaque.' }[k] || '', 'bon'); }
 const NOM_EVT = { tempete: 'Tempête', froid: 'Grand froid', canicule: 'Canicule', secheresse: 'Sécheresse', gaz: 'Gaz cher', cyber: 'Cyberattaque' };
 
+// taux simplifiés de l'impôt sur les bénéfices en France : 1917, 1948, 1986, 1993, 2022
+const IMPOT = [[1917, .15], [1948, .5], [1986, .42], [1993, .333], [2022, .25]], DIVIDENDE = .5;
+const tauxImpot = a => [...IMPOT].reverse().find(([an]) => a >= an)?.[1] ?? 0;
 function nouvelAn(m) {
   const an = annee(m) - 1, a = S.an, e = Math.max(1, a.e);
-  const res = a.ventes + a.exp - a.comb - a.carbone - a.imp - a.opex - a.rd - a.prets - a.amendes;
-  const r = { an, co2: a.co2 / e, bas: a.bas / e * 100, ren: a.ren / e * 100, coupure: a.coupure, res, capex: a.capex, sat: S.sat, pointe: a.pointe, e: a.e, ...statsAnEau(a), ...statsAnDec(a) };
+  const brut = a.ventes + a.exp - a.comb - a.carbone - a.imp - a.opex - a.rd - a.prets - a.amendes;
+  // impôt sur les bénéfices, puis dividende à l'État actionnaire après 1946 : les investissements de l'année sont déduits, l'argent qui dort est prélevé
+  const base = Math.max(0, brut - a.capex), is = base * tauxImpot(an), impot = is + (an >= 1946 ? (base - is) * DIVIDENDE : 0), res = brut - impot;
+  S.argent -= impot;
+  if (impot > 0) log(`Bilan ${an} : ${nf(impot / 1e6, 1)} M€ d’impôt sur les bénéfices (${nf(tauxImpot(an) * 100)} %)${an >= 1946 ? ` et de dividende à l’État (${nf(DIVIDENDE * 100)} % du reste)` : ''}. Les investissements de l’année sont déduits.`);
+  const r = { an, co2: a.co2 / e, bas: a.bas / e * 100, ren: a.ren / e * 100, coupure: a.coupure, res, impot, capex: a.capex, sat: S.sat, pointe: a.pointe, e: a.e, ...statsAnEau(a), ...statsAnDec(a) };
   S.rapports.push(r); S.anPrec = { ...a }; S.an = nouveauCumul();
   const nv = an + 1;
   // les villes grandissent, de nouveaux villages apparaissent
