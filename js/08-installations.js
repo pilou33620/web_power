@@ -111,4 +111,23 @@ function raison(t, type) {
   if (!ty.ok(t)) return ty.non;
   return null;
 }
+// améliorations : chaque bâtiment a ses malus (fumées, odeurs, jus de décharge, boues…) ; une recherche débloque l'équipement qui les réduit
+const AMELIO = {
+  filtres: { nom: 'Dépoussiéreurs et désulfuration', pour: ['usine', 'charbon', 'charbonG', 'fioul'], rd: 'desulfu', cout: u => TYPES[u.type].capex * .15, malus: 'Fumées noires : riverains gênés, malus du charbon sur la satisfaction', effet: 'Plus de gêne des riverains ni de malus du charbon' },
+  lownox: { nom: 'Brûleurs bas NOx', pour: ['gaz', 'tac'], rd: 'lownox', cout: u => TYPES[u.type].capex * .05, malus: 'Oxydes d’azote : riverains gênés', effet: 'Les riverains ne sont plus gênés' },
+  desodo: { nom: 'Couverture et désodorisation', pour: ['step', 'lagunage'], rd: 'desodo', cout: u => (u.type === 'step' ? 3 : .5), malus: 'Odeurs : riverains gênés', effet: 'Plus d’odeurs pour les riverains' },
+  sechage: { nom: 'Déshydratation des boues', pour: ['step', 'lagunage'], rd: 'boues', cout: u => (u.type === 'step' ? 2 : .3), malus: 'Boues d’épuration à éliminer (onglet Déchets)', effet: 'Boues divisées par trois' },
+  casiers: { nom: 'Casiers étanches et traitement des lixiviats', pour: ['decharge'], rd: 'lixiviats', cout: () => 1.5, malus: 'Jus de décharge (lixiviats) : polluent la rivière', effet: 'La rivière n’est plus polluée' },
+  biogaz: { nom: 'Captage du biogaz', pour: ['decharge'], rd: 'biogaz', cout: () => 2, malus: 'Odeurs et méthane', effet: 'Gêne des riverains divisée par deux' },
+  fumees: { nom: 'Traitement des fumées', pour: ['incin'], rd: 'fumees', cout: () => 10, malus: 'Fumées : riverains gênés', effet: 'Gêne des riverains −60 %' },
+  ferme: { nom: 'Bâtiment fermé et traitement de l’air', pour: ['compost', 'metha'], an: 1995, cout: () => 1, malus: 'Odeurs : riverains gênés', effet: 'Gêne des riverains −70 %' },
+};
+const amel = (u, k) => !!u.amelio?.includes(k);
+const amelDispo = k => annee(S.min) >= (AMELIO[k].an || 0) && (!AMELIO[k].rd || rd(AMELIO[k].rd));
+const amelPour = u => Object.keys(AMELIO).filter(k => AMELIO[k].pour.includes(u.type));
+function ameliorer(u, k) {
+  const A = AMELIO[k]; if (!A || !A.pour.includes(u.type) || amel(u, k) || !amelDispo(k) || u.fin) return 'Amélioration indisponible.';
+  const c = A.cout(u) * 1e6; S.argent -= c; S.an.capex += c; (u.amelio = u.amelio || []).push(k);
+  log(`${u.nom} : ${A.nom.toLowerCase()} (${nf(c / 1e6, 1)} M€). ${A.effet}.`, 'bon'); majAcceptation(); return null;
+}
 const recours = t => (annee(S.min) < 1970 ? 0 : t.accept < 20 ? 2 : t.accept < 35 ? 1 : 0);  // les recours des riverains apparaissent dans les années 1970

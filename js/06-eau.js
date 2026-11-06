@@ -202,6 +202,7 @@ function pasEau(m) {
     r.opex += us * k * .05;
   }
   for (const v of VILLES) { const nt = v.usees - v.traite; r.nonTraite += nt; if (v.rivI !== null && v.rivI !== undefined) rej[v.rivI] += nt; }
+  for (const u of UNITES) if (u.type === 'decharge' && !u.fin && u.rempli && !amel(u, 'casiers')) { const i = rivProche(u.t); if (i !== null) rej[i] += lixiviats(u, w); }  // jus de décharge, plus abondants quand il pleut
   // pollution de la rivière : les rejets se cumulent vers l'aval et s'auto-épurent un peu à chaque hexagone
   let cum = 0; E.pollu = E.pollu || [];
   for (let i = 0; i < RIV.length; i++) { cum = cum * .85 + rej[i]; E.pollu[i] = cum / Math.max(50, debitRiv(i, w) * 900) + (acc && acc.genre === 'riviere' && i >= acc.i ? 1.5 * .85 ** (i - acc.i) : 0); }

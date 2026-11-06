@@ -3,14 +3,14 @@
 // Un pas par jour, à minuit : chaque ville remplit ses bacs, les camions les vident (du lundi au samedi),
 // puis les tonnes partent vers le tri, le compost, l'incinérateur ou la décharge. Chaque tonne produite est retrouvée quelque part.
 const FLUX_D = ['res', 'emb', 'verre', 'bio', 'enc'];
-const NOM_FLUX_D = { res: 'Ordures résiduelles', emb: 'Emballages', verre: 'Verre', bio: 'Biodéchets', enc: 'Encombrants' };
-const COUL_FLUX_D = { res: '#3987e5', emb: '#c98500', verre: '#199e70', bio: '#d95926', enc: '#9085e9' };  // palette catégorielle validée sur le fond sombre
+const NOM_FLUX_D = { res: 'Ordures résiduelles', emb: 'Emballages', verre: 'Verre', bio: 'Biodéchets', enc: 'Encombrants', boues: 'Boues d’épuration' };
+const COUL_FLUX_D = { res: '#3987e5', emb: '#c98500', verre: '#199e70', bio: '#d95926', enc: '#9085e9', boues: '#d55181' };  // palette catégorielle validée sur le fond sombre
 const KG_HAB = [[1900, 120], [1930, 160], [1950, 200], [1970, 290], [1990, 430], [2005, 540], [2020, 510], [2050, 430]];  // kg par habitant et par an
 const PART_D = { emb: [[1900, .04], [1950, .1], [1975, .22], [2000, .26]], verre: [[1900, .03], [1960, .08]], bio: [[1900, .45], [1960, .3], [1990, .22]], enc: [[1900, .06], [1970, .12]] };
 const K_DEC = [[1900, .15], [1950, .4], [1975, .65], [2000, .9], [2020, 1]];  // coûts, prix et redevance réels par rapport à 2020
 const kDec = (a = annee(S.min)) => interp(K_DEC, a);
 const CAMION = [[1900, 40], [1950, 90], [1980, 150], [2020, 180]];  // k€ par camion et par an, équipage compris
-const coutCamion = (a = annee(S.min)) => interp(CAMION, a) * 1e3;
+const coutCamion = (a = annee(S.min)) => interp(CAMION, a) * 1e3 * (S.dec.nuit ? 1.25 : 1);  // la collecte de nuit paie des majorations
 const achatCamion = (a = annee(S.min)) => coutCamion(a) * 1.5;
 const capCamion = (a = annee(S.min)) => (a < 1925 ? 2.5 : a < 1955 ? 5 : 7) * (rd('tasseuse') ? 1.6 : 1) * (rd('tournees') ? 1.2 : 1);  // t/j : tombereau à cheval, camion, benne
 const nomCamion = (a = annee(S.min)) => (a < 1925 ? 'tombereaux à cheval' : rd('tasseuse') ? 'bennes tasseuses' : 'camions-bennes');
@@ -25,20 +25,24 @@ const MODES_D = {
 const coutMode = f => MODES_D[f].cout * 1e6 * Math.max(.2, VILLES.reduce((s, v) => s + v.hab, 0) / 1e5);
 const modeDispo = f => annee(S.min) >= MODES_D[f].an && (!MODES_D[f].rd || rd(MODES_D[f].rd));
 const MATIERES_D = { papier: ['Papier et carton', 95], plastique: ['Plastiques', 230], metal: ['Métaux', 280], verre: ['Verre', 25], materiaux: ['Ferraille et bois', 45] };
-// tj : capacité en t/j ; volume en t ; capex M€ ; delai mois ; opexT €/t de 2020 ; loin : distance minimale aux habitations ; nuis : gêne des riverains
+// tj : capacité en t/j ; volume en t ; capex M€ ; delai mois ; opexT €/t de 2020 ; fixe €/an ; loin : distance minimale aux habitations ; nuis : gêne des riverains
+// mw et mwhT : l'incinérateur et le méthaniseur produisent de l'électricité selon les tonnes traitées, s'ils sont raccordés au réseau
 Object.assign(TYPES, {
+  garage: { role: 'depot', nom: 'Dépôt de camions', court: 'Dépôt', capex: .3, delai: 3, fixe: 30e3, nuis: .5, ok: t => plat(t) || t.t === 'colline', non: 'Plaine ou collines', pot: 'accept', an: 1900 },
+  quai: { role: 'quai', nom: 'Quai de transfert', court: 'Quai', capex: 2, delai: 6, fixe: 120e3, nuis: 1, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1970 },
   decharge: { role: 'enfouir', nom: 'Décharge', court: 'Décharge', volume: 1e6, capex: 6, delai: 8, opexT: 25, loin: 3, nuis: 4, ok: t => (plat(t) || t.t === 'colline') && !(t.dr <= 1), non: 'Plaine ou collines, loin de la rivière (lixiviats)', pot: 'accept', an: 1900 },
   decheterie: { role: 'apport', nom: 'Déchèterie', court: 'Déchèterie', capex: .6, delai: 4, fixe: 150e3, nuis: 0, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1985 },
   compost: { role: 'compost', nom: 'Plateforme de compostage', court: 'Compostage', tj: 25, capex: 1.5, delai: 4, opexT: 40, nuis: 1.5, ok: t => plat(t) || t.t === 'colline', non: 'Plaine ou collines', pot: 'accept', an: 1980 },
   tri: { role: 'tri', nom: 'Centre de tri', court: 'Tri', tj: 30, capex: 12, delai: 12, opexT: 135, nuis: .5, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1990 },
-  incin: { role: 'bruler', nom: 'Usine d’incinération', court: 'Incinérateur', tj: 120, capex: 60, delai: 30, opexT: 95, loin: 2, nuis: 3, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1960 },
+  incin: { role: 'bruler', nom: 'Usine d’incinération', court: 'Incinérateur', tj: 120, capex: 60, delai: 30, opexT: 95, loin: 2, nuis: 3, ok: plat, non: 'Terrain plat', pot: 'accept', an: 1960, mw: 4, mwhT: .65, f: 'dechets', fatal: true, cout: 0, co2: 450, ramp: 99, reseau: 63 },
+  metha: { role: 'metha', nom: 'Méthaniseur', court: 'Méthaniseur', tj: 50, capex: 8, delai: 12, opexT: 60, loin: 2, nuis: 1.5, ok: plat, non: 'Terrain plat', pot: 'accept', an: 2005, rd: 'metha', mw: 1, mwhT: .3, f: 'biomasse', fatal: true, cout: 0, co2: 0, ramp: 99, reseau: 63 },
 });
-const ORDRE_DEC = ['decharge', 'decheterie', 'compost', 'tri', 'incin'];
-for (const k of ORDRE_DEC) Object.assign(TYPES[k], { r: 'dechets', f: null, mw: 0, groupe: 'dechets' });
+const ORDRE_DEC = ['garage', 'decharge', 'quai', 'decheterie', 'compost', 'tri', 'incin', 'metha'];
+for (const k of ORDRE_DEC) Object.assign(TYPES[k], { r: 'dechets', f: TYPES[k].f || null, mw: TYPES[k].mw || 0, groupe: 'dechets' });
 const estDecU = u => TYPES[u.type]?.r === 'dechets';
 const capTri = () => TYPES.tri.tj * (rd('optique') ? 2.2 : rd('trisemi') ? 1.7 : 1);
 const capDec = u => (u.type === 'tri' ? capTri() : TYPES[u.type].tj || 0);
-const etatDec = () => ({ camions: 0, tarif: 90, modes: { res: 2, emb: 0, verre: 0, bio: 0 }, brigade: false, campagne: 0, greve: 0,
+const etatDec = () => ({ camions: 0, tarif: 90, modes: { res: 2, emb: 0, verre: 0, bio: 0 }, brigade: false, campagne: 0, greve: 0, nuit: false, usure: .2,
   prix: Object.fromEntries(Object.entries(MATIERES_D).map(([k, v]) => [k, v[1]])), vendre: Object.fromEntries(Object.keys(MATIERES_D).map(k => [k, true])), stock: Object.fromEntries(Object.keys(MATIERES_D).map(k => [k, 0])),
   L: { prod: 0, vendu: 0, compost: 0, energie: 0, enfoui: 0, export: 0 }, jours: [], liens: [], pen: 0 });
 const bacs = v => v.bac || Object.assign(v, { bac: { res: 0, emb: 0, verre: 0, bio: 0 }, moy: { res: 0, emb: 0, verre: 0, bio: 0 }, sauvage: 0 }).bac;
@@ -55,22 +59,35 @@ function etatDecharges() {
   const parJour = surJ(30, 'enfoui') / Math.max(1, Math.min(30, S.dec.jours.length));
   return { taux: vol ? rem / vol : 1, reste: vol - rem, ans: parJour > 0 ? (vol - rem) / parJour / 365 : Infinity };
 }
-const besoinCamions = () => { const p = surJ(30, 'prod') / Math.max(1, Math.min(30, S.dec.jours.length)); return p * 7 / 6 / capCamion(); };
+// trajet d'un camion : du dépôt au quartier, puis au lieu de vidage (le site, ou un quai de transfert plus proche) ; plus c'est loin, moins il collecte
+const procheDe = (v, us) => (us.length ? Math.min(...us.map(u => Math.min(...v.tuiles.map(t => dist(t, u.t))))) : null);
+function trajetVille(v, dest = UNITES.some(u => u.type === 'incin' && !u.fin) ? 'incin' : 'decharge') {
+  const ok = ty => UNITES.filter(u => u.type === ty && !u.fin && !(u.panne > S.min));
+  const dg = procheDe(v, ok('garage')) ?? 8, ds = procheDe(v, ok(dest)) ?? 6, dq = procheDe(v, ok('quai')), quai = dq !== null && dq < ds;
+  return { dg, ds, dq, quai, vide: quai ? dq : ds, eff: 1 / (1 + .05 * (dg + (quai ? dq : ds))) };
+}
+const prodEstimee = v => v.decProd ?? v.hab * interp(KG_HAB, annee(S.min)) / 365e3;
+const besoinCamions = () => VILLES.reduce((s, v) => s + prodEstimee(v) * 7 / 6 / (capCamion() * trajetVille(v).eff), 0);
 function bilanDec() {  // conservation de la matière
   const L = S.dec.L, ou = L.vendu + stockDec() + L.compost + L.energie + L.enfoui + L.export + VILLES.reduce((s, v) => s + Object.values(bacs(v)).reduce((a, x) => a + x, 0), 0) + sauvageTotal();
   return { prod: L.prod, ou, ecart: Math.abs(L.prod - ou) };
 }
-// nuisance ressentie par une ville : sites de déchets à moins de 3 hexagones, d'autant plus gênants qu'ils sont proches
-const nuisVille = v => UNITES.reduce((s, u) => { const ty = TYPES[u.type]; if (!estDecU(u) || !ty.nuis || u.fin) return s; const d = Math.min(...v.tuiles.map(x => dist(x, u.t))); return d <= 3 ? s + ty.nuis * (1 - (d - 1) / 3) : s; }, 0);
-const nuisHex = t => UNITES.reduce((s, u) => { const ty = TYPES[u.type]; if (!estDecU(u) || !ty.nuis) return s; const d = dist(t, u.t); return d <= 3 ? s + ty.nuis * (1 - d / 4) : s; }, 0);
+// nuisance ressentie par une ville : sites de déchets à moins de 3 hexagones, d'autant plus gênants qu'ils sont proches ; les améliorations la réduisent
+const nuisU = u => TYPES[u.type].nuis * (amel(u, 'biogaz') ? .5 : 1) * (amel(u, 'fumees') ? .4 : 1) * (amel(u, 'ferme') ? .3 : 1);
+const nuisVille = v => UNITES.reduce((s, u) => { if (!estDecU(u) || !TYPES[u.type].nuis || u.fin) return s; const d = Math.min(...v.tuiles.map(x => dist(x, u.t))); return d <= 3 ? s + nuisU(u) * (1 - (d - 1) / 3) : s; }, 0);
+const nuisHex = t => UNITES.reduce((s, u) => { if (!estDecU(u) || !TYPES[u.type].nuis) return s; const d = dist(t, u.t); return d <= 3 ? s + nuisU(u) * (1 - d / 4) : s; }, 0);
+// boues d'épuration : environ 1,5 kg par m³ épuré, trois fois moins si la station les déshydrate
+const partSechage = () => { const ep = UNITES.filter(u => estEauU(u) && TYPES[u.type].role === 'epuration' && !u.fin), tot = ep.reduce((s, u) => s + ehU(u), 0); return tot ? ep.filter(u => amel(u, 'sechage')).reduce((s, u) => s + ehU(u), 0) / tot : 0; };
+const lixiviats = (u, w) => (u.rempli || 0) * 2e-4 * w.debit;  // m³ d'eau polluée par pas de 15 minutes, comme des eaux usées non épurées
+const bouesJour = () => VILLES.reduce((s, v) => s + (v.traite || 0), 0) * 96 * 1.5e-3 * (1 - 2 / 3 * partSechage());
 
 function jourDechets(m) {
   const D = S.dec, a = annee(m), K = kDec(a), d0 = date(m), mo = d0.getUTCMonth(), dow = d0.getUTCDay();
-  const J = { prod: 0, collecte: 0, vendu: 0, compost: 0, energie: 0, enfoui: 0, export: 0, sauvage: 0, manque: 0, triIn: 0, refus: 0, recettes: 0, depenses: 0 };
+  const J = { prod: 0, boues: 0, collecte: 0, vendu: 0, compost: 0, energie: 0, enfoui: 0, export: 0, sauvage: 0, manque: 0, triIn: 0, refus: 0, recettes: 0, depenses: 0 };
   const L = {}, lien = (x, y, t) => { if (t > 1e-9) L[x + '>' + y] = (L[x + '>' + y] || 0) + t; };
   const payer = x => { J.depenses += x; }, encaisser = x => { J.recettes += x; };
   const actifs = ty => UNITES.filter(u => u.type === ty && !u.fin && !(u.panne > m));
-  const cap = { tri: actifs('tri').length * capTri(), compost: actifs('compost').length * TYPES.compost.tj, incin: actifs('incin').length * TYPES.incin.tj }, cap0 = { ...cap };
+  const cap = { tri: actifs('tri').length * capTri(), compost: actifs('compost').length * TYPES.compost.tj, incin: actifs('incin').length * TYPES.incin.tj, metha: actifs('metha').length * TYPES.metha.tj }, cap0 = { ...cap };
   const decheterie = actifs('decheterie').length > 0, greve = D.greve > m, canicule = S.evt.canicule > m, tempete = S.evt.tempete > m;
   const camp = D.campagne > m ? .08 : 0, inc = rd('incitative') ? 1 : 0, qualite = .76 + camp + inc * .04;  // part des objets bien triés dans le bac jaune
   const tri = { emb: D.modes.emb ? .55 + camp + inc * .15 : 0, verre: D.modes.verre ? .72 + inc * .1 : 0, bio: D.modes.bio ? .48 + camp / 2 + inc * .12 : 0 };
@@ -96,25 +113,26 @@ function jourDechets(m) {
       if (B[f] > capB) { rue(v, f, B[f] - capB); B[f] = capB; v.deborde = true; }
     }
   }
-  // 2. collecte du lundi au samedi : avec f passages par semaine, les camions vident chaque jour f/6 des bacs
-  const par = { res: 0, emb: 0, verre: 0, bio: 0 }, vers = f => (f === 'res' ? (cap.incin ? 'incin' : 'decharge') : f === 'emb' ? (cap.tri ? 'tri' : 'decharge') : f === 'bio' ? (cap.compost ? 'compost' : 'decharge') : 'decheterie');
-  let capC = greve ? 0 : D.camions * capCamion(a);
+  // 2. collecte du lundi au samedi : avec f passages par semaine, les camions vident chaque jour f/6 des bacs ; capT compte les camions encore libres
+  const par = { res: 0, emb: 0, verre: 0, bio: 0 }, vers = f => (f === 'res' ? (cap.incin ? 'incin' : 'decharge') : f === 'emb' ? (cap.tri ? 'tri' : 'decharge') : f === 'bio' ? (cap.metha ? 'metha' : cap.compost ? 'compost' : 'decharge') : 'decheterie');
+  let capT = greve ? 0 : D.camions;
   if (dow !== 0) for (const f of ['res', 'bio', 'emb', 'verre']) {
     const fr = D.modes[f]; if (!fr) continue;
     const poids = 1 + .06 * (fr - 2);  // des passages fréquents remplissent moins les camions
     for (const v of [...VILLES].sort((x, y) => bacs(y)[f] - bacs(x)[f])) {
-      const B = bacs(v), voulu = B[f] * Math.min(1, fr / 6), x = Math.min(voulu, capC / poids);
+      const tr = trajetVille(v, vers(f)), tpc = capCamion(a) * tr.eff, B = bacs(v), voulu = B[f] * Math.min(1, fr / 6), x = Math.min(voulu, capT * tpc / poids);
       if (x < voulu - 1e-9) J.manque += voulu - x;
       if (x <= 0) continue;
-      B[f] -= x; capC -= x * poids; J.collecte += x; par[f] += x;
-      const us = UNITES.filter(u => u.type === vers(f) && !u.fin), d = us.length ? Math.min(...us.map(u => Math.min(...v.tuiles.map(t => dist(t, u.t))))) : 6;
-      payer(x * Math.max(1, d) * 1.5 * K * (rd('tournees') ? .85 : 1));
+      B[f] -= x; capT -= x * poids / tpc; J.collecte += x; par[f] += x;
+      payer(x * (Math.max(1, tr.vide) * 1.5 + (tr.quai ? (tr.ds - tr.dq) * .5 : 0)) * K * (rd('tournees') ? .85 : 1));  // après un quai, de gros porteurs font le reste du trajet pour moins cher
     }
   }
-  payer(D.camions * coutCamion(a) / 365);
+  payer(D.camions * coutCamion(a) / 365 + (actifs('garage').length * TYPES.garage.fixe + actifs('quai').length * TYPES.quai.fixe) * K / 365);
+  // usure des équipages : des tournées trop chargées et le travail de nuit fatiguent, et les équipages fatigués font grève
+  if (dow !== 0 && !greve) { const util = D.camions ? 1 - capT / D.camions : 0; D.usure = clamp(D.usure + (.004 * (util - .8) + (D.nuit ? .0015 : 0)) * (rd('ergonomie') ? .5 : 1), 0, 1); }
   // 3. traitement : incinérateur, puis décharge, puis export d'urgence vers une autre région
   function eliminer(src, t, brulable = true) {
-    const col0 = FLUX_D.includes(src), via = (inst, dest, x) => { if (col0) { lien(src, inst, x); lien(inst, dest, x); } else lien(src, dest, x); };
+    const col0 = src in NOM_FLUX_D, via = (inst, dest, x) => { if (col0) { lien(src, inst, x); lien(inst, dest, x); } else lien(src, dest, x); };
     if (brulable && cap.incin > 0) { const x = Math.min(t, cap.incin); cap.incin -= x; t -= x; J.energie += x; D.L.energie += x; via('incin', 'energie', x); payer(x * (TYPES.incin.opexT * K + tgap(a) / 3)); if (rd('chaleur')) encaisser(x * 25 * K); }
     for (const u of actifs('decharge')) { if (t <= 0) break; const x = Math.min(t, TYPES.decharge.volume - (u.rempli || 0)); if (x <= 0) continue; u.rempli = (u.rempli || 0) + x; t -= x; J.enfoui += x; D.L.enfoui += x; via('decharge', 'enfoui', x); payer(x * (TYPES.decharge.opexT * K + tgap(a))); }
     if (t > 0) { J.export += t; D.L.export += t; via('export', 'enfoui', t); payer(t * 165 * K); if (!D.alerteExport) { D.alerteExport = true; log('Décharges pleines : les déchets partent en export d’urgence vers une autre région, à prix d’or. Ouvrez une décharge ou un incinérateur.', 'mauvais'); toast('Décharges pleines : export d’urgence des déchets.'); } }
@@ -135,19 +153,24 @@ function jourDechets(m) {
     if (par.emb - x > 0) eliminer('emb', par.emb - x);
   }
   if (par.verre > 0) { lien('verre', 'verrier', par.verre); lien('verrier', 'recycle', par.verre); matiere('verre', par.verre); }
-  const verts = VILLES.reduce((s, v) => s + (v.verts || 0), 0), B = par.bio + verts;
-  if (B > 0) {
-    const x = Math.min(B, cap.compost); cap.compost -= x;
-    if (x > 0) { J.compost += x; D.L.compost += x; lien('bio', 'compost', x); lien('compost', 'composte', x); payer(x * TYPES.compost.opexT * K); encaisser(x * 4 * K); }
-    if (B - x > 0) eliminer('bio', B - x);
+  // biodéchets puis boues d'épuration : méthaniseur (biogaz et électricité), compost, sinon élimination
+  function organique(src, t) {
+    const xm = Math.min(t, cap.metha); cap.metha -= xm; t -= xm;
+    if (xm > 0) { J.compost += xm; D.L.compost += xm; lien(src, 'metha', xm); lien('metha', 'composte', xm); payer(xm * TYPES.metha.opexT * K); encaisser(xm * 6 * K); }  // le digestat est épandu
+    const x = Math.min(t, cap.compost); cap.compost -= x; t -= x;
+    if (x > 0) { J.compost += x; D.L.compost += x; lien(src, 'compost', x); lien('compost', 'composte', x); payer(x * TYPES.compost.opexT * K); encaisser(x * 4 * K); }
+    if (t > 0) eliminer(src, t);
   }
+  const verts = VILLES.reduce((s, v) => s + (v.verts || 0), 0), Bio = par.bio + verts;
+  if (Bio > 0) organique('bio', Bio);
+  const boues = bouesJour(); if (boues > 0) { J.prod += boues; J.boues = boues; D.L.prod += boues; organique('boues', boues); }
   const Dd = VILLES.reduce((s, v) => s + (v.versDech || 0), 0);
   if (Dd > 0) { lien('enc', 'decheterie', Dd); lien('decheterie', 'recycle', Dd * .45); matiere('materiaux', Dd * .45); eliminer('decheterie', Dd * .55, false); }
   payer(actifs('decheterie').length * TYPES.decheterie.fixe * K / 365);
   if (par.res > 0) eliminer('res', par.res);
   // propreté : les cantonniers ramassent 1 t/j par 50 000 habitants, la brigade trois fois plus ; les camions qui ont fini leur tournée ramassent le reste
   const popT = VILLES.reduce((s, v) => s + v.hab, 0);
-  let reste = cantonniers() * (D.brigade ? 4 : 1) + (dow !== 0 ? capC : 0); payer(D.brigade ? brigadeCout() / 365 : 0);
+  let reste = cantonniers() * (D.brigade ? 4 : 1) + (dow !== 0 ? capT * capCamion(a) * .7 : 0); payer(D.brigade ? brigadeCout() / 365 : 0);
   for (const v of [...VILLES].sort((x, y) => y.sauvage - x.sauvage)) { const x = Math.min(v.sauvage, reste); if (x > 0) { v.sauvage -= x; reste -= x; eliminer('sauvage', x); } }
   for (const u of UNITES) if (estDecU(u) && TYPES[u.type].tj) { const c = cap0[u.type]; u.q = c ? (c - cap[u.type]) * capDec(u) / c : 0; u.util = (u.util ?? 0) * .9 + (c ? 1 - cap[u.type] / c : 0) * .1; }
   // 4. redevance des ménages ; les professionnels paient au poids
@@ -163,14 +186,14 @@ function jourDechets(m) {
   // 7. gêne ressentie : dépôts sauvages, bacs qui débordent, riverains des sites, prix
   const exig = clamp((a - 1900) / 70, .2, 1), hab = Math.max(1, popT);
   D.penD = { sauvage: Math.min(12, sauvageTotal() / (hab / 1000) * 3) * exig, debord: VILLES.filter(v => v.deborde).reduce((s, v) => s + v.hab, 0) / hab * 6 * exig,
-    nuis: Math.min(4, VILLES.reduce((s, v) => s + nuisVille(v) * v.hab, 0) / hab) * exig, prix: Math.max(0, D.tarif - 110) * .15, passages: D.modes.res < 2 ? 3 : 0 };
+    nuis: Math.min(4, VILLES.reduce((s, v) => s + nuisVille(v) * v.hab, 0) / hab) * exig, prix: Math.max(0, D.tarif - 110) * .15, passages: D.modes.res < 2 ? 3 : 0, bruit: a >= 1960 && !D.nuit ? 1.5 : 0 };
   D.pen = Object.values(D.penD).reduce((s, x) => s + x, 0);
   evenementsDec(m);
 }
 function evenementsDec(m) {
   const D = S.dec, a = annee(m), dif = DIFF[S.diff].evt;
   if (D.greve && D.greve <= m) { D.greve = 0; log('Fin de la grève de la collecte : les tournées reprennent.', 'bon'); }
-  if (!D.greve && a >= 1920 && alea() < .0008 * dif) { D.greve = m + (3 + Math.floor(alea() * 5)) * 1440; log(`Grève des équipages de collecte jusqu’au ${dateTxt(D.greve)} : les bacs vont déborder.`, 'mauvais'); toast('Grève de la collecte des déchets !'); }
+  if (!D.greve && a >= 1920 && alea() < .0008 * dif * (.4 + 3 * D.usure)) { D.greve = m + (3 + Math.floor(alea() * 5)) * 1440; D.usure = Math.max(0, D.usure - .3); log(`Grève des équipages de collecte jusqu’au ${dateTxt(D.greve)} : les bacs vont déborder.`, 'mauvais'); toast('Grève de la collecte des déchets !'); }
   const tri = UNITES.filter(u => u.type === 'tri' && !u.fin && !(u.panne > m));
   if (tri.length && alea() < .0006 * dif * (S.evt.canicule > m ? 5 : 1)) { const u = tri[Math.floor(alea() * tri.length)], c = 1e6 * kDec(a); u.panne = m + 30 * 1440; S.argent -= c; S.an.amendes += c; log(`Incendie au ${u.nom} : arrêt d’un mois, ${nf(c / 1e6, 1)} M€ de dégâts.`, 'mauvais'); toast(`Incendie au ${u.nom} !`); }
   if (a >= 1975 && alea() < .0008) { const k = alea() < .5 ? 'plastique' : 'papier'; D.prix[k] *= .35; log(`Effondrement du cours : ${MATIERES_D[k][0].toLowerCase()} à ${nf(D.prix[k] * kDec(a))} €/t. Stockez en attendant que le cours remonte (onglet Déchets).`, 'alerte'); }

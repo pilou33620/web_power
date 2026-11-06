@@ -52,6 +52,9 @@ function texteEtiDec(u) {  // [texte, alerte]
   if (u.panne > S.min) return ['Incendie', true];
   if (u.type === 'decharge') { const r = (u.rempli || 0) / TYPES.decharge.volume; return [`${pc(r)} pleine`, r > .9]; }
   if (u.type === 'decheterie') return [`${nf(VILLES.reduce((s, v) => s + (v.versDech || 0), 0), 1)} t/j`, false];
+  if (u.type === 'garage') return [`${S.dec.camions} camions`, S.dec.usure > .6];
+  if (u.type === 'quai') return ['Transfert', false];
+  if (TYPES[u.type].mwhT && raccordee(u)) return [`${nf(u.q || 0)} t/j · ${nf(u.p, 1)} MW`, (u.util ?? 0) > .97];
   return [`${nf(u.q || 0, 1)} / ${nf(capDec(u))} t/j`, (u.util ?? 0) > .97];
 }
 function placerEtiquettes() {

@@ -176,7 +176,7 @@ function panneauHex() {
       ${ty.mw ? `<div class="barre-l"><span>Puissance</span><div class="jauge"><i style="width:${clamp(Math.abs(u.p) / u.cap, 0, 1) * 100}%;background:${FIL[ty.f][1]}"></i></div><span>${nf(u.p)} / ${nf(u.cap)}</span></div>` : ''}
       <div class="stat">${ty.mw ? `<span>Coût marginal</span><b>${nf(coutMarginal(u))} €/MWh</b><span>Émissions</span><b>${nf(co2U(u))} gCO₂/kWh</b><span>Rampe</span><b>${ty.ramp >= 99 ? 'instantanée' : ty.ramp + ' MW/min'}</b>` : ''}${ty.min ? `<span>Minimum technique</span><b>${ty.min} MW</b>` : ''}${u.type === 'poste' ? '<span>Transformation</span><b>2 × 250 MVA</b>' : ''}${ty.reseau ? `<span>Raccordement conseillé</span><b>${ty.reseau} kV</b>` : ''}${u.type === 'barrage' || u.type === 'batterie' ? `<span>Réserve</span><b>${nf(u.soc * 100)} %</b>` : ''}</div></div>
       ${u.type === 'frontiere' ? '' : `<div class="btns">${ty.mw && !u.fin && !ty.fatal ? `<button type="button" class="btn ${u.dispo ? 'secondaire' : ''} petit" data-act="arret" data-id="${u.id}">${u.dispo ? 'Mettre à l’arrêt' : 'Recoupler'}</button>` : ''}
-        </div>${estEauU(u) ? blocEauHex(u) : estDecU(u) ? blocDecHex(u) : ''}<div class="btns"><button type="button" class="btn danger petit" data-act="demolir" data-id="${u.id}">${confirmer === u.id ? `Confirmer : ${estCharbon(u) ? `fermeture ${nf(Math.max(.5, u.cap * .07), 1)} M€` : 'démolir'}` : estCharbon(u) ? 'Fermer définitivement' : 'Démolir'}</button></div>`}`;
+        </div>${estEauU(u) ? blocEauHex(u) : estDecU(u) ? blocDecHex(u) : ''}${blocAmelio(u)}<div class="btns"><button type="button" class="btn danger petit" data-act="demolir" data-id="${u.id}">${confirmer === u.id ? `Confirmer : ${estCharbon(u) ? `fermeture ${nf(Math.max(.5, u.cap * .07), 1)} M€` : 'démolir'}` : estCharbon(u) ? 'Fermer définitivement' : 'Démolir'}</button></div>`}`;
   }
   const ls = LIGNES.filter(l => l.a === bout(t) || l.b === bout(t));
   if (ls.length) h += `<div class="section">Lignes raccordées</div>` + ls.map(l => `<div class="ligne"><span class="pastille" style="background:${coulTaux(l)}"></span><div class="txt"><div class="t1">${KV[l.kv].nom} · ${l.nom}</div><div class="t2">${l.fin ? 'chantier' : l.hs > S.min ? 'déclenchée' : `${nf(Math.abs(l.f))} MW · ${nf(l.taux * 100)} %`}</div></div><button type="button" class="btn mini secondaire" data-act="demolir-ligne" data-id="${l.id}" aria-label="Démonter">✕</button></div>`).join('');
@@ -238,7 +238,7 @@ function blocEauHex(u) {
   if (ty.role === 'captage') h += `<span>Production</span><b>${nf((u.q || 0) * 96)} m³/j</b>${ty.qual === 'riviere' ? `<span>Débit de la rivière</span><b>${nf(debitRiv(u.rivI || 0, meteo(S.min)), 2)} m³/s</b>` : ''}${ty.qual === 'nappe' ? `<span>Niveau de la nappe</span><b>${pc(S.eau.nappe)}</b>` : ''}`;
   if (ty.role === 'stock') h += `<span>Niveau</span><b>${pc(u.niv ?? 0)}</b>`;
   if (ty.role === 'traitement') h += `<span>Eau traitée</span><b>${nf((u.q || 0) * 96)} m³/j</b>`;
-  if (ty.role === 'epuration') h += `<span>Charge</span><b>${C ? pc(C.charge || 0) : '—'}</b>${u.reut ? `<span>Réutilisation</span><b>${nf(REUT[u.type][0])} m³/j</b>` : ''}`;
+  if (ty.role === 'epuration') h += `<span>Charge</span><b>${C ? pc(C.charge || 0) : '—'}</b><span>Boues de toutes les stations</span><b>${nf(bouesJour(), 1)} t/j</b>${u.reut ? `<span>Réutilisation</span><b>${nf(REUT[u.type][0])} m³/j</b>` : ''}`;
   if (S.eau.acc && touche0(u)) h += `<span>Pollution</span><b style="color:var(--rouge)">${S.eau.acc.nom}${u.dispo === false ? ' · captage coupé' : rd('alerte') ? ' · coupé automatiquement' : ''}</b>`;
   h += `<span>Réseau</span><b style="color:var(${C ? '--vert' : '--rouge'})">${C ? C.villes.map(v => v.nom).join(', ') : ty.role === 'epuration' ? 'Reliez-la à une ville avec l’outil Égout' : 'Reliez-le à une ville avec l’outil Conduite'}</b></div>`;
   if (u.type === 'potab' && !u.fin) {
@@ -278,6 +278,13 @@ function panneauDechets() {
       <div class="barre-l"><span>Besoin</span><div class="jauge"><i style="width:${clamp(besoin / Math.max(1, D.camions), 0, 1) * 100}%;background:${besoin > D.camions ? 'var(--rouge)' : 'var(--vert)'}"></i></div><span>${nf(Math.ceil(besoin))} / ${D.camions}</span></div>
       ${flotte ? `<div class="journal-l ${flotte[0]}"><span class="d">${flotte[0] === 'mauvais' ? 'CAMIONS' : 'COÛT'}</span><span class="t">${flotte[1]}</span></div>` : ''}
       <div class="btns"><button type="button" class="btn petit secondaire" data-act="camion" data-id="-1" ${D.camions <= 1 ? 'disabled' : ''}>− 1 camion</button><button type="button" class="btn petit" data-act="camion" data-id="1">+ 1 camion · ${euros(achatCamion())}</button><button type="button" class="btn petit secondaire" data-act="camion" data-id="5">+ 5</button></div></div>
+    <div class="encart"><h3>Trajets des camions</h3><p>Les camions partent du dépôt, collectent, puis vident au site de traitement ou à un quai de transfert plus proche. Plus c’est loin, moins ils collectent.</p>
+      ${VILLES.map(v => { const tr = trajetVille(v); return `<div class="barre-l"><span style="width:auto;flex:1">${v.nom} · dépôt ${UNITES.some(u => u.type === 'garage' && !u.fin) ? `à ${tr.dg} hex.` : 'absent'} · vidage à ${tr.vide} hex.${tr.quai ? ' (quai)' : ''}</span><span style="width:auto;color:var(${tr.eff < .7 ? '--orange' : '--vert'})">${pc(tr.eff)}</span></div>`; }).join('')}
+      <p class="verrou">Pourcentage de sa capacité qu’un camion remplit chaque jour. Posez un dépôt près des villes${a >= 1970 ? ', et un quai de transfert quand le site de traitement est loin' : ''}.</p></div>
+    <div class="encart"><h3>Équipages et horaires</h3>
+      <div class="barre-l"><span>Usure</span><div class="jauge"><i style="width:${D.usure * 100}%;background:${D.usure > .6 ? 'var(--rouge)' : D.usure > .35 ? 'var(--orange)' : 'var(--vert)'}"></i></div><span>${pc(D.usure)}</span></div>
+      <p>Des tournées trop chargées et le travail de nuit fatiguent les équipages : plus ils sont usés, plus ils font grève. Ajoutez des camions${rd('ergonomie') ? '' : ' ou passez aux bennes ergonomiques (recherche)'}.</p>
+      ${a >= 1960 ? `<div class="ligne"><div class="txt"><div class="t1">Collecte de nuit</div><div class="t2">Plus de bruit le jour pour les habitants, mais camions 25 % plus chers et équipages plus vite usés</div></div><button type="button" class="btn petit ${D.nuit ? '' : 'secondaire'}" data-act="nuit-dec">${D.nuit ? 'De nuit' : 'De jour'}</button></div>` : ''}</div>
     <div class="section">Collecte par flux</div>${modes}
     <p class="verrou">Plus de passages : bacs moins pleins, mais des camions moins remplis. Un seul passage d’ordures par semaine mécontente.</p>
     <div class="section">Flux de matière sur 30 jours</div>${sankeyDec()}
@@ -293,13 +300,18 @@ function panneauDechets() {
     ${a >= 1960 ? `<div class="ligne"><div class="txt"><div class="t1">Campagne d’information</div><div class="t2">Un an : les habitants trient mieux, moins de refus de tri</div></div>${D.campagne > S.min ? `<span class="chip or">jusqu’au ${dateTxt(D.campagne)}</span>` : `<button type="button" class="btn petit" data-act="campagne-dec">${euros(.2e6 * K)}</button>`}</div>` : ''}
     <div class="section">Sites</div>
     ${sites.map(u => `<div class="ligne"><span class="pastille" style="background:var(--dechets)"></span><div class="txt"><div class="t1">${u.nom}</div><div class="t2">${u.fin ? `chantier, mise en service le ${dateTxt(u.fin)}` : texteEtiDec(u)[0]}</div></div></div>`).join('') || '<p class="vide">Aucun site : posez une décharge depuis la barre du bas.</p>'}
+    <div class="section">Liens avec l’eau et l’électricité</div>
+    <div class="stat"><span>Boues d’épuration reçues</span><b>${nf((D.jours.at(-1)?.boues) || 0, 1)} t/j${partSechage() > 0 ? ` · ${pc(partSechage())} déshydratées` : ''}</b>
+      <span>Décharges qui polluent la rivière</span><b style="color:var(${UNITES.some(u => u.type === 'decharge' && !u.fin && u.rempli && !amel(u, 'casiers') && rivProche(u.t) !== null) ? '--rouge' : '--vert'})">${UNITES.filter(u => u.type === 'decharge' && !u.fin && u.rempli && !amel(u, 'casiers') && rivProche(u.t) !== null).length}</b>
+      <span>Électricité des déchets</span><b>${nf(UNITES.filter(u => TYPES[u.type].mwhT).reduce((s, u) => s + (actifU(u) ? u.p : 0), 0), 1)} MW injectés</b></div>
+    <p class="verrou">Les stations d’épuration envoient leurs boues ici. Les jus des décharges proches de la rivière la polluent, jusqu’aux prises d’eau. L’incinérateur et le méthaniseur produisent de l’électricité s’ils sont reliés au réseau par une ligne.</p>
     <div class="section">Finances des déchets</div>
     <div class="stat"><span>Redevance et ventes, hier</span><b class="pos">+${euros(S.jourPrec?.decV ?? S.jour.decV)}</b><span>Collecte et traitement, hier</span><b class="neg">−${euros(S.jourPrec?.decO ?? S.jour.decO)}</b>${t.sortie ? `<span>Coût complet par tonne</span><b>${nf(surJ(30, 'depenses') / t.sortie)} €/t</b>` : ''}${a >= 1999 ? `<span>Taxe sur l’enfouissement</span><b>${nf(tgap(a))} €/t</b>` : ''}</div>`;
 }
 // diagramme des flux en trois colonnes : flux à la source → installations → devenir
 const NOEUDS_D = [
-  ...FLUX_D.map(f => ({ id: f, nom: NOM_FLUX_D[f], col: 0, coul: COUL_FLUX_D[f] })),
-  ...[['tri', 'Centre de tri'], ['verrier', 'Verrier'], ['compost', 'Compostage'], ['decheterie', 'Déchèterie'], ['incin', 'Incinérateur'], ['decharge', 'Décharge'], ['export', 'Export d’urgence'], ['sauvage', 'Dépôts sauvages']].map(([id, nom]) => ({ id, nom, col: 1, coul: '#a9b39a' })),
+  ...[...FLUX_D, 'boues'].map(f => ({ id: f, nom: NOM_FLUX_D[f], col: 0, coul: COUL_FLUX_D[f] })),
+  ...[['tri', 'Centre de tri'], ['verrier', 'Verrier'], ['metha', 'Méthaniseur'], ['compost', 'Compostage'], ['decheterie', 'Déchèterie'], ['incin', 'Incinérateur'], ['decharge', 'Décharge'], ['export', 'Export d’urgence'], ['sauvage', 'Dépôts sauvages']].map(([id, nom]) => ({ id, nom, col: 1, coul: '#a9b39a' })),
   ...[['recycle', 'Recyclé'], ['composte', 'Composté'], ['energie', 'Énergie'], ['enfoui', 'Enfoui'], ['noncollecte', 'Dans la rue']].map(([id, nom]) => ({ id, nom, col: 2, coul: '#a9b39a' })),
 ];
 function sankeyDec() {
@@ -336,9 +348,19 @@ function blocDecHex(u) {
   if (u.type === 'decheterie') h += `<span>Apports</span><b>${nf(VILLES.reduce((s, v) => s + (v.versDech || 0), 0), 1)} t/j</b><span>Fonctionnement</span><b>${euros(ty.fixe * K)} par an</b><span>Rôle</span><b>encombrants, déchets verts</b>`;
   if (ty.opexT && u.type !== 'decharge') h += `<span>Coût de traitement</span><b>${nf(ty.opexT * K)} €/t</b>`;
   if (u.type === 'incin') h += `<span>Chaleur vendue</span><b>${rd('chaleur') ? nf(25 * K) + ' €/t' : 'recherche nécessaire'}</b>`;
+  if (u.type === 'decharge') h += `<span>Jus de décharge</span><b style="color:var(${rivProche(u.t) !== null && !amel(u, 'casiers') ? '--rouge' : '--vert'})">${rivProche(u.t) === null ? 'loin de la rivière' : amel(u, 'casiers') ? 'captés et traités' : 'polluent la rivière'}</b>`;
+  if (ty.mwhT) h += `<span>Électricité</span><b>${raccordee(u) ? `${nf(u.p, 1)} MW injectés` : 'non raccordé : tirez une ligne 15 ou 63 kV'}</b>`;
+  if (u.type === 'garage') h += `<span>Camions basés ici</span><b>${S.dec.camions} au total</b>`;
+  if (u.type === 'quai') h += `<span>Rôle</span><b>vidage rapproché, transport par gros porteurs</b><span>Fonctionnement</span><b>${euros(ty.fixe * K)} par an</b>`;
   h += `<span>Riverains gênés</span><b>${ty.nuis ? proches.join(', ') || 'aucun' : 'aucun'}</b></div>`;
   if (ty.tj) h += `<div class="barre-l"><span>Utilisation</span><div class="jauge"><i style="width:${clamp(u.util ?? 0, 0, 1) * 100}%;background:${(u.util ?? 0) > .97 ? 'var(--rouge)' : 'var(--dechets)'}"></i></div><span>${pc(u.util ?? 0)}</span></div>`;
   return h;
+}
+function blocAmelio(u) {  // malus du bâtiment et équipements qui les réduisent
+  const ks = amelPour(u); if (!ks.length) return '';
+  return '<div class="section">Malus et améliorations</div>' + ks.map(k => { const A = AMELIO[k], ok = amel(u, k), dispo = amelDispo(k);
+    return `<div class="ligne"><div class="txt"><div class="t1">${A.nom}</div><div class="t2">${ok ? A.effet : `Malus : ${A.malus}. ${A.effet}.`}</div></div>${ok ? '<span class="chip vert">Équipé</span>' : `<button type="button" class="btn petit" ${dispo && !u.fin ? `data-act="amelio" data-id="${u.id}" data-k="${k}"` : 'disabled'}>${dispo ? `${prixM(A.cout(u))} M€` : A.rd && !rd(A.rd) ? 'R&D' : `En ${A.an}`}</button>`}</div>`; }).join('') +
+    (ks.some(k => !amelDispo(k) && AMELIO[k].rd) ? `<p class="verrou">Recherche : ${ks.filter(k => !amelDispo(k) && AMELIO[k].rd).map(k => RDI[AMELIO[k].rd].nom).join(', ')}.</p>` : '');
 }
 function blocVilleDec(v) {
   bacs(v);
@@ -357,7 +379,7 @@ function majNav() { document.querySelectorAll('.nav button').forEach(b => b.clas
 
 // graphes (canvas 2D)
 function prep(id) { const c = document.getElementById(id); if (!c) return null; const r = devicePixelRatio || 1, w = c.clientWidth, h = +c.getAttribute('height'); c.width = w * r; c.height = h * r; c.style.height = h + 'px'; const g2 = c.getContext('2d'); g2.scale(r, r); return [g2, w, h]; }
-const ORDRE_PILE = ['nucleaire', 'hydro', 'charbon', 'fioul', 'biomasse', 'gaz', 'eolien', 'solaire', 'stockage', 'import', 'tac'];
+const ORDRE_PILE = ['nucleaire', 'hydro', 'charbon', 'fioul', 'biomasse', 'dechets', 'gaz', 'eolien', 'solaire', 'stockage', 'import', 'tac'];
 function graphes() {
   let p = prep('g-charge');
   if (p) {

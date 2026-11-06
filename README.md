@@ -85,7 +85,7 @@ On construit dans la vue de chaque réseau.
   - La nuit, seules les villes alimentées s'allument : une coupure se voit.
 - **Tutoriel** (s'ouvre seul à la première partie, puis Menu → Tutoriel) : la chaîne de l'électricité (centrale → 225/400 kV → poste 225/63 kV → 63 kV → ville) celle de l'eau (captage → potabilisation → château d'eau → ville → égout → épuration → rivière) et celle des déchets (ville → bacs → camions → tri, compost, incinération → décharge), étape par étape.
 - **Économie** : tarifs, combustibles, taxe carbone qui augmente chaque année, prêts.
-- **R&D** : 45 technologies réparties en 6 branches et 5 niveaux.
+- **R&D** : 54 technologies réparties en 6 branches et 5 niveaux.
 - **Événements** : pannes, tempêtes, vagues de froid, canicules, sécheresses, crise du gaz.
 - **Ambiance** : fermes sur les plaines et les prairies, bateaux, oiseaux, vaches, cerfs et tracteurs.
   - Routes entre chaque ville et ses deux voisines (en terre, puis goudronnées en 1930), une desserte vers chaque ouvrage isolé et un chemin de terre vers chaque ferme isolée. Les routes se redessinent quand on construit ou démolit.
@@ -107,13 +107,32 @@ La troisième filière se gère dans la vue **Déchets** (touche 4) et l'onglet 
 - **Production** : chaque ville remplit ses poubelles, environ 120 kg par habitant et par an en 1900, plus de 500 kg en 2000. La part des emballages grandit au fil du siècle ; les déchets verts reviennent au printemps et à l'automne, les emballages en fin d'année, les encombrants après une tempête.
 - **Camions de collecte** : le premier levier. Tombereaux à cheval (2,5 t par jour), camions (5 t, 1925), puis bennes tasseuses (recherche). Trop peu de camions : les bacs débordent et les ordures finissent dans la rue. Trop : chaque camion coûte cher pour rien. L'onglet compare la flotte au besoin ; les camions se voient sur la carte, dans les quartiers et sur les routes des sites.
 - **Collecte par flux** : passages par semaine pour les ordures, colonnes à verre (1974), bac jaune des emballages (1992, recherche), bac marron des biodéchets (2000, recherche).
-- **Sites** : décharge (1900, se remplit, loin des habitations et de la rivière), usine d'incinération (1960), compostage (1980), déchèterie (1985, encombrants et déchets verts), centre de tri (1990). Décharges pleines : export d'urgence à prix d'or.
+- **Sites** : dépôt de camions (1900), décharge (1900, se remplit, loin des habitations et de la rivière), quai de transfert (1970), usine d'incinération (1960), méthaniseur (2005), compostage (1980), déchèterie (1985, encombrants et déchets verts), centre de tri (1990). Décharges pleines : export d'urgence à prix d'or.
 - **Économie** : redevance par habitant, ventes des matières triées à des cours qui bougent (stocker quand un cours s'effondre), taxe sur l'enfouissement à partir de 1999.
 - **Gêne** : dépôts sauvages, bacs qui débordent et riverains des sites pèsent sur la satisfaction. Lentilles Remplissage des bacs et Nuisances.
 - **Événements** : grève de la collecte, incendie de centre de tri, effondrement d'un cours, décharge sauvage.
-- **Recherche** : une branche « Déchets » de 8 technologies.
+- **Recherche** : une branche « Déchets » de 13 technologies.
 - **Diagramme des flux** : d'où viennent les tonnes et où elles vont sur 30 jours ; l'installation saturée est cerclée de rouge. Chaque tonne produite est retrouvée (vérifié chaque jour).
+- **Dépôt et quai de transfert** : les camions partent d'un dépôt, collectent, puis vident au site de traitement ou à un quai de transfert plus proche (1970). Plus le trajet est long, moins un camion collecte ; après un quai, de gros porteurs font le reste pour moins cher.
+- **Équipages et horaires** : des tournées trop chargées et la collecte de nuit usent les équipages, et des équipages usés font plus souvent grève. La collecte de nuit supprime la gêne du bruit mais coûte 25 % de plus. Recherche « Bennes ergonomiques ».
+- **Lien avec l'électricité** : l'incinérateur (4 MW) et le méthaniseur (2005, recherche) produisent selon les tonnes traitées, s'ils sont reliés au réseau en 15 ou 63 kV.
+- **Lien avec l'eau** : les stations d'épuration envoient leurs boues dans les flux de déchets (méthaniseur, compost, incinérateur ou décharge) ; les jus des décharges proches de la rivière la polluent, jusqu'aux prises d'eau.
 - **Objectif 2050** : 65 % des déchets valorisés, dont 30 % recyclés ou compostés.
+
+## Malus et améliorations des bâtiments
+
+Beaucoup de bâtiments, dans les trois réseaux, ont un malus. La fiche du bâtiment le montre, avec l'équipement qui le réduit, débloqué par une recherche :
+
+| Bâtiments | Malus | Équipement | Recherche |
+|---|---|---|---|
+| Usine, centrales au charbon et au fioul | fumées : riverains gênés, malus du charbon | dépoussiérage et désulfuration | Production, 1970 |
+| Centrale au gaz, turbine | oxydes d'azote : riverains gênés | brûleurs bas NOx | Production, 1990 |
+| Station d'épuration, lagunage | odeurs près des villes | couverture et désodorisation | Eau, 1975 |
+| Station d'épuration, lagunage | boues à éliminer | déshydratation des boues (÷3) | Eau, 1980 |
+| Décharge | jus qui polluent la rivière | casiers étanches | Déchets, 1975 |
+| Décharge | odeurs et méthane | captage du biogaz | Déchets, 1990 |
+| Incinérateur | fumées | traitement des fumées | Déchets, 1990 |
+| Compostage, méthaniseur | odeurs | bâtiment fermé | à partir de 1995 |
 
 La maquette autonome qui a servi à concevoir ce mode reste dans `maquettes/dechets.html`.
 

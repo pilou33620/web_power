@@ -41,6 +41,7 @@ const courbeEol = v => (v < 3 || v > 25 ? 0 : v > 12 ? 1 : ((v - 3) / 9) ** 3);
 function fatale(u, w, s) {
   const ty = TYPES[u.type];
   if (u.type === 'fil') return u.cap * clamp(.3 + .5 * w.debit, 0, 1);
+  if (ty.mwhT) return Math.min(u.cap, (u.q || 0) * ty.mwhT / 24);  // incinérateur, méthaniseur : selon les tonnes traitées la veille
   if (ty.f === 'solaire') return u.cap * clamp(Math.sin(s.el) / .62, 0, 1) ** 1.2 * (1 - .8 * w.neb) * (.6 + u.t.soleil * .1) * (rd('bifacial') ? 1.15 : 1);
   if (ty.f === 'eolien') return u.cap * courbeEol(w.vent * u.t.vent / 6.2 * (u.type === 'offshore' ? 1.15 : 1)) * (rd('pales') ? 1.08 : 1) * (w.vent > 25 ? 0 : 1);
   return 0;

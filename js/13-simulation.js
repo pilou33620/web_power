@@ -46,10 +46,11 @@ function minuit(m) {
   S.jourPrec = { ...j }; S.jour = nouveauCumul();
   jourDechets(m); if (!BANC_ON && vue === 'dechets' && !mode && ['bacs', 'nuis'].includes(S.lentille)) majLentille();
   // satisfaction
-  const charbon = annee(m) >= 1980 ? UNITES.filter(u => estCharbon(u) && enService(u)).length : 0;  // la pollution n'est mal vue qu'à partir des années 1980
+  const charbon = annee(m) >= 1980 ? UNITES.filter(u => estCharbon(u) && enService(u) && !amel(u, 'filtres')).length : 0;  // la pollution n'est mal vue qu'à partir des années 1980
   const exigence = clamp((annee(m) - 1900) / 70, .05, 1);  // au début du siècle, les pannes faisaient partie de la vie
   const ex = exigenceEau(annee(m)), E = S.eau;  // eau : pénurie, eau non conforme, rejets non épurés, prix, restrictions
   const eauPen = Math.min(30, j.m3m / Math.max(1, j.m3d) * 100 * .8 * ex) + Math.min(20, j.nc / Math.max(1, j.m3) * 60 * ex) + (annee(m) >= 1970 ? Math.min(8, j.ut / Math.max(1, j.eu) * 8) : 0) + Math.max(0, E.tarif - 3.6) * 8 + (E.restriction ? 3 : 0)
+    + (annee(m) >= 1970 ? Math.min(3, UNITES.filter(u => ['step', 'lagunage'].includes(u.type) && !u.fin && !amel(u, 'desodo') && VILLES.some(v => v.tuiles.some(x => dist(x, u.t) <= 2))).length) : 0)  // odeurs des stations près des villes
     + Math.min(15, (E.crises || []).filter(c => c.fin > m).reduce((s, c) => s + (VILLES.find(v => v.nom === c.v)?.hab || 0), 0) / Math.max(1, VILLES.reduce((s, v) => s + v.hab, 0)) * 40);  // une épidémie marque les esprits
   const cible = 80 - Math.min(70, S.an.coupure * .25 * exigence) - Math.max(0, S.tarif.res - 170) * .7 - Math.max(0, S.tarif.ter - 150) * .3 - Math.min(20, charbon * 3) - S.nimby + (S.an.bas / Math.max(1, S.an.e)) * 8 - eauPen - S.dec.pen;
   S.eauPen = eauPen;

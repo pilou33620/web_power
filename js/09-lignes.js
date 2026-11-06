@@ -22,7 +22,7 @@ function finValide(t, kv) {
   if (t.ville) return kv <= 63 ? null : 'Une ville se raccorde en 15 ou 63 kV, par son poste source';
   if (!t.occ) return 'Une ligne relie deux ouvrages : poste, centrale ou ville';
   if (estEauU(t.occ)) return 'Les ouvrages d’eau se relient par conduites, dans la vue Eau';
-  if (estDecU(t.occ)) return 'Les sites de déchets sont desservis par les camions de collecte';
+  if (estDecU(t.occ) && !TYPES[t.occ.type].mw) return 'Les sites de déchets sont desservis par les camions de collecte';
   const ty = t.occ.type, mw = TYPES[ty].mw;
   if (ty === 'frontiere' && kv <= 63) return 'L’interconnexion se fait en 225 ou 400 kV';
   if (kv === 15 && mw > 15) return `${t.occ.nom} est trop puissante pour du 15 kV`;

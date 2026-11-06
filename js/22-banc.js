@@ -3,9 +3,9 @@
 // Aucune IA : chaque stratégie applique des règles fixes une fois par mois de jeu, ce qui rend le banc reproductible.
 const STRATS = {
   passif: { nom: 'Passif', desc: 'Ne construit rien : la région manque vite d’électricité, la partie doit être perdue.' },
-  fossile: { nom: 'Fossile', desc: 'Charbon, puis fioul, puis gaz : suit la croissance au moindre coût, sans viser le bas carbone.', budget: .3, ferme: true, rd: ['fuites', 'cag', 'ozone', 'tasseuse', 'selective', 'alerte', 'chaleur', 'biodechets', 'trisemi', 'denitr', 'membranes', 'maint', 'compteurs', 'locales', 'ccga', 'compens', 'scada', 'effac', 'tarifs', 'htls'], ferme2: ['gaz', 'charbonG', 'fioul', 'charbon', 'tac', 'usine'] },
+  fossile: { nom: 'Fossile', desc: 'Charbon, puis fioul, puis gaz : suit la croissance au moindre coût, sans viser le bas carbone.', budget: .3, ferme: true, rd: ['fuites', 'cag', 'ozone', 'tasseuse', 'desulfu', 'lixiviats', 'desodo', 'selective', 'alerte', 'chaleur', 'boues', 'fumees', 'biogaz', 'ergonomie', 'biodechets', 'trisemi', 'denitr', 'membranes', 'maint', 'compteurs', 'locales', 'ccga', 'compens', 'scada', 'effac', 'tarifs', 'htls'], ferme2: ['gaz', 'charbonG', 'fioul', 'charbon', 'tac', 'usine'] },
   vert: { nom: 'Bas carbone', desc: 'Hydraulique dès que possible, nucléaire à partir de 1974, puis renouvelables, stockage et petits réacteurs.', budget: 1, ferme: true, vert: true,
-    rd: ['fuites', 'cag', 'ozone', 'tasseuse', 'selective', 'alerte', 'chaleur', 'biodechets', 'trisemi', 'tournees', 'incitative', 'optique', 'denitr', 'telerel', 'membranes', 'bioMB', 'reut', 'osmose', 'reversible', 'compens', 'tarifs', 'effac', 'scada', 'pales', 'maint', 'locales', 'volants', 'htls', 'ccga', 'epr', 'compteurs', 'li', 'offshore', 'dlr', 'previ', 'bifacial', 'b4h', 'sodium', 'gridf', 'smr', 'v2g', 'h2', 'ia', 'hvdc', 'fusion'], ferme2: ['smr', 'nucleaire', 'barrage', 'fil', 'biomasse', 'charbonG', 'charbon', 'usine', 'tac'] },
+    rd: ['fuites', 'cag', 'ozone', 'tasseuse', 'desulfu', 'lixiviats', 'desodo', 'selective', 'alerte', 'chaleur', 'boues', 'fumees', 'biogaz', 'ergonomie', 'lownox', 'biodechets', 'trisemi', 'metha', 'tournees', 'incitative', 'optique', 'denitr', 'telerel', 'membranes', 'bioMB', 'reut', 'osmose', 'reversible', 'compens', 'tarifs', 'effac', 'scada', 'pales', 'maint', 'locales', 'volants', 'htls', 'ccga', 'epr', 'compteurs', 'li', 'offshore', 'dlr', 'previ', 'bifacial', 'b4h', 'sodium', 'gridf', 'smr', 'v2g', 'h2', 'ia', 'hvdc', 'fusion'], ferme2: ['smr', 'nucleaire', 'barrage', 'fil', 'biomasse', 'charbonG', 'charbon', 'usine', 'tac'] },
 };
 let BANC_ON = false;
 const CF = { fil: .55, solaire: .13, eolien: .27, offshore: .42, barrage: .45, biomasse: .7, nucleaire: .85, smr: .85, fusion: .85 };
@@ -143,6 +143,9 @@ function botDechets() {  // en gestionnaire prudent : flotte au besoin, décharg
   for (const f of ['verre', 'emb', 'bio']) if (!D.modes[f] && modeDispo(f) && S.argent > coutMode(f) + seuilFaillite()) deployerMode(f);
   if (D.modes.emb && nb('tri') * capTri() < p * .2 && !enCours('tri')) poser('tri');
   if (dispoType('compost') && nb('compost') * TYPES.compost.tj < p * (D.modes.bio ? .12 : .03) && !enCours('compost')) poser('compost');
+  if (!nb('garage')) poser('garage');
+  if (rd('metha') && nb('metha') * TYPES.metha.tj < p * .1 && !enCours('metha')) poser('metha');
+  for (const u of UNITES) for (const k of amelPour(u)) if (!amel(u, k) && amelDispo(k) && !u.fin && S.argent > AMELIO[k].cout(u) * 1e6 + seuilFaillite()) ameliorer(u, k);  // le banc équipe ses bâtiments dès que possible
   if (dispoType('incin') && nb('incin') * TYPES.incin.tj < p * .45 && !enCours('incin') && (a >= 1975 || de.ans < 6) && S.argent > coutType('incin') * 1e6 + seuilFaillite()) poser('incin');
 }
 function ajouterEtape(u, k) {

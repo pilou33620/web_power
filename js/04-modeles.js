@@ -221,6 +221,24 @@ Object.assign(BAT, {
     const conv = boite(.8, .4, 5.2); conv.rotateX(-.4); put(L, conv, 0x6b6f75, 4.6, 2.3, -1.4, 0, .1);
     for (let i = 0; i < 6; i++) put(L, boite(1.3, 1.3, 1.3), [0xc98500, 0x3987e5, 0x8d8f96, 0xe9e3d3][i % 4], -3.4 + (i % 3) * 1.5, .65 + (i > 2 ? 1.3 : 0), 4.6, 0, .1);
   },
+  garage(L) {
+    sol(L, 0xb8b2a2);
+    put(L, boite(8, 3.4, 5), 0xe8e2d4, -1, 1.7, -1.8); put(L, boite(8.4, .4, 5.4), 0x5fae3e, -1, 3.6, -1.8);
+    for (const x of [-3.6, -1, 1.6]) put(L, boite(2, 2.4, .1), 0x6b6f75, x, 1.2, .75, 0, 0);
+    for (const [x, z] of [[-3, 3.4], [.4, 3.4], [3.8, 2.6]]) { put(L, boite(3, 1.4, 1.5), 0x7be08a, x, 1, z); put(L, boite(1.1, 1.2, 1.5), 0xf3efe6, x + 1.9, .9, z); }
+  },
+  quai(L) {
+    sol(L, 0xbdb6a6);
+    put(L, boite(9, 2, 4), 0xcfcac0, 0, 1, -1.8); const r = boite(4, .4, 3); r.rotateZ(.35); put(L, r, 0x8d8f96, -5.4, .8, -1.8, 0, .1);
+    for (const [x, c] of [[-2.6, 0x3f7fb5], [.4, 0x8d8f96], [3.4, 0x5fae3e]]) put(L, boite(2.6, 1.6, 2.2), c, x, .8, 2.2);
+    put(L, boite(5.4, 1.8, 1.8), 0xe9e3d3, 1, 3, -1.8); put(L, boite(1.4, 1.6, 1.8), 0xd9573b, 4.4, 2.9, -1.8);
+  },
+  metha(L, ex) {
+    sol(L, 0xb3bba0);
+    for (const [x, z] of [[-3.2, -2.4], [2.6, -2.8]]) { put(L, cyl(2.6, 2.6, 2.4, 14), 0xd8d4c8, x, 1.2, z); put(L, new THREE.SphereGeometry(2.6, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0x86b85a, x, 2.4, z); }
+    put(L, boite(4, 2.4, 2.6), 0xf3efe6, -1.6, 1.2, 3.6); put(L, boite(4.3, .35, 2.9), 0x7be08a, -1.6, 2.5, 3.6);
+    put(L, cyl(.3, .4, 5, 8), 0x8d8f96, 4.6, 2.5, 3.2); put(L, cone(.5, .9, 6), 0xff9a4a, 4.6, 5.4, 3.2, 0, .1);
+  },
   incin(L, ex) {
     sol(L, 0xb0ab9d);
     put(L, boite(7, 4.6, 5), 0xd8d4c8, -1.4, 2.3, .4); put(L, boite(7.3, .5, 5.3), 0xf0a35e, -1.4, 4.75, .4);
