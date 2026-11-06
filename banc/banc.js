@@ -32,11 +32,11 @@ const N = +arg('paralleles', 4), sortie = arg('sortie', 'banc');
   await Promise.all(Array.from({ length: Math.min(N, runs.length) }, (_, n) => ouvrier(n)));
   await b.close();
   fs.writeFileSync(sortie + '-resultats.json', JSON.stringify(res, null, 1));
-  const L = [`# Banc d'équilibrage GridMaster`, '', `${res.length} parties en ${Math.round((Date.now() - t0) / 1000)} s.`, '', '| Carte | Difficulté | Stratégie | Issue | Bas carbone 2049 | Coupure moy. (min/an) | Trésorerie (M€) | Dette (M€) | Satisfaction |', '|---|---|---|---|---|---|---|---|---|'];
-  for (const r of res) { const rs = r.rapports, cp = rs.reduce((a, x) => a + x.coupure, 0) / Math.max(1, rs.length); L.push(`| ${r.carte} | ${r.diff} | ${r.strat} | ${r.issue} (${r.fin}) | ${rs.at(-1)?.bas ?? '-'} % | ${cp.toFixed(1)} | ${r.argent} | ${r.dette} | ${r.sat} % |`); }
+  const L = [`# Banc d'équilibrage GridMaster`, '', `${res.length} parties en ${Math.round((Date.now() - t0) / 1000)} s.`, '', '| Carte | Difficulté | Stratégie | Issue | Bas carbone 2049 | Coupure moy. (min/an) | Trésorerie (M€) | Dette (M€) | Satisfaction | Déchets valorisés 2049 | dont recyclés |', '|---|---|---|---|---|---|---|---|---|---|---|'];
+  for (const r of res) { const rs = r.rapports, cp = rs.reduce((a, x) => a + x.coupure, 0) / Math.max(1, rs.length); L.push(`| ${r.carte} | ${r.diff} | ${r.strat} | ${r.issue} (${r.fin}) | ${rs.at(-1)?.bas ?? '-'} % | ${cp.toFixed(1)} | ${r.argent} | ${r.dette} | ${r.sat} % | ${rs.at(-1)?.decVal ?? '-'} % | ${rs.at(-1)?.decRec ?? '-'} % |`); }
   for (const r of res) {
-    L.push('', `## ${r.carte} · ${r.diff} · ${r.strat}`, '', `Ouvrages : ${Object.entries(r.compte).map(([k, v]) => `${k} ${v}`).join(', ')} · ${r.lignes} lignes`, '', '| Année | Bas carbone | gCO₂/kWh | Coupure | Résultat (M€) | Investi (M€) | Pointe (MW) | Satisf. | Eau servie | Eau conforme | Épurée | Crises | Pollutions |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|');
-    for (const a of r.rapports) L.push(`| ${a.an} | ${a.bas} % | ${a.co2} | ${a.coupure} | ${a.res} | ${a.capex} | ${a.pointe} | ${a.sat} % | ${a.eau ?? '-'} % | ${a.conf ?? '-'} % | ${a.epure ?? '-'} % | ${a.crises ?? '-'} | ${a.acc ?? '-'} |`);
+    L.push('', `## ${r.carte} · ${r.diff} · ${r.strat}`, '', `Ouvrages : ${Object.entries(r.compte).map(([k, v]) => `${k} ${v}`).join(', ')} · ${r.lignes} lignes`, '', '| Année | Bas carbone | gCO₂/kWh | Coupure | Résultat (M€) | Investi (M€) | Pointe (MW) | Satisf. | Eau servie | Eau conforme | Épurée | Crises | Pollutions | Déchets valorisés | Recyclés |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+    for (const a of r.rapports) L.push(`| ${a.an} | ${a.bas} % | ${a.co2} | ${a.coupure} | ${a.res} | ${a.capex} | ${a.pointe} | ${a.sat} % | ${a.eau ?? '-'} % | ${a.conf ?? '-'} % | ${a.epure ?? '-'} % | ${a.crises ?? '-'} | ${a.acc ?? '-'} | ${a.decVal ?? '-'} % | ${a.decRec ?? '-'} % |`);
   }
   fs.writeFileSync(sortie + '-rapport.md', L.join('\n'));
   console.log('Écrit :', sortie + '-resultats.json', sortie + '-rapport.md');
