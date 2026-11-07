@@ -239,7 +239,7 @@ const FAC = {
 const CORPS = [
   { id: 'mercure', nom: 'Mercure', anneau: 3, per: 2.9, a0: .3, ua: .39, T0: 440, g: .38, ray: 6, c1: '#c9b9a8', c2: '#5e5248', sol: 'mercure', bm: 2, bs: 1, specs: ['Métaux ×2', 'Panneaux solaires ×6,6', 'Segments de Dyson −40 % avec une mine ici'], desc: 'Une boule de roche brûlée. Pas d\'air, 430 °C le jour, −170 °C la nuit.' },
   { id: 'venus', nom: 'Vénus', anneau: 4, per: 7.4, a0: 2.1, ua: .72, T0: 737, g: .9, ray: 9, c1: '#f8e0a4', c2: '#b9853f', sol: 'venus', bm: 1, bs: 1.5, specs: ['Sol de lave : cités flottantes seulement', 'Terraformable (parasols, terraformeurs)', 'Se refroidit avec la sphère de Dyson'], desc: 'Effet de serre extrême. À 50 km d\'altitude, la pression et la température sont terrestres.' },
-  { id: 'terre', nom: 'Terre', anneau: 5, per: 12, a0: 0, ua: 1, T0: 288, atmo: 1, g: 1, ray: 10, c1: '#8fd3ff', c2: '#245c38', sol: 'terre', bm: 1, bs: 1, specs: ['Départ, partagée entre trois factions', 'Gravité forte : missions chères', 'Gèle si la sphère de Dyson est trop grande'], desc: 'Berceau de l\'humanité, découpé entre les puissances.' },
+  { id: 'terre', nom: 'Terre', anneau: 5, per: 12, a0: 0, ua: 1, T0: 288, atmo: 1, g: 1, ray: 10, c1: '#8fd3ff', c2: '#245c38', sol: 'terre', bm: 1, bs: 1, specs: ['Départ : Amérique du Nord, Europe et Asie de l\'Est', 'Gravité forte : missions chères', 'Gèle si la sphère de Dyson est trop grande'], desc: 'Berceau de l\'humanité, découpé entre les puissances.' },
   { id: 'lune', nom: 'Lune', parent: 'terre', ua: 1, T0: 250, g: .17, ray: 4.5, c1: '#e0e0e0', c2: '#6e6e72', sol: 'lune', bm: 1, bs: 1, specs: ['Hélium-3 dans le régolithe', 'Gravité faible : missions −25 %, vaisseaux −30 %'], desc: 'À trois jours de la Terre. Le port spatial naturel.' },
   { id: 'mars', nom: 'Mars', anneau: 6, per: 22.6, a0: 4, ua: 1.52, T0: 210, atmo: .05, g: .38, ray: 8, c1: '#ee8a60', c2: '#8a3a22', sol: 'mars', bm: 1.2, bs: 1, specs: ['Glace d\'eau aux pôles', 'Terraformable', 'Tempêtes de poussière'], desc: 'Froide et sèche, mais la meilleure candidate pour une seconde Terre.' },
   { id: 'phobos', nom: 'Phobos', parent: 'mars', ua: 1.52, T0: 233, g: .001, ray: 2.5, c1: '#9a8a7c', c2: '#4a3e36', sol: 'phobos', bm: 1.5, bs: 1, specs: ['Gravité nulle : vaisseaux −50 %', 'Port d\'attache au-dessus de Mars'], desc: 'Un caillou de 22 km qui frôle Mars. Il s\'écrasera sur elle dans 50 millions d\'années.' },
@@ -263,7 +263,8 @@ const C = Object.fromEntries(CORPS.map(c => [c.id, c]));
 // Terrains : h = hauteur du prisme, tg = étiquettes utilisées par les bâtiments
 const TER = {
   ocean: ['Océan', '#2f78c4', 0, 'eau'], plage: ['Côte', '#e6d49a', 1, 'sol'], plaine: ['Plaine', '#7cc35a', 1.5, 'sol'], foret: ['Forêt', '#3f9a48', 1.7, 'sol'],
-  montagne: ['Montagne', '#8d8f98', 3.6, 'sol roche'], neige: ['Banquise', '#eef4f8', 1.2, 'sol glace'],
+  montagne: ['Montagne', '#8d8f98', 3.6, 'sol roche'], neige: ['Glace', '#eef4f8', 1.2, 'sol glace'],
+  desert: ['Désert', '#e2c27a', 1.3, 'sol'], toundra: ['Toundra', '#9fae8a', 1.3, 'sol'], hautfond: ['Haut-fond', '#3f92d6', .15, 'eau'],
   regolithe: ['Régolithe', '#c4643a', 1.5, 'sol roche'], dune: ['Dunes', '#d98a50', 1.6, 'sol'], canyon: ['Canyon', '#7d321e', .4, 'sol roche'], mont_m: ['Mont martien', '#a14d2e', 3.8, 'sol roche'], glace: ['Calotte de glace', '#e4f1fa', 1.8, 'sol glace'],
   mer_l: ['Mer lunaire', '#6d7076', 1, 'sol regl'], regl: ['Régolithe lunaire', '#a8aaae', 1.6, 'sol roche regl'], cratere: ['Cratère', '#8f9196', 1.1, 'sol roche regl crat'],
   roche_m: ['Roche brûlée', '#8a7a6a', 1.6, 'sol roche'], faille: ['Faille ardente', '#5a3a2a', .5, 'sol roche lave'],
@@ -290,7 +291,7 @@ const BAT = {
   defense: { n: 'Batterie de défense', f: 'defense', cout: { cr: 90, me: 70 }, sur: ['sol', 'nuage'], d: 'Défense +8 contre les raids', p: { en: -1 } },
 };
 const ORB = {
-  station: { n: 'Station orbitale', cout: { cr: 120, me: 80 }, d: '+4 crédits, +2 science', p: { cr: 4, sc: 2, en: -1 } },
+  station: { n: 'Station habitée', cout: { cr: 220, me: 160 }, d: 'Tore géant qui tourne pour recréer la gravité : +200 M d\'habitants, +4 crédits, +2 science', p: { cr: 4, sc: 2, en: -2 } },
   chantier: { n: 'Chantier naval', cout: { cr: 150, me: 120 }, d: 'Construit des vaisseaux', p: { en: -2 } },
   anneau: { n: 'Anneau de vie', cout: { cr: 600, me: 500 }, tech: 'mega', d: '+2 000 M d\'habitants, +10 crédits. Gravité artificielle : ne dépend pas du climat', p: { cr: 10, en: -6 } },
   ecope: { n: 'Écope gazière', cout: { cr: 140, me: 90 }, gaz: true, d: '+4 hélium-3', p: { he: 4, en: -1 } },
@@ -378,11 +379,43 @@ function terrain(sol, n, lat, u) {
     case 'charon': return u < .25 ? 'cratere' : n > .3 ? 'glace_p' : 'roche_c';
   }
 }
-// nombre de cases : 10 f² + 2 (Terre 362, planètes 252, lunes 162, petites lunes 92, géantes 642)
-const FREQ = c => c.id === 'terre' ? 6 : c.gaz ? 8 : c.ray < 3.2 ? 3 : c.parent || c.id === 'ceres' || c.id === 'pluton' ? 4 : 5;
+// nombre de cases : 10 f² + 2 (Terre 1 442, planètes 252, lunes 162, petites lunes 92, géantes 642)
+const FREQ = c => c.id === 'terre' ? 12 : c.gaz ? 8 : c.ray < 3.2 ? 3 : c.parent || c.id === 'ceres' || c.id === 'pluton' ? 4 : 5;
+// La Terre : continents simplifiés, en [longitude, latitude] (degrés)
+const CONTINENTS = [
+  [[-168, 66], [-162, 70], [-140, 70], [-125, 71], [-95, 72], [-85, 70], [-82, 66], [-88, 64], [-94, 60], [-92, 57], [-85, 55], [-80, 52], [-79, 57], [-77, 62], [-72, 62], [-64, 60], [-56, 52], [-66, 45], [-70, 42], [-76, 38], [-76, 35], [-81, 31], [-80, 25], [-83, 29], [-90, 30], [-97, 27], [-98, 22], [-95, 18], [-91, 21], [-87, 21], [-88, 16], [-84, 15], [-83, 10], [-79, 9], [-77, 8], [-80, 7], [-85, 11], [-92, 14], [-97, 16], [-105, 20], [-112, 29], [-117, 32], [-121, 35], [-124, 40], [-124, 46], [-127, 51], [-133, 56], [-140, 60], [-150, 61], [-157, 58], [-163, 55], [-160, 59], [-166, 62]],
+  [[-73, 78], [-60, 82], [-30, 83], [-20, 80], [-20, 70], [-30, 68], [-42, 60], [-50, 64], [-55, 70], [-60, 76]],
+  [[-77, 8], [-72, 12], [-62, 11], [-52, 5], [-50, 0], [-44, -2], [-35, -5], [-35, -9], [-39, -15], [-40, -22], [-48, -26], [-53, -34], [-58, -38], [-62, -39], [-65, -45], [-67, -50], [-69, -55], [-74, -52], [-74, -45], [-73, -37], [-71, -30], [-70, -18], [-76, -14], [-81, -6], [-80, -2], [-79, 2]],
+  [[-9, 37], [-9, 43], [-2, 43.5], [-5, 48], [2, 51], [8, 54], [9, 57], [11, 56], [13, 55], [21, 55], [24, 59], [22, 61], [25, 65], [22, 66], [18, 63], [17, 60], [18, 59], [16, 56], [12, 56], [11, 59], [5, 59], [5, 62], [13, 67], [20, 70], [28, 71], [34, 69], [41, 67], [44, 68], [54, 69], [60, 70], [68, 73], [73, 72], [80, 73], [88, 76], [100, 78], [112, 74], [130, 72], [140, 72], [150, 71], [160, 70], [170, 70], [180, 68], [180, 66], [175, 62], [165, 60], [157, 51], [155, 57], [150, 59], [142, 59], [136, 55], [140, 48], [133, 43], [129, 41], [129, 35], [126, 35], [126, 38], [122, 40], [121, 37], [119, 35], [122, 31], [120, 26], [115, 22], [110, 21], [108, 17], [109, 12], [105, 9], [103, 11], [100, 13], [101, 7], [103, 1.5], [100, 5], [98, 8], [98, 16], [94, 17], [92, 22], [90, 22], [87, 21], [80, 15], [80, 10], [77, 8], [73, 17], [72, 21], [67, 25], [62, 25], [57, 25], [56, 27], [52, 28], [49, 30], [48, 29], [51, 24], [56, 25], [58, 23], [59, 21], [55, 17], [52, 16], [45, 13], [43, 15], [39, 21], [35, 28], [35, 32], [36, 36], [30, 36], [27, 37], [26, 40], [29, 41], [23, 40], [24, 38], [22, 37], [21, 39], [19, 42], [15, 41], [16, 38], [12, 42], [10, 44], [7, 44], [3, 43], [0, 39], [-2, 37], [-6, 36]],
+  [[-17, 21], [-16, 28], [-10, 30], [-6, 35.8], [3, 37], [10, 37], [11, 33], [20, 31], [25, 32], [32, 31], [34, 28], [32, 22], [37, 18], [43, 12], [51, 12], [51, 10], [44, 4], [40, -3], [40, -10], [35, -17], [35, -24], [32, -28], [28, -33], [20, -35], [18, -31], [12, -18], [13, -10], [9, -1], [9, 4], [4, 6], [-8, 4], [-13, 8], [-17, 14]],
+  [[44, -25], [47, -25], [50, -15], [49, -12], [44, -17]],
+  [[114, -22], [114, -34], [118, -35], [124, -34], [131, -31], [138, -35], [141, -38], [148, -38], [151, -34], [153, -28], [153, -25], [146, -19], [145, -15], [142, -11], [141, -17], [136, -12], [132, -11], [129, -15], [125, -14], [122, -18]],
+  [[-5, 50], [1, 51], [1, 53], [-2, 56], [-2, 58], [-5, 58.6], [-6, 56], [-3, 54], [-5, 52]], [[-10, 52], [-6, 52], [-6, 55], [-10, 54]],
+  [[130, 31], [135, 34], [140, 35], [141, 38], [142, 42], [145, 44], [141, 45], [140, 41], [136, 37], [131, 34]],
+  [[95, 5], [106, -6], [103, -5], [98, 2]], [[109, 2], [117, 7], [119, 1], [116, -4], [110, -3]], [[105, -6], [115, -8], [114, -9], [106, -7.5]], [[131, -1], [141, -2], [150, -10], [141, -9], [137, -5]],
+  [[-24, 64], [-14, 64], [-14, 66], [-22, 66.5]], [[172, -34], [178, -38], [174, -41], [171, -46], [167, -46], [172, -40]], [[120, 22], [122, 25], [121, 19]], [[80, 6], [82, 7], [80, 10]],
+];
+const DESERTS = [[-17, 35, 15, 31], [35, 58, 14, 32], [118, 145, -32, -19], [55, 115, 37, 48], [15, 25, -28, -20], [-118, -103, 28, 37]];
+const MONTAGNES = [[72, 100, 28, 38], [-80, -74, -15, 8], [-72, -67, -45, -15], [-122, -105, 35, 58], [5, 15, 44, 48], [57, 61, 50, 68]];
+const CAPITALES = { atl: [-77, 39], hel: [9, 48], pac: [118, 31] };
+const dansPoly = (lo, la, pts) => { let d = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > la) !== (yj > la) && lo < (xj - xi) * (la - yi) / (yj - yi) + xi) d = !d; } return d; };
+const dansBoite = ([a, b, c, d], lo, la) => lo >= a && lo <= b && la >= c && la <= d;
+const lonLat = n => [Math.atan2(n.x, n.z) * 180 / Math.PI, Math.asin(n.y) * 180 / Math.PI]; // longitude 0 face à la caméra, l'est à droite
+function terreReelle(n, b) {
+  const [lo, la] = lonLat(n);
+  if (la < -64) return 'neige';
+  if (!CONTINENTS.some(p => dansPoly(lo, la, p))) return la > 76 ? 'neige' : 'ocean';
+  if (la > 72 || lo > -75 && lo < -15 && la > 60) return 'neige'; // Groenland, îles arctiques
+  if (MONTAGNES.some(x => dansBoite(x, lo, la))) return 'montagne';
+  if (DESERTS.some(x => dansBoite(x, lo, la))) return 'desert';
+  if (la > 62) return 'toundra';
+  return Math.abs(la) < 12 || la > 48 ? (b > -.3 ? 'foret' : 'plaine') : b > .25 ? 'foret' : 'plaine';
+}
 function genSurface(c, i) {
   const f = FREQ(c), nz = bruit(100 + i * 17), u = alea(500 + i);
-  return { f, tuiles: goldberg(f).cells.map(({ n }, k) => { const uu = u(); return { i: k, t: terrain(c.sol, nz(n.x, n.y, n.z), Math.abs(n.y), uu), u: uu, o: null, b: null }; }) };
+  const cells = goldberg(f).cells, tuiles = cells.map(({ n }, k) => { const uu = u(), b = nz(n.x, n.y, n.z); return { i: k, t: c.id === 'terre' ? terreReelle(n, b) : terrain(c.sol, b, Math.abs(n.y), uu), u: uu, o: null, b: null }; });
+  if (c.id === 'terre') tuiles.filter(t => t.t === 'ocean' && cells[t.i].nb.some(j => tags(tuiles[j].t).includes('sol'))).forEach(t => { t.t = 'hautfond'; });
+  return { f, tuiles };
 }
 
 // ---------- État de la partie ----------
@@ -418,7 +451,7 @@ const present = (id, fac = E.j) => presents(id).includes(fac);
 function capacite(c, fac) {
   const st = s(c.id); let cap = 0;
   st.tuiles?.forEach(t => { if (t.o !== fac) return; if (t.b === 'habitat') cap += 300 * habitabilite(c, fac); if (t.b === 'cite') cap += 150; });
-  cap += nbOrb(c.id, 'anneau', fac) * 2000;
+  cap += nbOrb(c.id, 'station', fac) * 200 + nbOrb(c.id, 'anneau', fac) * 2000;
   return cap;
 }
 const voisins = (st, t) => GB[st.f].cells[t.i].nb.map(j => st.tuiles[j]);
@@ -436,15 +469,16 @@ function initPartie(j) {
   CORPS.forEach((c, i) => { E.c[c.id] = { tuiles: null, f: FREQ(c), orb: [], pop: {}, terra: 0, ...(c.sol ? genSurface(c, i) : {}) }; });
   // La Terre : trois capitales, chacune avec son territoire
   const T = s('terre'), facs = [j, ...E.rivaux];
-  facs.forEach((f, k) => {
-    const a = TAU * k / 3, dir = new V3(Math.sin(a), .15, Math.cos(a)).normalize(), cells = GB[T.f].cells;
-    const cap = T.tuiles.reduce((m, t) => cells[t.i].n.dot(dir) > cells[m.i].n.dot(dir) ? t : m);
-    const zone = autour(T, cap, 2);
-    zone.forEach((d, t) => { if (t.t === 'ocean' || t.t === 'neige') t.t = 'plaine'; });
-    const mt = [...zone].find(([, d]) => d === 2)[0]; mt.t = 'montagne';
-    revendiquer(T, cap, 2, f);
+  facs.forEach(f => {
+    // Atlantique : Amérique du Nord ; Hélios : Europe ; Pacifique : Asie de l'Est
+    const [lo, la] = CAPITALES[f].map(x => x * Math.PI / 180), dir = new V3(Math.cos(la) * Math.sin(lo), Math.sin(la), Math.cos(la) * Math.cos(lo)), cells = GB[T.f].cells;
+    const cap = T.tuiles.filter(t => tags(t.t).includes('sol')).reduce((m, t) => cells[t.i].n.dot(dir) > cells[m.i].n.dot(dir) ? t : m);
+    const zone = autour(T, cap, 4);
+    let mt = [...zone.keys()].find(t => t !== cap && t.t === 'montagne');
+    if (!mt) { mt = ([...zone].find(([t, d]) => d >= 2 && tags(t.t).includes('sol')) || [...zone].find(([, d]) => d === 2))[0]; mt.t = 'montagne'; }
+    revendiquer(T, cap, 4, f);
     cap.b = 'port';
-    const libres = () => T.tuiles.filter(t => t.o === f && !t.b && t.t !== 'ocean');
+    const libres = () => T.tuiles.filter(t => t.o === f && !t.b);
     const plan = f === j ? ['habitat', 'habitat', 'habitat', 'solaire', 'solaire', 'solaire', 'labo'] : ['habitat', 'habitat', 'solaire', 'labo'];
     plan.forEach(b => { const l = libres().filter(t => peutConstruire(b, t)); if (l.length) pick(l).b = b; });
     mt.b = 'mine';
@@ -692,7 +726,8 @@ function recentrer() {
   if (E.vue === 'systeme') { vueSys.cible.set(0, 0, 0); vueSys.dist = clamp(10 / Math.tan(demiChamp(40)), 12, 140); return; }
   // la planète tourne pour montrer votre territoire ; la caméra recule assez pour la voir entière avec son orbite
   const st = s(E.sel), t = st.tuiles?.find(x => x.o === E.j && x.b) || st.tuiles?.find(x => x.o);
-  planete.quaternion.copy(t ? new THREE.Quaternion().setFromUnitVectors(GB[st.f].cells[t.i].n, new V3(0, .35, 1).normalize()) : new THREE.Quaternion());
+  const n0 = t ? GB[st.f].cells[t.i].n : new V3(0, 0, 1);
+  planete.quaternion.setFromEuler(new THREE.Euler(Math.asin(n0.y) - .35, -Math.atan2(n0.x, n0.z), 0)); // nord en haut
   globe.v = [0, 0];
   camera.position.set(0, 0, (C[E.sel].anneaux ? 2.5 : 1.75) / Math.sin(demiChamp(35)));
 }
@@ -709,7 +744,7 @@ const G = {
   boite: new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0), cyl: new THREE.CylinderGeometry(.5, .5, 1, 16).translate(0, .5, 0),
   cone: new THREE.ConeGeometry(.5, 1, 12).translate(0, .5, 0), cone4: new THREE.ConeGeometry(.5, 1, 4).translate(0, .5, 0),
   demi: new THREE.SphereGeometry(.5, 18, 8, 0, TAU, 0, Math.PI / 2), boule: new THREE.SphereGeometry(.5, 12, 8),
-  tore: new THREE.TorusGeometry(.5, .08, 8, 28), disque: new THREE.CylinderGeometry(.5, .5, .04, 24),
+  tore: new THREE.TorusGeometry(.5, .08, 8, 28), anneau: new THREE.TorusGeometry(1, .16, 12, 64), disque: new THREE.CylinderGeometry(.5, .5, .04, 24),
   arbre: new THREE.ConeGeometry(.2, .65, 6).translate(0, .32, 0), pic: new THREE.ConeGeometry(.6, .85, 5).translate(0, .42, 0),
   plat: new THREE.CylinderGeometry(.45, .45, .03, 14), noyau: new THREE.SphereGeometry(.94, 40, 20), halo: new THREE.SphereGeometry(1.13, 48, 24),
   fleche: new THREE.ConeGeometry(.17, .5, 4).rotateZ(-Math.PI / 2), octa: new THREE.OctahedronGeometry(.24), rocher: new THREE.DodecahedronGeometry(1, 0),
@@ -831,13 +866,15 @@ function construireSysteme() {
 }
 // ce qui change avec la partie : couleurs des colonies, présences, flottes, missions, portée, sphère de Dyson
 function majSysteme() {
-  CORPS.forEach(c => { const o = sysO.corps[c.id]; if (o.sol) o.g.remove(o.sol); o.sol = null; });
+  CORPS.forEach(c => { const o = sysO.corps[c.id]; if (o.sol) o.g.remove(o.sol); if (o.st) o.g.remove(o.st); o.sol = o.st = null; });
   if (sysO.dyn) sys.remove(sysO.dyn);
   sysO.jet.forEach(g => g.dispose()); sysO.jet = []; sysO.etiqF.forEach(el => el.remove()); sysO.etiqF = [];
   const dyn = sysO.dyn = new THREE.Group(); sys.add(dyn);
   CORPS.forEach(c => {
     const o = sysO.corps[c.id], facs = presents(c.id);
     teinter(o.pr, couleursCorps(c, .35));
+    const sts = s(c.id).orb.filter(x => x.t === 'station');
+    if (sts.length) { o.st = new THREE.Group(); sts.forEach((x, i) => { const t = new THREE.Mesh(G.anneau, mat(FAC[x.o].c, { emissive: FAC[x.o].c, emissiveIntensity: .5 })), a = TAU * i / sts.length; t.scale.setScalar(o.R * .16); t.rotation.x = Math.PI / 2; t.position.set(Math.cos(a) * (o.R + .3), 0, Math.sin(a) * (o.R + .3)); o.st.add(t); }); o.g.add(o.st); }
     if (!facs.length) return;
     const grp = new THREE.Group();
     facs.forEach((f, i) => { const g = new THREE.RingGeometry(o.R + .12, o.R + .22, 40, 1, TAU * i / facs.length + .08, TAU / facs.length - .16); sysO.jet.push(g); grp.add(new THREE.Mesh(g, matPlat(FAC[f].c))); });
@@ -848,10 +885,10 @@ function majSysteme() {
   E.flottes.forEach(f => (groupes[f.pos + ''] ||= []).push(f));
   Object.values(groupes).forEach(gp => gp.forEach((f, i) => {
     const grp = new THREE.Group(), col = FAC[f.camp].c;
-    grp.add(new THREE.Mesh(f.camp === 'vei' ? G.octa : G.fleche, mat(col, { emissive: col, emissiveIntensity: .5 })));
+    const mo = flotteModele(f); grp.add(mo);
     if (f === E.selFlotte) { const t = new THREE.Mesh(G.tore, mat('#ffb547', lueur('#ffb547'))); t.rotation.x = Math.PI / 2; t.scale.setScalar(1.1); grp.add(t); }
     const pique = new THREE.Mesh(G.boule, new THREE.MeshBasicMaterial({ visible: false })); pique.scale.setScalar(.8); pique.userData.f = f; grp.add(pique); sysO.piqueFlottes.push(pique);
-    grp.userData = { f, off: new V3(.8 + i * .42, .65, -.5 + i * .18) };
+    grp.userData = { f, modele: mo, off: new V3(.9 + i * .75, .65, -.5 + i * .3) };
     sysO.posF[f.id] ||= hx(...f.pos).add(grp.userData.off);
     const el = document.createElement('span'); el.className = 'etiq flotte'; el.style.color = col; el.textContent = nbNav(f); $('etiquettes').append(el); grp.userData.el = el; sysO.etiqF.push(el);
     dyn.add(grp);
@@ -895,6 +932,7 @@ function dessinSysteme(tt) {
       o.g.position.set(Math.cos(o.ang) * o.rad, elev(c), Math.sin(o.ang) * o.rad);
     }
     o.tour.rotation.y = tt * (c.id === 'venus' ? -.05 : c.gaz ? .5 : .3);
+    if (o.st) o.st.rotation.y = tt * .4;
   });
   CORPS.filter(c => c.parent).forEach(c => {
     const o = sysO.corps[c.id], P = sysO.corps[c.parent], i = lunesDe(c.parent).indexOf(c), d = P.R + .38 + i * .34, an = tt * .5 / (i + 1) * (c.id === 'triton' ? -1 : 1) + i * 2.1;
@@ -903,7 +941,14 @@ function dessinSysteme(tt) {
   sysO.troyens.rotation.y = -sysO.corps.jupiter.ang;
   sysO.soleil.rotation.y = tt * .05;
   sysO.halo.scale.setScalar((11 + Math.sin(tt * 1.3) * .4) * (1 - capture() * .6));
-  sysO.dyn.children.forEach(g => { const u = g.userData; if (!u.f) return; const p = sysO.posF[u.f.id].lerp(hx(...u.f.pos).add(u.off), .1); g.position.copy(p); g.position.y += Math.sin(tt * 2 + u.f.id) * .05; });
+  // les flottes avancent vers leur case, le nez dans le sens du trajet ; à l'arrêt, elles suivent l'orbite
+  sysO.dyn.children.forEach(g => {
+    const u = g.userData; if (!u.f) return;
+    const cible = hx(...u.f.pos).add(u.off), p = sysO.posF[u.f.id], d = cible.clone().sub(p);
+    p.lerp(cible, .1); g.position.copy(p); g.position.y += Math.sin(tt * 2 + u.f.id) * .05;
+    const cap = d.length() > .05 ? Math.atan2(d.z, d.x) : Math.atan2(p.z, p.x) + Math.PI / 2;
+    u.cap ??= cap; u.cap += (((cap - u.cap) % TAU + TAU + Math.PI) % TAU - Math.PI) * .1; u.modele.rotation.y = -u.cap;
+  });
   const sp = pos(C[E.sel]); sysO.selM.position.copy(hx(...sp));
   if (sysO.survol) { sysO.survolM.visible = true; sysO.survolM.position.copy(hx(...sysO.survol, .01)); } else sysO.survolM.visible = false;
   // une comète sur une orbite très allongée, la queue toujours à l'opposé du Soleil
@@ -938,11 +983,49 @@ function modele(b, fc) {
   }
   return g;
 }
+// vaisseaux, nez vers +x
+function vaisseau(type, fc) {
+  const g = new THREE.Group(), P = (...a) => g.add(piece(...a)), coque = '#c9d0e0', sombre = '#5a6278', axe = [0, 0, -Math.PI / 2], arriere = [0, 0, Math.PI / 2];
+  switch (type) {
+    case 'ch': // chasseur : fuselage effilé, ailes en flèche, un réacteur
+      P('cyl', coque, [-.25, 0, 0], [.12, .5, .12], {}, axe); P('cone', coque, [.25, 0, 0], [.12, .28, .12], {}, axe);
+      P('boite', sombre, [-.08, -.02, 0], [.26, .03, .55]); P('boite', fc, [-.18, .02, 0], [.12, .14, .03]);
+      P('boule', fc, [-.27, 0, 0], [.1, .1, .1], lueur(fc)); break;
+    case 'cr': // croiseur : longue coque, passerelle, tourelles, deux réacteurs
+      P('boite', coque, [0, -.08, 0], [1, .16, .22]); P('cone4', coque, [.5, 0, 0], [.24, .32, .16], {}, axe);
+      P('boite', sombre, [-.18, .08, 0], [.26, .14, .12]); P('boite', fc, [-.18, .22, 0], [.1, .02, .14]);
+      P('cyl', sombre, [.15, .08, 0], [.1, .05, .1]); P('cyl', sombre, [.32, .08, 0], [.08, .04, .08]);
+      [-.07, .07].forEach(z => { P('cyl', sombre, [-.5, 0, z], [.09, .1, .09], {}, arriere); P('boule', fc, [-.62, 0, z], [.09, .09, .09], lueur(fc)); }); break;
+    case 'pv': // porte-vaisseaux : pont d'envol, îlot, hangar, trois réacteurs
+      P('boite', coque, [0, -.1, 0], [1.6, .2, .5]); P('boite', '#3a4058', [.1, .1, 0], [1.1, .01, .12]); P('cone4', coque, [.8, 0, 0], [.4, .3, .25], {}, axe);
+      P('boite', sombre, [-.25, .1, .18], [.22, .28, .1]); P('boite', fc, [-.25, .38, .18], [.24, .03, .12]); P('boite', '#20263a', [.5, -.02, .25], [.4, .1, .02]);
+      [-.15, 0, .15].forEach(z => { P('cyl', sombre, [-.8, 0, z], [.1, .1, .1], {}, arriere); P('boule', fc, [-.92, 0, z], [.1, .1, .1], lueur(fc)); }); break;
+    case 'se': // sentinelle des Veilleurs : cristal entouré d'anneaux
+      g.add(piece('octa', '#b98cff', [0, 0, 0], [2, 2.6, 2], lueur('#6a3cc8')));
+      P('tore', '#d9c4ff', [0, 0, 0], [1.1, 1.1, 1.1], lueur('#8a5ae0'), [Math.PI / 2, 0, 0]); P('tore', '#d9c4ff', [0, 0, 0], [.9, .9, .9], lueur('#8a5ae0'), [0, .6, 0]); break;
+  }
+  return g;
+}
+// une flotte = une petite formation : le plus gros vaisseau devant, les autres en V
+function flotteModele(f) {
+  const g = new THREE.Group(), liste = [], ECH = { pv: .55, cr: .42, se: .3, ch: .24 };
+  [['pv', 1], ['cr', 2], ['se', 3], ['ch', 3]].forEach(([k, max]) => { for (let i = 0; i < Math.min(max, f.nav[k] || 0); i++) liste.push(k); });
+  liste.forEach((k, i) => { const v = vaisseau(k, FAC[f.camp].c), rang = Math.ceil(i / 2); v.scale.setScalar(ECH[k]); v.position.set(-rang * .34, (i % 3) * .04, i ? (i % 2 ? 1 : -1) * rang * .28 : 0); g.add(v); });
+  return g;
+}
 function modeleOrb(t, fc) {
   const g = new THREE.Group(), P = (...a) => g.add(piece(...a));
   switch (t) {
-    case 'station': P('cyl', '#dfe5f2', [0, -.5, 0], [.5, 1, .5]); P('boite', '#2a4596', [0, -.03, 0], [2.6, .06, .6], { metalness: .4, roughness: .2 }); break;
-    case 'chantier': P('boite', '#8a93b3', [0, -.6, 0], [1.6, 1.2, .9], { wireframe: true }); P('boite', '#ffb547', [0, -.2, 0], [.9, .4, .3]); break;
+    case 'station': { // tore de Stanford : l'anneau habité tourne autour du moyeu
+      const roue = new THREE.Group(); roue.userData.tourne = true;
+      roue.add(piece('anneau', '#e3e8f3', [0, 0, 0], [1, 1, 1], {}, [Math.PI / 2, 0, 0]));
+      for (let i = 0; i < 16; i++) { const a = TAU * i / 16; roue.add(piece('boite', '#ffe2a0', [Math.cos(a), .13, Math.sin(a)], [.2, .05, .1], lueur('#ffcf6b'), [0, -a - Math.PI / 2, 0])); }
+      for (let i = 0; i < 4; i++) roue.add(piece('cyl', '#9aa4c4', [0, 0, 0], [.06, .9, .06], {}, [0, i * Math.PI / 2, -Math.PI / 2]));
+      g.add(roue);
+      P('cyl', '#c9d0e0', [0, -.35, 0], [.32, .7, .32]); P('cyl', '#8a93b3', [0, .35, 0], [.08, .5, .08]); P('cone', fc, [0, .85, 0], [.12, .2, .12]);
+      P('boite', '#2a4596', [0, -.5, 0], [2.8, .03, .5], { metalness: .4, roughness: .2 }); break;
+    }
+    case 'chantier': { P('boite', '#8a93b3', [0, -.6, 0], [1.8, 1.2, .9], { wireframe: true }); const v = vaisseau('cr', fc); v.scale.setScalar(1.3); v.position.y = -.1; g.add(v); break; } // un croiseur en construction
     case 'ecope': P('cone', '#c9ccd6', [0, -.6, 0], [.7, 1.4, .7]); break;
     case 'miroir': P('disque', '#f2f6ff', [0, 0, 0], [2.2, 1, 2.2], { metalness: .9, roughness: .1 }, [0, 0, Math.PI / 2]); break;
     case 'parasol': P('disque', '#d9b25a', [0, 0, 0], [3.4, 1, 3.4], { metalness: .6, roughness: .3 }, [0, 0, Math.PI / 2]); break;
@@ -950,7 +1033,7 @@ function modeleOrb(t, fc) {
   P('boule', fc, [0, .6, 0], [.35, .35, .35], lueur(fc));
   return g;
 }
-const globe = { id: null, base: null, dyn: null, orbite: null, jet: [], jetDyn: [], sale: true, v: [0, 0], survol: -1 };
+const globe = { id: null, base: null, dyn: null, orbite: null, roues: [], jet: [], jetDyn: [], sale: true, v: [0, 0], survol: -1 };
 function construireGlobe() {
   const c = C[E.sel], st = s(c.id), cells = goldberg(st.f).cells;
   if (globe.dyn) { planete.remove(globe.dyn); globe.jetDyn.forEach(g => g.dispose()); globe.dyn = null; }
@@ -1003,7 +1086,10 @@ function reconstruire() {
   // structures en orbite, qui tournent autour de la planète
   const orb = new THREE.Group(); orb.rotation.x = .3; dyn.add(orb); globe.orbite = orb;
   const liste = st.orb.filter(o => o.t !== 'anneau');
-  liste.forEach((o, i) => { const m = modeleOrb(o.t, FAC[o.o].c), an = TAU * i / liste.length; m.position.set(Math.cos(an) * 1.55, 0, Math.sin(an) * 1.55); m.scale.setScalar(.055); orb.add(m); });
+  globe.roues = [];
+  liste.forEach((o, i) => { const m = modeleOrb(o.t, FAC[o.o].c), an = TAU * i / liste.length; m.position.set(Math.cos(an) * 1.6, 0, Math.sin(an) * 1.6); m.scale.setScalar(o.t === 'station' ? .15 : o.t === 'chantier' ? .1 : .055); m.traverse(x => x.userData.tourne && globe.roues.push(x)); orb.add(m); });
+  // les flottes au port tournent elles aussi autour de la planète
+  E.flottes.filter(f => f.dock === c.id).forEach((f, i) => { const m = flotteModele(f), an = TAU * i / 3 + .5; m.scale.setScalar(.16); m.position.set(Math.cos(an) * 1.9, .06, Math.sin(an) * 1.9); m.rotation.y = Math.PI / 2 - an; orb.add(m); });
   st.orb.filter(o => o.t === 'anneau').forEach((o, i) => { const g = new THREE.TorusGeometry(1.32 + i * .08, .03, 8, 120); globe.jetDyn.push(g); const m = new THREE.Mesh(g, mat('#7be08a', lueur('#2e8a45'))); m.rotation.x = Math.PI / 2; orb.add(m); });
   globe.sale = false;
 }
@@ -1026,7 +1112,7 @@ function dessinGlobe(tt) {
   if (globe.id !== E.sel) construireGlobe();
   if (globe.sale) reconstruire();
   if (!drag && Math.hypot(...globe.v) > .05) { tourner(...globe.v); globe.v = globe.v.map(x => x * .92); } // élan après le glisser
-  if (!reduit) globe.orbite.rotation.y += .003;
+  if (!reduit) { globe.orbite.rotation.y += .003; globe.roues.forEach(r => { r.rotation.y += .012; }); }
   peindre(tt);
   rendu.render(scene, camera);
 }
@@ -1080,7 +1166,7 @@ function allerSurface() { E.vue = 'planete'; E.selTuile = null; E.carteBat = nul
 
 const ptrs = new Map(); let drag = null;
 const rel = e => { const r = toile.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-const zoomer = k => { if (E.vue === 'systeme') vueSys.dist = clamp(vueSys.dist / k, 5, 150); else camera.position.z = clamp(camera.position.z / k, 1.6, 12); };
+const zoomer = k => { if (E.vue === 'systeme') vueSys.dist = clamp(vueSys.dist / k, 5, 150); else camera.position.z = clamp(camera.position.z / k, 1.25, 12); };
 function glisserSys(dx, dy) {
   const { az, tilt } = vueSys, k = vueSys.dist * 2 * Math.tan(20 * Math.PI / 180) / H, k2 = k / Math.sin(tilt), c = vueSys.cible;
   c.x += -Math.cos(az) * dx * k - Math.sin(az) * dy * k2; c.z += Math.sin(az) * dx * k - Math.cos(az) * dy * k2;
@@ -1091,7 +1177,7 @@ toile.addEventListener('pointermove', e => {
   const p = rel(e);
   if (!ptrs.has(e.pointerId)) { survoler(p, e); return; }
   ptrs.set(e.pointerId, p); const v = [...ptrs.values()];
-  if (v.length === 2 && drag.d) { const k = Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]) / drag.d; if (E.vue === 'systeme') vueSys.dist = clamp(drag.sd / k, 5, 150); else camera.position.z = clamp(drag.cz / k, 1.6, 12); drag.moved = 99; return; }
+  if (v.length === 2 && drag.d) { const k = Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]) / drag.d; if (E.vue === 'systeme') vueSys.dist = clamp(drag.sd / k, 5, 150); else camera.position.z = clamp(drag.cz / k, 1.25, 12); drag.moved = 99; return; }
   const dx = p[0] - drag.p[0], dy = p[1] - drag.p[1]; drag.moved += Math.abs(dx) + Math.abs(dy); drag.p = p;
   if (drag.moved <= 6) return;
   if (E.vue === 'systeme') glisserSys(dx, dy); else { tourner(dx, dy); globe.v = [dx, dy]; }
@@ -1338,7 +1424,7 @@ taille();
 initPartie('atl'); $('accueil').hidden = false; E.journal = []; journal('Choisissez votre faction pour commencer.');
 document.querySelectorAll('#choixFaction button').forEach(b => b.addEventListener('click', () => { const f = b.dataset.a.split(':')[1]; Object.assign(E, { tour: 0, res: { cr: 500, me: 300, he: 10 }, dyson: 0, techs: new Set(), prog: 0, c: {}, flottes: [], missions: [], journal: [], combats: [], vagues: 0, sel: 'terre', selFlotte: null, vue: 'systeme', onglet: 'corps' }); }, { capture: true }));
 rendreHUD(); rendrePanneau();
-window.maquette = { E, allerSurface }; // accès depuis la console, pour déboguer
+window.maquette = { E, allerSurface, vueSys, hx, pos, C }; // accès depuis la console, pour déboguer
 requestAnimationFrame(boucle);
 </script>
 </body>
