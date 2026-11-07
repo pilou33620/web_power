@@ -8,6 +8,7 @@ const STRATS = {
     rd: ['fuites', 'cag', 'ozone', 'tasseuse', 'desulfu', 'lixiviats', 'desodo', 'selective', 'alerte', 'chaleur', 'boues', 'fumees', 'biogaz', 'ergonomie', 'lownox', 'biodechets', 'trisemi', 'metha', 'tournees', 'incitative', 'optique', 'cyber', 'denitr', 'telerel', 'membranes', 'bioMB', 'reut', 'osmose', 'reversible', 'compens', 'tarifs', 'effac', 'scada', 'pales', 'maint', 'locales', 'volants', 'htls', 'ccga', 'epr', 'compteurs', 'li', 'offshore', 'dlr', 'previ', 'bifacial', 'b4h', 'sodium', 'gridf', 'smr', 'v2g', 'h2', 'ia', 'hvdc', 'fusion'], ferme2: ['smr', 'nucleaire', 'barrage', 'fil', 'biomasse', 'charbonG', 'charbon', 'usine', 'tac'] },
 };
 let BANC_ON = false;
+const reserveBot = () => seuilFaillite() * .25;  // le robot garde une réserve avant de dépenser, sans attendre d'avoir le seuil de faillite en caisse
 const CF = { fil: .55, solaire: .13, eolien: .27, offshore: .42, barrage: .45, biomasse: .7, nucleaire: .85, smr: .85, fusion: .85 };
 function pointeEstimee(ans = 0) {
   const f = { res: 1.3, ter: .6, ind: 1, crit: 1 }; let p = 0;
@@ -57,7 +58,7 @@ function construireBot(type) {
 function reparerBot(suivi) {
   let n = 0;
   const kvV = kvDispo(63);
-  if (busFront() && !LIGNES.some(l => l.a === FRONT_T || l.b === FRONT_T) && S.argent > seuilFaillite() + 60e6) {  // l'interconnexion sert de secours, seulement si on en a les moyens
+  if (busFront() && !LIGNES.some(l => l.a === FRONT_T || l.b === FRONT_T) && S.argent > reserveBot() + 60e6) {  // l'interconnexion sert de secours, seulement si on en a les moyens
     if (!postesB().length) posteBot();
     if (postesB().length) { relierA(FRONT_T, 225, postesB().map(p => p.t)); n++; }
   }
@@ -129,9 +130,9 @@ function botEau() {
     if (C && !C.conf) for (const p of C.unites.filter(u => u.type === 'potab' && !u.fin)) {
       const k = Object.keys(ETAPES).find(k => !(p.etapes || []).includes(k) && etapeOk(k)); if (k) ajouterEtape(p, k);
     }
-    if (rd('reut') && E) for (const u of E.unites.filter(u => u.type === 'step' && !u.fin && !u.reut)) if (S.argent > REUT.step[1] * 1e6 + seuilFaillite()) equiperReut(u);
+    if (rd('reut') && E) for (const u of E.unites.filter(u => u.type === 'step' && !u.fin && !u.reut)) if (S.argent > REUT.step[1] * 1e6 + reserveBot()) equiperReut(u);
   }
-  if (vieilles().length > 12 && S.argent > coutRenouv() + seuilFaillite()) renouveler();
+  if (vieilles().length > 12 && S.argent > coutRenouv() + reserveBot()) renouveler();
 }
 function botDechets() {  // en gestionnaire prudent : flotte au besoin, décharge d'avance, puis tri, compost et incinération
   const D = S.dec, a = annee(S.min), n = Math.max(1, Math.min(30, D.jours.length)), p = surJ(30, 'prod') / n, nb = ty => UNITES.filter(u => u.type === ty).length, enCours = ty => UNITES.some(u => u.type === ty && u.fin);
@@ -140,15 +141,15 @@ function botDechets() {  // en gestionnaire prudent : flotte au besoin, décharg
   const de = etatDecharges();
   if (de.ans < 4 && !enCours('decharge')) poser('decharge');
   if (dispoType('decheterie') && !nb('decheterie')) poser('decheterie');
-  for (const f of ['verre', 'emb', 'bio']) if (!D.modes[f] && modeDispo(f) && S.argent > coutMode(f) + seuilFaillite()) deployerMode(f);
+  for (const f of ['verre', 'emb', 'bio']) if (!D.modes[f] && modeDispo(f) && S.argent > coutMode(f) + reserveBot()) deployerMode(f);
   if (D.modes.emb && nb('tri') * capTri() < p * .2 && !enCours('tri')) poser('tri');
   if (dispoType('compost') && nb('compost') * TYPES.compost.tj < p * (D.modes.bio ? .12 : .03) && !enCours('compost')) poser('compost');
   if (!nb('garage')) poser('garage');
   if ((D.dd || 0) > 50 && dispoType('dangereux') && !nb('dangereux')) poser('dangereux');
-  for (const u of UNITES) if (usureU(u) > 1.1 && !['frontiere', 'poste'].includes(u.type) && S.argent > coutRenov(u) * 1e6 + seuilFaillite()) renover(u);  // le banc rénove ce qui a dépassé sa durée de vie
+  for (const u of UNITES) if (usureU(u) > 1.1 && !['frontiere', 'poste'].includes(u.type) && S.argent > coutRenov(u) * 1e6 + reserveBot()) renover(u);  // le banc rénove ce qui a dépassé sa durée de vie
   if (rd('metha') && nb('metha') * TYPES.metha.tj < p * .1 && !enCours('metha')) poser('metha');
-  for (const u of UNITES) for (const k of amelPour(u)) if (!amel(u, k) && amelDispo(k) && !u.fin && S.argent > AMELIO[k].cout(u) * 1e6 + seuilFaillite()) ameliorer(u, k);  // le banc équipe ses bâtiments dès que possible
-  if (dispoType('incin') && nb('incin') * TYPES.incin.tj < p * .45 && !enCours('incin') && (a >= 1975 || de.ans < 6) && S.argent > coutType('incin') * 1e6 + seuilFaillite()) poser('incin');
+  for (const u of UNITES) for (const k of amelPour(u)) if (!amel(u, k) && amelDispo(k) && !u.fin && S.argent > AMELIO[k].cout(u) * 1e6 + reserveBot()) ameliorer(u, k);  // le banc équipe ses bâtiments dès que possible
+  if (dispoType('incin') && nb('incin') * TYPES.incin.tj < p * .45 && !enCours('incin') && (a >= 1975 || de.ans < 6) && S.argent > coutType('incin') * 1e6 + reserveBot()) poser('incin');
 }
 function ajouterEtape(u, k) {
   const e = ETAPES[k]; if (!u.etapes) u.etapes = ['sable']; if (u.etapes.includes(k) || !etapeOk(k)) return 'Étape indisponible.';
