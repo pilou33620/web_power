@@ -501,7 +501,7 @@ const etatNeuf = () => ({
 });
 const E = etatNeuf();
 const s = id => E.c[id];
-const capture = () => E.dyson * .05;
+const capture = () => E.dyson * .04; // 20 segments captent 80 % : la Terre peut rester habitable avec des miroirs
 const facteurT = () => Math.pow(1 - capture(), .25); // loi de Stefan-Boltzmann : T ∝ (flux)^1/4
 function nbOrb(id, t, o) { return s(id).orb.filter(x => x.t === t && (!o || x.o === o)).length; }
 function temp(c) {
@@ -673,7 +673,7 @@ function tourSuivant() {
     if (c.id === 'mars' || c.id === 'venus') terraformer(c);
     if (c.id !== 'terre' && present(c.id) && (st.pop[E.j] || 0) > 0) {
       st.moral += (moralCible(c) - st.moral) * .25;
-      if (st.moral >= 25) st.revolte = 0;
+      if (st.moral >= 25 || st.pop[E.j] < 20) st.revolte = 0; // une poignée de colons ne fait pas sécession
       else { st.revolte++; if (st.revolte === 1) { journal(`${c.nom} gronde : moral à ${fmt(st.moral)} %. Besoins, défenses ou festivités ?`, 'mal'); banniere(`${c.nom} gronde`, 'Le moral s\'effondre : risque d\'indépendance dans 3 mois.', 'mal'); } if (st.revolte >= 4) independance(c); }
     }
   }
@@ -723,10 +723,10 @@ function engager(a, b) {
 }
 function tourVeilleurs() {
   const arrivee = Math.max(5, 16 - 2 * E.dyson);
-  if (E.rel.vei !== 'paix' && (E.vagues === 0 && E.tour >= arrivee || E.vagues > 0 && E.tour % 12 === 0)) {
+  if (E.rel.vei !== 'paix' && (E.vagues === 0 && E.tour >= arrivee || E.vagues > 0 && E.tour % 18 === 0 && E.flottes.filter(f => f.camp === 'vei').length < 3)) {
     E.vagues++;
     const p = pick(ANNEAUX[RMAX]);
-    E.flottes.push({ id: 100 + E.vagues, nom: 'Essaim des Veilleurs', camp: 'vei', nav: { se: 3 + E.dyson + Math.floor(E.tour / 8) }, dock: null, pos: p });
+    E.flottes.push({ id: 100 + E.vagues, nom: 'Essaim des Veilleurs', camp: 'vei', nav: { se: 2 + E.dyson + Math.floor(E.tour / 12) }, dock: null, pos: p });
     if (E.rel.vei === 'inconnu') E.rel.vei = 'hostile';
     journal(E.vagues === 1 ? 'Contact ! Des vaisseaux inconnus franchissent l\'orbite de Pluton.' + (E.dyson ? ' La chaleur de votre sphère les a attirés.' : '') : 'Une nouvelle vague de Veilleurs approche.', 'alien');
   }
@@ -1001,7 +1001,7 @@ function tourRivaux() {
       else if (E.rel.vei === 'hostile' && E.rel[r] === 'paix' && rnd() < .04) E.offres.push({ fac: r, type: 'alliance', texte: `${cap1(FAC[r].le)} propose une alliance contre les Veilleurs : un pacte commercial, et sa flotte défendra aussi vos colonies.` });
       else if (E.rel[r] === 'guerre' && E.tension[r] < 75 && rnd() < .08) E.offres.push({ fac: r, type: 'paix', texte: `${cap1(FAC[r].le)}, usé par la guerre, propose la paix sans conditions.` });
     }
-    if (ia.cr > 120) construireIA(r);
+    if (ia.cr > (E.flottes.some(g => g.camp === r) ? 120 : 320)) construireIA(r); // sans flotte, le rival épargne d'abord pour en reconstruire une
     // coloniser la cible la plus rentable, pas au hasard
     if (E.tour > 2 && ia.cr > 260 && !E.missions.some(m => m.camp === r) && !assiege('terre', r)) {
       const score = c => (c.bm * 2 + c.bs + (c.gaz ? 1 : 0)) / (1 + dist(pos(C.terre), pos(c)) / 6) * (presents(c.id).length ? .6 : 1);
@@ -1948,9 +1948,9 @@ function panSoleil() {
   h += `<h3>Sphère de Dyson</h3><dl class="grille"><dt>Segments</dt><dd>${E.dyson} / 20</dd><dt>Lumière captée</dt><dd>${fmt(cap * 100)} %</dd><dt>Énergie produite</dt><dd>+${fmt(E.dyson * 40)} /mois</dd><dt>Coût d'un segment</dt><dd>${coutTxt(COUT_DYSON, k)}</dd></dl>`;
   h += `<div class="actions" style="justify-content:flex-start"><button class="btn or" data-a="dyson:+" ${dispo && E.dyson < 20 && peutPayer(COUT_DYSON, k) ? '' : 'disabled'}>Construire un segment</button><button class="btn" data-a="dyson:-" ${E.dyson ? '' : 'disabled'}>Démanteler</button></div>`;
   if (!dispo) h += `<p class="sous">Recherche nécessaire : ${TECH.dyson.n} (après ${TECH.mega.n}).</p>`;
-  h += `<p class="sous">Chaque segment capte 5 % de la lumière. La température des planètes suit la racine quatrième de la lumière reçue : au-delà de 4 segments, la Terre passe sous 0 °C. Miroirs orbitaux et anneaux de vie compensent.</p>`;
+  h += `<p class="sous">Chaque segment capte 4 % de la lumière (80 % pour une sphère complète). La température des planètes suit la racine quatrième de la lumière reçue : dès 5 segments, la Terre passe sous 0 °C. Miroirs orbitaux et anneaux de vie compensent.</p>`;
   // graphique : température de la Terre selon le nombre de segments
-  const X = n => 34 + n * 13.3, Y = T => 10 + (30 - (T - 273)) / 100 * 130, pts = Array.from({ length: 21 }, (_, n) => [X(n), Math.min(150, Y(288 * Math.pow(1 - n * .05, .25) + nbOrb('terre', 'miroir') * 15))]);
+  const X = n => 34 + n * 13.3, Y = T => 10 + (30 - (T - 273)) / 100 * 130, pts = Array.from({ length: 21 }, (_, n) => [X(n), Math.min(150, Y(288 * Math.pow(1 - n * .04, .25) + nbOrb('terre', 'miroir') * 15))]);
   h += `<svg class="graph" viewBox="0 0 310 168" role="img" aria-label="Température de la Terre selon le nombre de segments">
     ${[20, 0, -20, -40, -60].map(t => `<line x1="34" x2="300" y1="${Y(t + 273)}" y2="${Y(t + 273)}" stroke="${t === 0 ? '#59d3ff' : '#2a3366'}" stroke-width="${t === 0 ? 1.5 : 1}" ${t === 0 ? 'stroke-dasharray="4 3"' : ''}/><text x="28" y="${Y(t + 273) + 4}" fill="#a7afd9" font-size="10" text-anchor="end">${t}°</text>`).join('')}
     ${[0, 5, 10, 15, 20].map(n => `<text x="${X(n)}" y="162" fill="#a7afd9" font-size="10" text-anchor="middle">${n}</text>`).join('')}
