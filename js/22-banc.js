@@ -171,9 +171,10 @@ function botMois(st, suivi) {
   if (st.vert && an >= 1974) {
     const cible = clamp(.35 + (an - 2027) * .045, .3, .96), mesure = (S.rapports.at(-1)?.bas ?? 35) / 100, Edem = pointeEstimee(0) * .62 * 8760;
     const nb = an < 1996 ? 0 : mesure < cible - .1 ? 2 : mesure < cible ? 1 : 0;  // on mesure la part bas carbone réelle de l'année passée
-    // un réacteur par an tant que la part bas carbone reste sous la cible, s'il ne dépasse pas la pointe et si la dette reste sous la moitié du plafond
+    // un réacteur à la fois tant que la part bas carbone reste sous la cible, s'il ne dépasse pas la pointe et si la dette reste sous la moitié du plafond ;
+    // il passe avant les renouvelables, qui sinon prennent toute la capacité d'emprunt
     const financable = ty => S.dette + Math.max(0, coutType(ty) * 1.15e6 - S.argent) <= detteMax() * .5;
-    if (mesure < cible - .03 && mo === 2) for (const ty of ['smr', 'nucleaire']) if (TYPES[ty].mw <= pe * .9 && financable(ty) && construireBot(ty)) break;
+    if (mesure < cible - .03 && !UNITES.some(u => (u.type === 'smr' || u.type === 'nucleaire') && u.fin)) for (const ty of ['smr', 'nucleaire']) if (TYPES[ty].mw <= pe * .9 && financable(ty) && construireBot(ty)) break;
     for (let k = 0; k < nb && energieBas() < (FRONT_T ? 1.8 : 1.15) * Edem; k++)  // sans export possible, la surproduction est perdue
       if (!['offshore', 'eolien', 'solaire'].some(construireBot)) break;
     const ren = UNITES.filter(u => TYPES[u.type].fatal && u.type !== 'fil').reduce((a, u) => a + u.cap, 0), bat = UNITES.filter(u => u.type === 'batterie').reduce((a, u) => a + u.cap, 0);
