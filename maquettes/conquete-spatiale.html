@@ -50,14 +50,19 @@ button:focus-visible { outline: 3px solid var(--soleil); outline-offset: 2px; }
 .btn.petit { min-height: 30px; padding: 0 10px; font-size: 12px; box-shadow: 0 3px 0 rgba(0,0,0,.45); }
 
 main { position: relative; overflow: hidden; border-radius: 18px; border: 3px solid var(--bord); background: var(--vide); min-width: 0; min-height: 0; }
-#carte, #globe { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#globe { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#etiquettes { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+.etiq { position: absolute; left: 0; top: 0; padding: 0 6px; border-radius: 6px; background: rgba(3,5,13,.72); font-size: 12px; white-space: nowrap; }
+.etiq.lune { font-size: 10.5px; color: var(--doux); margin-top: -16px; }
+.etiq.sel { color: var(--soleil); }
+.etiq.flotte { background: none; font-size: 12px; font-weight: 800; text-shadow: 0 1px 2px #000; }
 .flottant { position: absolute; z-index: 3; background: var(--nuit); border: 2.5px solid var(--bord); border-radius: 14px; box-shadow: var(--ombre); }
 .vues { left: 10px; top: 10px; display: flex; gap: 3px; padding: 4px; }
 .vues button { min-height: 34px; padding: 0 11px; border: 0; border-radius: 10px; background: transparent; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .vues button.actif { background: var(--soleil); color: var(--encre); }
 .zoom { right: 10px; top: 10px; display: flex; flex-direction: column; gap: 3px; padding: 4px; }
 .zoom button { width: 34px; height: 32px; border: 0; border-radius: 9px; background: var(--nuit2); font-weight: 800; font-size: 16px; cursor: pointer; }
-.aide { left: 50%; transform: translateX(-50%); top: 58px; padding: 6px 12px; background: var(--creme); color: var(--encre); font-size: 12.5px; width: max-content; max-width: calc(100% - 24px); text-align: center; }
+.aide { pointer-events: none; left: 50%; transform: translateX(-50%); top: 58px; padding: 6px 12px; background: var(--creme); color: var(--encre); font-size: 12.5px; width: max-content; max-width: calc(100% - 24px); text-align: center; }
 .journal { left: 10px; bottom: 10px; max-width: min(420px, calc(100% - 20px)); padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; font-size: 12px; pointer-events: none; background: rgba(15,21,51,.88); }
 .journal.haut { bottom: 108px; }
 .journal p { margin: 0; color: var(--doux); }
@@ -129,7 +134,7 @@ svg.graph { width: 100%; height: auto; display: block; }
   .barre .btn.or { margin-left: auto; }
   .journal p:nth-child(n+2) { display: none; }
   .journal { font-size: 11.5px; }
-  .aide { top: 56px; font-size: 12px; }
+  .aide { top: 56px; font-size: 12px; left: 10px; transform: none; max-width: calc(100% - 70px); text-align: left; }
   .carte-c { width: 92px; }
   .journal.haut { bottom: 100px; }
 }
@@ -147,8 +152,8 @@ svg.graph { width: 100%; height: auto; display: block; }
   </header>
 
   <main>
-    <canvas id="carte" aria-label="Carte du système solaire en hexagones"></canvas>
-    <canvas id="globe" hidden aria-label="Planète en hexagones, à faire tourner"></canvas>
+    <canvas id="globe" aria-label="Système solaire et planètes en hexagones"></canvas>
+    <div id="etiquettes"></div>
     <div class="flottant vues" role="group" aria-label="Vue">
       <button data-a="vue:systeme" id="vSys" class="actif">Système</button>
       <button data-a="vue:planete" id="vPla">Surface</button>
@@ -156,6 +161,8 @@ svg.graph { width: 100%; height: auto; display: block; }
     <div class="flottant zoom" role="group" aria-label="Zoom">
       <button data-a="zoom:+" aria-label="Zoomer">+</button>
       <button data-a="zoom:-" aria-label="Dézoomer">−</button>
+      <button data-a="pivot:-1" aria-label="Tourner à gauche">⟲</button>
+      <button data-a="pivot:1" aria-label="Tourner à droite">⟳</button>
       <button data-a="zoom:0" aria-label="Recentrer">◎</button>
     </div>
     <div class="flottant aide" id="aide"></div>
@@ -218,7 +225,6 @@ const MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 
 const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
 const dist = (a, b) => { const dq = a[0] - b[0], dr = a[1] - b[1]; return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2; };
 function hexRound(q, r) { let x = q, z = r, y = -x - z, rx = Math.round(x), ry = Math.round(y), rz = Math.round(z); const dx = Math.abs(rx - x), dy = Math.abs(ry - y), dz = Math.abs(rz - z); if (dx > dy && dx > dz) rx = -ry - rz; else if (dy > dz) ry = -rx - rz; else rz = -rx - ry; return [rx, rz]; }
-function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${n >> 8 & 255},${n & 255},${a})`; }
 const cap1 = t => t[0].toUpperCase() + t.slice(1);
 const kelvin = T => fmt(T - 273) + ' °C';
 
@@ -231,19 +237,26 @@ const FAC = {
 };
 // ua : distance au Soleil ; per : période en mois ; T0 : température sans sphère de Dyson (K) ; bm, bs : bonus métaux, science
 const CORPS = [
-  { id: 'mercure', nom: 'Mercure', anneau: 2, per: 2.9, a0: .3, ua: .39, T0: 440, g: .38, ray: 6, c1: '#c9b9a8', c2: '#5e5248', sol: 'mercure', bm: 2, bs: 1, specs: ['Métaux ×2', 'Panneaux solaires ×6,6', 'Segments de Dyson −40 % avec une mine ici'], desc: 'Une boule de roche brûlée. Pas d\'air, 430 °C le jour, −170 °C la nuit.' },
-  { id: 'venus', nom: 'Vénus', anneau: 3, per: 7.4, a0: 2.1, ua: .72, T0: 737, g: .9, ray: 9, c1: '#f8e0a4', c2: '#b9853f', sol: 'venus', bm: 1, bs: 1.5, specs: ['Sol de lave : cités flottantes seulement', 'Terraformable (parasols, terraformeurs)', 'Se refroidit avec la sphère de Dyson'], desc: 'Effet de serre extrême. À 50 km d\'altitude, la pression et la température sont terrestres.' },
-  { id: 'terre', nom: 'Terre', anneau: 4, per: 12, a0: 0, ua: 1, T0: 288, atmo: 1, g: 1, ray: 10, c1: '#8fd3ff', c2: '#245c38', sol: 'terre', bm: 1, bs: 1, specs: ['Départ, partagée entre trois factions', 'Gravité forte : missions chères', 'Gèle si la sphère de Dyson est trop grande'], desc: 'Berceau de l\'humanité, découpé entre les puissances.' },
+  { id: 'mercure', nom: 'Mercure', anneau: 3, per: 2.9, a0: .3, ua: .39, T0: 440, g: .38, ray: 6, c1: '#c9b9a8', c2: '#5e5248', sol: 'mercure', bm: 2, bs: 1, specs: ['Métaux ×2', 'Panneaux solaires ×6,6', 'Segments de Dyson −40 % avec une mine ici'], desc: 'Une boule de roche brûlée. Pas d\'air, 430 °C le jour, −170 °C la nuit.' },
+  { id: 'venus', nom: 'Vénus', anneau: 4, per: 7.4, a0: 2.1, ua: .72, T0: 737, g: .9, ray: 9, c1: '#f8e0a4', c2: '#b9853f', sol: 'venus', bm: 1, bs: 1.5, specs: ['Sol de lave : cités flottantes seulement', 'Terraformable (parasols, terraformeurs)', 'Se refroidit avec la sphère de Dyson'], desc: 'Effet de serre extrême. À 50 km d\'altitude, la pression et la température sont terrestres.' },
+  { id: 'terre', nom: 'Terre', anneau: 5, per: 12, a0: 0, ua: 1, T0: 288, atmo: 1, g: 1, ray: 10, c1: '#8fd3ff', c2: '#245c38', sol: 'terre', bm: 1, bs: 1, specs: ['Départ, partagée entre trois factions', 'Gravité forte : missions chères', 'Gèle si la sphère de Dyson est trop grande'], desc: 'Berceau de l\'humanité, découpé entre les puissances.' },
   { id: 'lune', nom: 'Lune', parent: 'terre', ua: 1, T0: 250, g: .17, ray: 4.5, c1: '#e0e0e0', c2: '#6e6e72', sol: 'lune', bm: 1, bs: 1, specs: ['Hélium-3 dans le régolithe', 'Gravité faible : missions −25 %, vaisseaux −30 %'], desc: 'À trois jours de la Terre. Le port spatial naturel.' },
-  { id: 'mars', nom: 'Mars', anneau: 5, per: 22.6, a0: 4, ua: 1.52, T0: 210, atmo: .05, g: .38, ray: 8, c1: '#ee8a60', c2: '#8a3a22', sol: 'mars', bm: 1.2, bs: 1, specs: ['Glace d\'eau aux pôles', 'Terraformable', 'Tempêtes de poussière'], desc: 'Froide et sèche, mais la meilleure candidate pour une seconde Terre.' },
-  { id: 'ceres', nom: 'Cérès', anneau: 6, per: 55, a0: 1, ua: 2.8, T0: 168, g: .03, ray: 5, c1: '#a8a39b', c2: '#4a4744', sol: 'ceres', bm: 3, bs: 1, specs: ['Ceinture d\'astéroïdes : métaux ×3', 'Gravité nulle : vaisseaux −50 %'], desc: 'Le plus gros astéroïde de la ceinture. Une mine à ciel ouvert.' },
-  { id: 'jupiter', nom: 'Jupiter', anneau: 8, per: 142, a0: 5.5, ua: 5.2, T0: 110, g: 2.5, ray: 17, c1: '#f0d3aa', c2: '#a86d43', gaz: true, bm: 1, bs: 1, specs: ['Géante gazeuse : orbite seulement', 'Écopes à hélium-3', 'Radiations intenses'], desc: 'Pas de sol. Ses écopes peuvent alimenter toute la fusion du système.' },
+  { id: 'mars', nom: 'Mars', anneau: 6, per: 22.6, a0: 4, ua: 1.52, T0: 210, atmo: .05, g: .38, ray: 8, c1: '#ee8a60', c2: '#8a3a22', sol: 'mars', bm: 1.2, bs: 1, specs: ['Glace d\'eau aux pôles', 'Terraformable', 'Tempêtes de poussière'], desc: 'Froide et sèche, mais la meilleure candidate pour une seconde Terre.' },
+  { id: 'phobos', nom: 'Phobos', parent: 'mars', ua: 1.52, T0: 233, g: .001, ray: 2.5, c1: '#9a8a7c', c2: '#4a3e36', sol: 'phobos', bm: 1.5, bs: 1, specs: ['Gravité nulle : vaisseaux −50 %', 'Port d\'attache au-dessus de Mars'], desc: 'Un caillou de 22 km qui frôle Mars. Il s\'écrasera sur elle dans 50 millions d\'années.' },
+  { id: 'ceres', nom: 'Cérès', anneau: 8, per: 55, a0: 1, ua: 2.8, T0: 168, g: .03, ray: 5, c1: '#a8a39b', c2: '#4a4744', sol: 'ceres', bm: 3, bs: 1, specs: ['Ceinture d\'astéroïdes : métaux ×3', 'Gravité nulle : vaisseaux −50 %'], desc: 'Le plus gros astéroïde de la ceinture. Une mine à ciel ouvert.' },
+  { id: 'jupiter', nom: 'Jupiter', anneau: 11, per: 142, a0: 5.5, ua: 5.2, T0: 110, g: 2.5, ray: 17, c1: '#f0d3aa', c2: '#a86d43', gaz: true, bm: 1, bs: 1, specs: ['Géante gazeuse : orbite seulement', 'Écopes à hélium-3', 'Radiations intenses'], desc: 'Pas de sol. Ses écopes peuvent alimenter toute la fusion du système.' },
   { id: 'europe', nom: 'Europe', parent: 'jupiter', ua: 5.2, T0: 102, g: .13, ray: 4, c1: '#f2e9dc', c2: '#a07454', sol: 'europe', bm: 1, bs: 2.5, specs: ['Océan sous la glace', 'Vie microbienne : science ×2,5'], desc: 'Sous 20 km de glace, un océan salé. Peut-être de la vie.' },
-  { id: 'saturne', nom: 'Saturne', anneau: 10, per: 354, a0: 3.2, ua: 9.5, T0: 95, g: 1.06, ray: 15, c1: '#f4e1b0', c2: '#b09060', gaz: true, anneaux: true, bm: 1, bs: 1, specs: ['Géante gazeuse : orbite seulement', 'Anneaux de glace'], desc: 'Ses anneaux sont une réserve d\'eau pour tout le système extérieur.' },
+  { id: 'io', nom: 'Io', parent: 'jupiter', ua: 5.2, T0: 110, g: .18, ray: 4.2, c1: '#f2de6c', c2: '#b8742a', sol: 'io', bm: 2, bs: 1.5, specs: ['400 volcans actifs : métaux ×2', 'En plein dans les radiations de Jupiter'], desc: 'Le corps le plus volcanique du système, chauffé par les marées de Jupiter.' },
+  { id: 'ganymede', nom: 'Ganymède', parent: 'jupiter', ua: 5.2, T0: 110, g: .15, ray: 5, c1: '#cdbfab', c2: '#6e6256', sol: 'ganymede', bm: 1, bs: 1.5, specs: ['Plus grosse lune du système', 'Champ magnétique propre : abri contre les radiations'], desc: 'Plus grande que Mercure, avec un océan salé sous sa croûte de glace.' },
+  { id: 'callisto', nom: 'Callisto', parent: 'jupiter', ua: 5.2, T0: 134, g: .13, ray: 4.8, c1: '#958a7c', c2: '#3e3730', sol: 'callisto', bm: 1, bs: 1, specs: ['Hors des radiations : base idéale vers Jupiter', 'Surface la plus cratérisée du système'], desc: 'Une vieille surface criblée de cratères, loin des ceintures de radiations.' },
+  { id: 'saturne', nom: 'Saturne', anneau: 15, per: 354, a0: 3.2, ua: 9.5, T0: 95, g: 1.06, ray: 15, c1: '#f4e1b0', c2: '#b09060', gaz: true, anneaux: true, bm: 1, bs: 1, specs: ['Géante gazeuse : orbite seulement', 'Anneaux de glace'], desc: 'Ses anneaux sont une réserve d\'eau pour tout le système extérieur.' },
   { id: 'titan', nom: 'Titan', parent: 'saturne', ua: 9.5, T0: 94, g: .14, ray: 5.5, c1: '#eab25a', c2: '#8a5a20', sol: 'titan', bm: 1, bs: 1.5, specs: ['Lacs de méthane : carburant', 'Atmosphère épaisse : dômes plus simples'], desc: 'Une lune plus grosse que Mercure, noyée dans une brume orange.' },
-  { id: 'uranus', nom: 'Uranus', anneau: 12, per: 1008, a0: .8, ua: 19.2, T0: 76, g: .9, ray: 12, c1: '#c6f3f3', c2: '#5fb2c4', gaz: true, bm: 1, bs: 1, specs: ['Géante de glace', 'Deutérium pour la fusion'], desc: 'Couchée sur le côté, glaciale et lointaine.' },
-  { id: 'neptune', nom: 'Neptune', anneau: 13, per: 1978, a0: 2.6, ua: 30, T0: 72, g: 1.1, ray: 12, c1: '#7f9cff', c2: '#2b3fa8', gaz: true, bm: 1, bs: 1, specs: ['Avant-poste face aux Veilleurs', 'Vents à 2 000 km/h'], desc: 'La sentinelle du système, au bord du vide.' },
-  { id: 'pluton', nom: 'Pluton', anneau: 14, per: 2976, a0: 4.6, ua: 39.5, T0: 44, g: .06, ray: 4, c1: '#f2dfc8', c2: '#8f6e58', sol: 'pluton', bm: 1, bs: 1.2, specs: ['Porte d\'entrée des Veilleurs', 'Glaciers d\'azote'], desc: 'Planète naine aux confins. Les Veilleurs y passent en premier.' },
+  { id: 'encelade', nom: 'Encelade', parent: 'saturne', ua: 9.5, T0: 75, g: .01, ray: 3, c1: '#ffffff', c2: '#a9c9e0', sol: 'encelade', bm: 1, bs: 2, specs: ['Geysers d\'eau salée : science ×2', 'Gravité nulle : vaisseaux −50 %'], desc: 'Une petite boule de glace qui crache son océan dans l\'espace par des geysers.' },
+  { id: 'uranus', nom: 'Uranus', anneau: 22, per: 1008, a0: .8, ua: 19.2, T0: 76, g: .9, ray: 12, c1: '#c6f3f3', c2: '#5fb2c4', gaz: true, bm: 1, bs: 1, specs: ['Géante de glace', 'Deutérium pour la fusion'], desc: 'Couchée sur le côté, glaciale et lointaine.' },
+  { id: 'neptune', nom: 'Neptune', anneau: 27, per: 1978, a0: 2.6, ua: 30, T0: 72, g: 1.1, ray: 12, c1: '#7f9cff', c2: '#2b3fa8', gaz: true, bm: 1, bs: 1, specs: ['Avant-poste face aux Veilleurs', 'Vents à 2 000 km/h'], desc: 'La sentinelle du système, au bord du vide.' },
+  { id: 'triton', nom: 'Triton', parent: 'neptune', ua: 30, T0: 38, g: .08, ray: 4, c1: '#f2d9d4', c2: '#8f7a80', sol: 'triton', bm: 1, bs: 1.3, specs: ['Tourne à l\'envers : capturée par Neptune', 'Geysers d\'azote'], desc: 'Lune capturée qui tourne à contresens. Ses geysers d\'azote montent à 8 km.' },
+  { id: 'pluton', nom: 'Pluton', anneau: 31, per: 2976, a0: 4.6, ua: 39.5, T0: 44, g: .06, ray: 4, c1: '#f2dfc8', c2: '#8f6e58', sol: 'pluton', bm: 1, bs: 1.2, specs: ['Porte d\'entrée des Veilleurs', 'Glaciers d\'azote'], desc: 'Planète naine aux confins. Les Veilleurs y passent en premier.' },
+  { id: 'charon', nom: 'Charon', parent: 'pluton', ua: 39.5, T0: 53, g: .03, ray: 3, c1: '#bdb7ae', c2: '#5e5852', sol: 'charon', bm: 1, bs: 1, specs: ['Couple avec Pluton : les deux tournent l\'un autour de l\'autre', 'Gravité nulle : vaisseaux −50 %'], desc: 'Si gros par rapport à Pluton que les deux forment une planète double.' },
 ];
 const C = Object.fromEntries(CORPS.map(c => [c.id, c]));
 
@@ -257,7 +270,7 @@ const TER = {
   lave: ['Lave à 460 °C', '#c4472a', .3, 'lave'], nuage: ['Couche de nuages', '#f1cf7c', 4.6, 'nuage'],
   banquise: ['Glace d\'eau', '#e7f3fa', 1.6, 'sol glace'], fissure: ['Linea (fissure)', '#b9805e', .8, 'sol glace'],
   lac: ['Lac de méthane', '#3d3b2e', .2, 'methane'], dune_t: ['Dunes organiques', '#c08640', 1.4, 'sol'], glace_t: ['Socle de glace', '#d9c79c', 2.2, 'sol glace roche'],
-  roche_c: ['Roche carbonée', '#6c6966', 1.5, 'sol roche'], sel: ['Dépôt de sel', '#efeee6', 1.4, 'sol roche'],
+  roche_c: ['Roche carbonée', '#6c6966', 1.5, 'sol roche'], sel: ['Dépôt de sel', '#efeee6', 1.4, 'sol roche'], soufre: ['Plaine de soufre', '#e6cf48', 1.2, 'sol roche'], tigre: ['Rayure de tigre', '#7fb8e0', .6, 'sol glace'],
   azote: ['Glacier d\'azote', '#f3e7d2', 1, 'sol glace'], glace_p: ['Glace de méthane', '#c7ac90', 1.8, 'sol glace'], mont_p: ['Mont de glace', '#8f7766', 3.4, 'sol glace roche'],
 };
 const tags = t => TER[t][3].split(' ');
@@ -299,8 +312,9 @@ const TECH = {
 };
 const RES = [['cr', 'Crédits', '#ffd166'], ['me', 'Métaux', '#b8c0d8'], ['he', 'Hélium-3', '#7ef0e0'], ['sc', 'Science', '#b98cff'], ['en', 'Énergie', '#ffb547'], ['pop', 'Population', '#7be08a']];
 
-// ---------- Grille du système (hexagones pointe en haut, aplatis en isométrique) ----------
-const S = 26, ISO = .56, RMAX = 14;
+// ---------- Grille du système (hexagones pointe en haut) ----------
+// rayon de l'orbite en cases ≈ 5 × √(distance en ua) : le système intérieur reste serré, l'extérieur est vaste
+const S = 26, RMAX = 32;
 const axPix = (q, r) => [S * SQ3 * (q + r / 2), S * 1.5 * r];
 const ANNEAUX = [];
 for (let k = 0; k <= RMAX; k++) {
@@ -355,10 +369,17 @@ function terrain(sol, n, lat, u) {
     case 'titan': return n < -.15 ? 'lac' : n > .4 ? 'glace_t' : 'dune_t';
     case 'ceres': return u < .25 ? 'cratere' : n > .55 ? 'sel' : 'roche_c';
     case 'pluton': return n < -.1 ? 'azote' : n > .4 ? 'mont_p' : 'glace_p';
+    case 'phobos': return u < .35 ? 'cratere' : 'roche_c';
+    case 'io': return n > .5 ? 'lave' : n < -.35 ? 'faille' : 'soufre';
+    case 'ganymede': return u < .1 ? 'cratere' : n > .15 ? 'roche_c' : 'banquise';
+    case 'callisto': return u < .35 ? 'cratere' : n > 0 ? 'roche_c' : 'banquise';
+    case 'encelade': return lat > .6 && n < .1 ? 'tigre' : 'banquise';
+    case 'triton': return lat > .55 ? 'azote' : n > .3 ? 'glace_p' : 'glace_t';
+    case 'charon': return u < .25 ? 'cratere' : n > .3 ? 'glace_p' : 'roche_c';
   }
 }
-// nombre de cases : 10 f² + 2 (Terre 362, planètes 252, lunes 162, géantes 642)
-const FREQ = c => c.id === 'terre' ? 6 : c.gaz ? 8 : c.parent || c.id === 'ceres' || c.id === 'pluton' ? 4 : 5;
+// nombre de cases : 10 f² + 2 (Terre 362, planètes 252, lunes 162, petites lunes 92, géantes 642)
+const FREQ = c => c.id === 'terre' ? 6 : c.gaz ? 8 : c.ray < 3.2 ? 3 : c.parent || c.id === 'ceres' || c.id === 'pluton' ? 4 : 5;
 function genSurface(c, i) {
   const f = FREQ(c), nz = bruit(100 + i * 17), u = alea(500 + i);
   return { f, tuiles: goldberg(f).cells.map(({ n }, k) => { const uu = u(); return { i: k, t: terrain(c.sol, nz(n.x, n.y, n.z), Math.abs(n.y), uu), u: uu, o: null, b: null }; }) };
@@ -389,6 +410,8 @@ function habitabilite(c, fac = E.j) {
   const climat = atmo(c) * clamp(1 - Math.abs(temp(c) - 290) / 60, 0, 1);
   return Math.max(dome, climat);
 }
+// distance réelle entre deux corps (ua), d'après leurs vraies positions sur l'orbite
+function distReelle(a, b) { const A = a.parent ? C[a.parent] : a, B = b.parent ? C[b.parent] : b, an = x => x.a0 + TAU * E.tour / x.per; return Math.sqrt(A.ua ** 2 + B.ua ** 2 - 2 * A.ua * B.ua * Math.cos(an(A) - an(B))); }
 const lumiere = c => Math.min(6.6, 1 / c.ua ** 2) * (1 - capture());
 function presents(id) { const st = s(id), f = new Set(); st.tuiles?.forEach(t => t.o && f.add(t.o)); st.orb.forEach(o => f.add(o.o)); return [...f]; }
 const present = (id, fac = E.j) => presents(id).includes(fac);
@@ -479,6 +502,7 @@ const coutTxt = (cout, k = 1) => `${fmt(cout.cr * k)} ₡ · ${fmt(cout.me * k)}
 function remiseBat(b) { return E.j === 'hel' && b === 'solaire' ? .75 : 1; }
 function coutDyson() { let k = E.j === 'hel' ? .75 : 1; if (s('mercure').tuiles.some(t => t.o === E.j && t.b === 'mine')) k *= .6; return k; }
 const COUT_DYSON = { cr: 300, me: 250 };
+const remiseChantier = c => c.g < .05 ? .5 : c.g < .2 ? .7 : 1;
 
 // ---------- Missions de colonisation ----------
 function origines() { return CORPS.filter(c => present(c.id) && (s(c.id).tuiles?.some(t => t.o === E.j && (t.b === 'port' || t.b === 'cite')) || nbOrb(c.id, 'station', E.j))); }
@@ -489,7 +513,7 @@ function meilleureOrigine(cible, t = E.tour) {
 }
 function infoMission(cible) {
   const m = meilleureOrigine(cible); if (!m) return null;
-  const v = portee() - 1, duree = Math.max(1, Math.ceil(m.d / v)), k = .75 + .25 * m.o.g;
+  const v = portee(), duree = Math.max(1, Math.ceil(m.d / v)), k = .75 + .25 * m.o.g;
   let fen = { t: 0, d: m.d };
   for (let t = 1; t <= 36; t++) { const x = meilleureOrigine(cible, E.tour + t); if (x && x.d < fen.d - 1) fen = { t, d: x.d }; }
   return { ...m, duree, cout: { cr: Math.round((150 + 12 * m.d) * k), me: Math.round(80 * k) }, fen };
@@ -600,7 +624,7 @@ function tourVeilleurs() {
     const cibles = CORPS.filter(c => !c.parent && presents(c.id).length);
     const c = cibles.reduce((m, x) => dist(pos(x), f.pos) < dist(pos(m), f.pos) ? x : m, cibles[0]);
     if (dist(pos(c), f.pos) === 0) { const vic = pick(presents(c.id)); const ennemi = E.flottes.find(g => g.camp === vic && dist(g.pos, f.pos) === 0); if (ennemi) engager(f, ennemi); else raid(f, c, vic); }
-    else deplacerIA(f, pos(c), 2);
+    else deplacerIA(f, pos(c), 3);
   });
 }
 function raid(f, c, vic) {
@@ -652,137 +676,34 @@ function actionCombat(x) {
   rendreCombat();
 }
 
-// ---------- Rendu ----------
-const cv = $('carte'), ctx = cv.getContext('2d');
+// ---------- Rendu 3D (three.js) : une scène pour le système, une pour la planète choisie ----------
+const toile = $('globe'), zoneCarte = toile.parentElement;
 let W = 0, H = 0, DPR = 1;
-const camS = { x: 0, y: 0, z: 1 }, zoneCarte = cv.parentElement;
-function taille() { DPR = Math.min(2, devicePixelRatio || 1); W = zoneCarte.clientWidth; H = zoneCarte.clientHeight; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); rendu.setPixelRatio(DPR); rendu.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix(); }
-new ResizeObserver(() => { const avant = W; taille(); if (!avant) recentrer(); }).observe(zoneCarte);
-function recentrer() {
-  if (E.vue === 'systeme') { camS.x = 0; camS.y = 0; camS.z = clamp(Math.min(W, H / ISO * .95) / 2 / (6.6 * S * SQ3), .25, 2.5); }
-  else {
-    // la planète tourne pour montrer votre territoire ; la caméra recule assez pour la voir entière avec son orbite
-    const st = s(E.sel), t = st.tuiles?.find(x => x.o === E.j && x.b) || st.tuiles?.find(x => x.o);
-    planete.quaternion.copy(t ? new THREE.Quaternion().setFromUnitVectors(GB[st.f].cells[t.i].n, new V3(0, .35, 1).normalize()) : new THREE.Quaternion());
-    globe.v = [0, 0];
-    const demi = Math.min(17.5, Math.atan(Math.tan(17.5 * Math.PI / 180) * W / H) * 180 / Math.PI) * Math.PI / 180;
-    camera.position.set(0, 0, (C[E.sel].anneaux ? 2.5 : 1.75) / Math.sin(demi));
-  }
-}
-const scrS = (px, py) => [(px - camS.x) * camS.z + W / 2, (py * ISO - camS.y) * camS.z + H / 2];
-function poly(pts, fill, stroke, lw = 1) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } }
-const etoiles = Array.from({ length: 220 }, (_, i) => { const r = alea(900 + i); return [r(), r(), r() * 1.4 + .3, r()]; });
 const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-function boucle(t) {
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  ctx.fillStyle = '#070a1a'; ctx.fillRect(0, 0, W, H);
-  const tt = reduit ? 0 : t / 1000;
-  etoiles.forEach(([x, y, r, p]) => { ctx.globalAlpha = .35 + .4 * Math.abs(Math.sin(tt * .6 + p * 9)); ctx.fillStyle = '#dfe6ff'; ctx.fillRect(x * W, y * H, r, r); });
-  ctx.globalAlpha = 1;
-  if (E.j) E.vue === 'systeme' ? dessinSysteme(tt) : dessinGlobe(tt);
-  requestAnimationFrame(boucle);
-}
-
-function hexS(q, r, fill, stroke, lw) { const [x, y] = axPix(q, r); poly(Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 180 * (60 * i - 30); return scrS(x + S * Math.cos(a), y + S * Math.sin(a)); }), fill, stroke, lw); }
-let survol = null;
-function atteignables() {
-  const f = E.selFlotte; if (!f || f.camp !== E.j || !f.mvt) return [];
-  const out = [];
-  for (let k = 1; k <= RMAX; k++) ANNEAUX[k].forEach(p => { if (dist(p, f.pos) <= f.mvt && dist(p, f.pos) > 0) out.push(p); });
-  return out;
-}
-function dessinSysteme(tt) {
-  const z = camS.z;
-  for (let k = 1; k <= RMAX; k++) ANNEAUX[k].forEach(([q, r]) => hexS(q, r, null, k === 1 ? 'rgba(255,181,71,.18)' : 'rgba(130,150,255,.09)', 1));
-  // orbites
-  CORPS.filter(c => !c.parent).forEach(c => { const R = c.anneau * S * 1.5 * 1.0 + c.anneau * S * .2; ctx.beginPath(); ctx.ellipse(W / 2 - camS.x * z, H / 2 - camS.y * z, R * z, R * ISO * z, 0, 0, TAU); ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 1; ctx.stroke(); });
-  // ceinture d'astéroïdes
-  const ra = alea(77);
-  for (const k of [6, 7]) ANNEAUX[k].forEach(([q, r]) => { if (ra() > (k === 6 ? .25 : .6)) { const [x, y] = axPix(q, r); for (let i = 0; i < 3; i++) { const [sx, sy] = scrS(x + (ra() - .5) * S * 1.4, y + (ra() - .5) * S * 1.4); ctx.fillStyle = '#7b7368'; ctx.beginPath(); ctx.arc(sx, sy, (1 + ra() * 1.6) * z, 0, TAU); ctx.fill(); } } });
-  // portée de la flotte choisie
-  atteignables().forEach(([q, r]) => hexS(q, r, rgba(FAC[E.j].c, .14), rgba(FAC[E.j].c, .45), 1.2));
-  if (survol) hexS(survol[0], survol[1], 'rgba(255,255,255,.08)', 'rgba(255,255,255,.4)', 1.5);
-  const sel = C[E.sel]; if (sel) { const [q, r] = pos(sel); hexS(q, r, null, '#ffb547', 2.5); }
-  // missions
-  E.missions.forEach(m => {
-    const a = scrS(...axPix(...pos(C[m.de]))), b = scrS(...axPix(...pos(C[m.vers]))), k = (E.tour - m.depart) / Math.max(1, m.arrivee - m.depart);
-    ctx.setLineDash([5, 5]); ctx.strokeStyle = rgba(FAC[m.camp].c, .6); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = FAC[m.camp].c; ctx.beginPath(); ctx.arc(a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, 3.5, 0, TAU); ctx.fill();
-  });
-  // Soleil et sphère de Dyson
-  const [sx, sy] = scrS(0, 0), cap = capture();
-  const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, 80 * z); g.addColorStop(0, `rgba(255,220,120,${.9 * (1 - cap * .8)})`); g.addColorStop(.35, `rgba(255,150,40,${.45 * (1 - cap * .8)})`); g.addColorStop(1, 'rgba(255,120,30,0)');
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx, sy, 80 * z, 0, TAU); ctx.fill();
-  ctx.fillStyle = '#ffe9a8'; ctx.beginPath(); ctx.arc(sx, sy, (17 + Math.sin(tt * 2) * .8) * z, 0, TAU); ctx.fill();
-  for (let i = 0; i < E.dyson; i++) {
-    const a0 = -Math.PI / 2 + i * TAU / 20, a1 = a0 + TAU / 20 * .82;
-    ctx.beginPath(); ctx.ellipse(sx, sy, 30 * z, 30 * ISO * z, 0, a0, a1); ctx.strokeStyle = '#3c4677'; ctx.lineWidth = 7 * z; ctx.stroke();
-    ctx.strokeStyle = '#ffcf6b'; ctx.lineWidth = 2 * z; ctx.stroke();
-  }
-  // corps célestes, triés par profondeur
-  const liste = CORPS.map(c => { const [x, y] = axPix(...pos(c)); let [px, py] = scrS(x, y); if (c.parent) { const i = CORPS.filter(o => o.parent === c.parent).indexOf(c); px += (C[c.parent].ray + 7 + i * 6) * z; py -= (8 + i * 7) * z; } return { c, px, py }; }).sort((a, b) => a.py - b.py);
-  liste.forEach(({ c, px, py }) => {
-    const r = c.ray * z * 1.15, fl = c.parent ? 0 : r * .55;
-    if (!c.parent) { ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(px, py + 2 * z, r * 1.1, r * .45, 0, 0, TAU); ctx.fill(); }
-    const facs = presents(c.id);
-    facs.forEach((f, i) => { ctx.beginPath(); ctx.ellipse(px, py + (c.parent ? r * .7 : 2 * z), r * 1.35 + 2, (r * 1.35 + 2) * .45, 0, TAU * i / facs.length + .1, TAU * (i + 1) / facs.length - .1); ctx.strokeStyle = FAC[f].c; ctx.lineWidth = 3; ctx.stroke(); });
-    const cy = py - fl;
-    if (c.anneaux) { ctx.beginPath(); ctx.ellipse(px, cy, r * 2, r * .55, -.25, Math.PI, TAU); ctx.strokeStyle = 'rgba(230,210,160,.8)'; ctx.lineWidth = 3 * z; ctx.stroke(); }
-    const gr = ctx.createRadialGradient(px - r * .35, cy - r * .35, r * .1, px, cy, r); gr.addColorStop(0, c.c1); gr.addColorStop(1, c.c2);
-    ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(px, cy, r, 0, TAU); ctx.fill(); ctx.strokeStyle = '#03050d'; ctx.lineWidth = 1.5; ctx.stroke();
-    if (r > 5) facettes(px, cy, r, tt * (c.gaz ? .6 : 12 / Math.max(3, c.per || 12)));
-    if (c.gaz) { ctx.save(); ctx.beginPath(); ctx.arc(px, cy, r, 0, TAU); ctx.clip(); ctx.strokeStyle = rgba(c.c2, .45); ctx.lineWidth = r * .14; for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(px - r, cy + k * r * .33); ctx.lineTo(px + r, cy + k * r * .33 + r * .1); ctx.stroke(); } ctx.restore(); }
-    if (c.anneaux) { ctx.beginPath(); ctx.ellipse(px, cy, r * 2, r * .55, -.25, 0, Math.PI); ctx.strokeStyle = 'rgba(240,220,170,.9)'; ctx.lineWidth = 3 * z; ctx.stroke(); }
-    if (c.id === 'terre' || c.id === 'venus' && s('venus').terra > 50 || c.id === 'mars' && s('mars').terra > 40) { ctx.beginPath(); ctx.arc(px, cy, r + 2, 0, TAU); ctx.strokeStyle = 'rgba(160,220,255,.5)'; ctx.lineWidth = 2; ctx.stroke(); }
-    if (z > .45 || !c.parent && c.anneau <= 5 || E.sel === c.id) {
-      ctx.font = `700 ${c.parent ? 10 : 12}px Nunito, sans-serif`; ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(3,5,13,.8)'; const w = ctx.measureText(c.nom).width + 8; ctx.fillRect(px - w / 2, py + r * .7 + 3, w, 15);
-      ctx.fillStyle = E.sel === c.id ? '#ffb547' : '#eef1ff'; ctx.fillText(c.nom, px, py + r * .7 + 14);
-    }
-  });
-  // flottes
-  const groupes = {};
-  E.flottes.forEach(f => { (groupes[f.pos + ''] ||= []).push(f); });
-  Object.values(groupes).forEach(gp => gp.forEach((f, i) => {
-    const [x, y] = scrS(...axPix(...f.pos)), fx = x + (12 + i * 13) * z + 6, fy = y - (16 + i * 4) * z;
-    f._scr = [fx, fy];
-    const col = FAC[f.camp].c, k = clamp(z, .7, 1.4);
-    ctx.save(); ctx.translate(fx, fy); ctx.scale(k, k);
-    if (f === E.selFlotte) { ctx.beginPath(); ctx.arc(0, 0, 13 + Math.sin(tt * 5) * 1.5, 0, TAU); ctx.strokeStyle = '#ffb547'; ctx.lineWidth = 2; ctx.stroke(); }
-    if (f.camp === 'vei') poly([[0, -9], [8, 0], [0, 9], [-8, 0]], col, '#03050d', 1.5);
-    else poly([[9, 0], [-7, -7], [-3, 0], [-7, 7]], col, '#03050d', 1.5);
-    ctx.font = '800 10px Nunito, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.fillText(nbNav(f), 9, -6);
-    ctx.restore();
-  }));
-}
-
-// Facettes hexagonales qui défilent sur les planètes de la vue système : elles ont l'air de tourner sur elles-mêmes
-function facettes(x, y, r, tt) {
-  const hs = Math.max(3, r / 2.4), dx = hs * SQ3, dy = hs * 1.5, R2 = r * Math.PI / 2, off = (tt * hs * .5) % dx;
-  ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.clip(); ctx.strokeStyle = 'rgba(3,5,13,.4)'; ctx.lineWidth = 1;
-  for (let j = -Math.ceil(R2 / dy); j <= Math.ceil(R2 / dy); j++) for (let i = -Math.ceil(R2 / dx) - 1; i <= Math.ceil(R2 / dx) + 1; i++) {
-    const gx = i * dx + (j & 1) * dx / 2 + off, gy = j * dy, d = Math.hypot(gx, gy);
-    if (d > R2) continue;
-    const k = d ? r * Math.sin(d / r) / d : 1, sz = hs * Math.max(.15, Math.cos(d / r)) ** .6 * .9;
-    ctx.beginPath(); for (let a = 0; a < 6; a++) { const t = Math.PI / 3 * a + Math.PI / 6; ctx.lineTo(x + gx * k + Math.cos(t) * sz, y + gy * k + Math.sin(t) * sz); } ctx.closePath(); ctx.stroke();
-  }
-  ctx.restore();
-}
-
-// ----- globe 3D de la planète choisie -----
-const rendu = new THREE.WebGLRenderer({ canvas: $('globe'), antialias: true });
+const rendu = new THREE.WebGLRenderer({ canvas: toile, antialias: true });
 rendu.setClearColor(0x070a1a);
-const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
-scene.add(new THREE.AmbientLight(0x9098c8, .9));
-const lumSoleil = new THREE.DirectionalLight(0xfff0d0, 2.8); lumSoleil.position.set(-4, 1.5, 3); scene.add(lumSoleil);
-{
-  const r = alea(42), p = [];
-  for (let i = 0; i < 1200; i++) { const v = new V3(r() - .5, r() - .5, r() - .5).normalize().multiplyScalar(40 + r() * 30); p.push(v.x, v.y, v.z); }
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
-  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xdfe6ff, size: .18 })));
+const camSys = new THREE.PerspectiveCamera(40, 1, .1, 900), camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
+function taille() { DPR = Math.min(2, devicePixelRatio || 1); W = zoneCarte.clientWidth; H = zoneCarte.clientHeight; rendu.setPixelRatio(DPR); rendu.setSize(W, H, false); for (const c of [camSys, camera]) { c.aspect = W / H; c.updateProjectionMatrix(); } }
+new ResizeObserver(() => { const avant = W; taille(); if (!avant) recentrer(); }).observe(zoneCarte);
+const demiChamp = fov => Math.min(fov / 2, Math.atan(Math.tan(fov / 2 * Math.PI / 180) * W / H) * 180 / Math.PI) * Math.PI / 180;
+const vueSys = { cible: new V3(), dist: 30, az: 0, tilt: .95 };
+function placerCamSys() { const { cible, dist: d, az, tilt } = vueSys; camSys.position.set(cible.x + Math.sin(az) * Math.cos(tilt) * d, Math.sin(tilt) * d, cible.z + Math.cos(az) * Math.cos(tilt) * d); camSys.lookAt(cible); }
+function recentrer() {
+  if (E.vue === 'systeme') { vueSys.cible.set(0, 0, 0); vueSys.dist = clamp(10 / Math.tan(demiChamp(40)), 12, 140); return; }
+  // la planète tourne pour montrer votre territoire ; la caméra recule assez pour la voir entière avec son orbite
+  const st = s(E.sel), t = st.tuiles?.find(x => x.o === E.j && x.b) || st.tuiles?.find(x => x.o);
+  planete.quaternion.copy(t ? new THREE.Quaternion().setFromUnitVectors(GB[st.f].cells[t.i].n, new V3(0, .35, 1).normalize()) : new THREE.Quaternion());
+  globe.v = [0, 0];
+  camera.position.set(0, 0, (C[E.sel].anneaux ? 2.5 : 1.75) / Math.sin(demiChamp(35)));
 }
-const planete = new THREE.Group(); scene.add(planete);
+function etoiles(n, r0, taillePt) {
+  const r = alea(42 + n), p = [];
+  for (let i = 0; i < n; i++) { const v = new V3(r() - .5, r() - .5, r() - .5).normalize().multiplyScalar(r0 * (1 + r() * .7)); p.push(v.x, v.y, v.z); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+  return new THREE.Points(g, new THREE.PointsMaterial({ color: 0xdfe6ff, size: taillePt }));
+}
+
+// ----- pièces communes -----
 const Y = new V3(0, 1, 0);
 const G = {
   boite: new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0), cyl: new THREE.CylinderGeometry(.5, .5, 1, 16).translate(0, .5, 0),
@@ -791,12 +712,213 @@ const G = {
   tore: new THREE.TorusGeometry(.5, .08, 8, 28), disque: new THREE.CylinderGeometry(.5, .5, .04, 24),
   arbre: new THREE.ConeGeometry(.2, .65, 6).translate(0, .32, 0), pic: new THREE.ConeGeometry(.6, .85, 5).translate(0, .42, 0),
   plat: new THREE.CylinderGeometry(.45, .45, .03, 14), noyau: new THREE.SphereGeometry(.94, 40, 20), halo: new THREE.SphereGeometry(1.13, 48, 24),
+  fleche: new THREE.ConeGeometry(.17, .5, 4).rotateZ(-Math.PI / 2), octa: new THREE.OctahedronGeometry(.24), rocher: new THREE.DodecahedronGeometry(1, 0),
+  hex: new THREE.CircleGeometry(.95, 6).rotateZ(Math.PI / 6).rotateX(-Math.PI / 2), ombre: new THREE.CircleGeometry(1, 32).rotateX(-Math.PI / 2),
 };
 const mats = {};
 const mat = (col, o = {}) => mats[col + JSON.stringify(o)] ||= new THREE.MeshStandardMaterial({ color: col, flatShading: true, roughness: .55, ...o });
+const matPlat = (col, op = 1) => mats['plat' + col + op] ||= new THREE.MeshBasicMaterial({ color: col, transparent: op < 1, opacity: op, side: THREE.DoubleSide, depthWrite: op === 1 });
+const matHalo = col => mats['halo' + col] ||= new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: .16, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false });
+const matTiret = col => mats['tiret' + col] ||= new THREE.LineDashedMaterial({ color: col, dashSize: .4, gapSize: .3, transparent: true, opacity: .85 });
 const matSol = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .8, metalness: .05 });
 const verre = { transparent: true, opacity: .55, roughness: .1 }, lueur = c => ({ emissive: c, emissiveIntensity: 1.3 });
 function piece(g, col, p, sc, o, r) { const m = new THREE.Mesh(G[g], mat(col, o)); m.position.set(...p); m.scale.set(...sc); if (r) m.rotation.set(...r); return m; }
+const HALO = { terre: '#6fb8ff', venus: '#ffd88a', titan: '#e8a64a' };
+function anneauxSaturne(parent, jet) { [[1.35, 1.7, .5], [1.75, 2.15, .75], [2.2, 2.4, .35]].forEach(([r1, r2, op]) => { const g = new THREE.RingGeometry(r1, r2, 120); jet.push(g); const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: '#e6d3a3', transparent: true, opacity: op, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2; parent.add(m); }); }
+
+// prismes : une plaque par case, une rainure entre les cases ; h(k) = rayon du dessus, rBas = rayon du pied
+function prismes(cells, h, rBas = .94, retrait = .07) {
+  const pos = [], tri = [], debut = [], nTop = [], tops = [], cts = [], a = new V3(), b = new V3();
+  const t3 = (p1, p2, p3, ref, k) => { a.subVectors(p2, p1); b.subVectors(p3, p1); (a.cross(b).dot(ref) < 0 ? [p1, p3, p2] : [p1, p2, p3]).forEach(v => pos.push(v.x, v.y, v.z)); tri.push(k); };
+  cells.forEach((cell, k) => {
+    const n = cell.n, hk = h(k), m = cell.coins.length;
+    const ci = cell.coins.map(p => p.clone().lerp(n, retrait).normalize());
+    const top = ci.map(p => p.clone().multiplyScalar(hk)), bas = ci.map(p => p.clone().multiplyScalar(rBas)), ct = n.clone().multiplyScalar(hk);
+    tops.push(top); cts.push(ct); debut.push(pos.length / 3); nTop.push(m * 3);
+    for (let i = 0; i < m; i++) t3(ct, top[i], top[(i + 1) % m], n, k);
+    for (let i = 0; i < m; i++) { const j = (i + 1) % m, ref = top[i].clone().add(top[j]).multiplyScalar(.5).sub(ct); t3(top[i], bas[i], top[j], ref, k); t3(top[j], bas[i], bas[j], ref, k); }
+  });
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(new Float32Array(pos.length).fill(1), 3)); geo.computeVertexNormals();
+  return { geo, tri, debut, nTop, tops, cts };
+}
+function teinter(p, cols, ombre = .5) {
+  const arr = p.geo.attributes.color.array;
+  cols.forEach((cc, k) => { const d = p.debut[k], n = p.nTop[k]; for (let v = d; v < d + 3 * n; v++) { const f = v < d + n ? 1 : ombre; arr[v * 3] = cc.r * f; arr[v * 3 + 1] = cc.g * f; arr[v * 3 + 2] = cc.b * f; } });
+  p.geo.attributes.color.needsUpdate = true;
+}
+const GAZ = {};
+const gaz = c => GAZ[c.id] ||= (() => { // bandes de nuages, et la Grande Tache rouge sur Jupiter
+  const nz = bruit(3 + c.anneau), tache = new V3(.75, -.35, .55).normalize(), relief = [];
+  const cols = goldberg(FREQ(c)).cells.map(({ n }) => { const v = Math.sin(n.y * 10 + nz(n.x, n.y, n.z) * 1.4); relief.push((v + 1) * .005); return c.id === 'jupiter' && n.distanceTo(tache) < .2 ? new THREE.Color('#c8643c') : new THREE.Color(c.c1).lerp(new THREE.Color(c.c2), (v + 1) / 2); });
+  return { cols, relief };
+})();
+const hauteurT = (c, k, ech = .02) => 1 + (s(c.id).tuiles ? TER[s(c.id).tuiles[k].t][2] * ech : gaz(c).relief[k]);
+function couleursCorps(c, teinte = 0) {
+  const st = s(c.id); if (!st.tuiles) return gaz(c).cols;
+  const vert = new THREE.Color('#7cc35a'), mer = new THREE.Color('#3f7a8a');
+  return st.tuiles.map(t => {
+    const col = new THREE.Color(TER[t.t][1]);
+    // la terraformation se voit : Mars verdit, la lave de Vénus devient mer
+    if (st.terra && (c.id === 'mars' && t.t !== 'glace' || c.id === 'venus' && t.t === 'lave')) col.lerp(c.id === 'mars' ? vert : mer, clamp((st.terra - t.u * 80) / 25, 0, 1) * .85);
+    if (teinte && t.o) col.lerp(new THREE.Color(FAC[t.o].c), teinte);
+    return col;
+  });
+}
+
+// ----- le système solaire -----
+const sys = new THREE.Scene();
+const lumSys = new THREE.PointLight(0xfff0d0, 3.2, 0, 0);
+const lumCam = new THREE.DirectionalLight(0xc8d0ff, .5); lumCam.position.set(0, 0, 1); camSys.add(lumCam);
+sys.add(new THREE.AmbientLight(0x8890c0, .5), lumSys, camSys, etoiles(1500, 320, 1.4));
+const hx = (q, r, y = 0) => { const [x, z] = axPix(q, r); return new V3(x / S, y, z / S); }; // 1 unité = rayon d'une case
+const RVIS = c => c.parent ? .12 + c.ray * .032 : .15 + c.ray * .055;
+const elev = c => c.parent ? 0 : RVIS(c) + .3;
+const INCL = { venus: 177, terre: 23, mars: 25, jupiter: 3, saturne: 27, uranus: 98, neptune: 28, pluton: 120, lune: 7, ceres: 4 };
+const lunesDe = id => CORPS.filter(o => o.parent === id);
+const rayonOrbite = k => ANNEAUX[k].reduce((acc, p) => acc + hx(...p).length(), 0) / ANNEAUX[k].length;
+const sysO = { pret: false, sale: true, corps: {}, dyn: null, jet: [], piqueCorps: [], piqueFlottes: [], posF: {}, etiqF: [], survol: null };
+function texHalo() { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.2, 'rgba(255,255,255,.55)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); }
+function construireSysteme() {
+  // grille d'hexagones
+  const p = [];
+  for (let k = 1; k <= RMAX; k++) ANNEAUX[k].forEach(([q, r]) => { const c = hx(q, r); for (let i = 0; i < 6; i++) { const a1 = Math.PI / 180 * (60 * i - 30), a2 = a1 + Math.PI / 3; p.push(c.x + Math.cos(a1), 0, c.z + Math.sin(a1), c.x + Math.cos(a2), 0, c.z + Math.sin(a2)); } });
+  const gg = new THREE.BufferGeometry(); gg.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+  sys.add(new THREE.LineSegments(gg, new THREE.LineBasicMaterial({ color: 0x8296ff, transparent: true, opacity: .1 })));
+  CORPS.filter(c => !c.parent).forEach(c => { const R = rayonOrbite(c.anneau); sys.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 161 }, (_, i) => new V3(Math.cos(i / 160 * TAU) * R, 0, Math.sin(i / 160 * TAU) * R))), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: .14 }))); });
+  // ceinture d'astéroïdes (anneaux 7 à 9), ceinture de Kuiper (29 à 32), Troyens de Jupiter
+  const ra = alea(77), m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler();
+  const caillou = (pp, sc) => m.compose(pp, q.setFromEuler(e.set(ra() * 6, ra() * 6, ra() * 6)), new V3().setScalar(sc)).clone();
+  const semer = (k0, k1, dens) => { const l = []; for (let k = k0; k <= k1; k++) ANNEAUX[k].forEach(([qq, rr]) => { for (let i = 0; i < 3; i++) if (ra() < dens) l.push(caillou(hx(qq, rr).add(new V3((ra() - .5) * 1.7, (ra() - .5) * .35, (ra() - .5) * 1.7)), .04 + ra() * .1)); }); return l; };
+  const inst = (l, col) => { const im = new THREE.InstancedMesh(G.rocher, mat(col, { roughness: .9 }), l.length); l.forEach((mx, i) => im.setMatrixAt(i, mx)); return im; };
+  const Rj = rayonOrbite(C.jupiter.anneau), troy = [];
+  for (const sg of [-1, 1]) for (let i = 0; i < 45; i++) { const an = sg * Math.PI / 3 + (ra() - .5) * .4, rr = Rj + (ra() - .5) * 1.6; troy.push(caillou(new V3(Math.cos(an) * rr, (ra() - .5) * .3, Math.sin(an) * rr), .04 + ra() * .08)); }
+  sysO.troyens = inst(troy, '#9a8a70');
+  sys.add(inst(semer(7, 9, .5), '#8a8074'), inst(semer(29, 32, .22), '#a9b8c8'), sysO.troyens);
+  // le Soleil, lui aussi en hexagones, et son halo
+  const rs = alea(5), soleil = prismes(goldberg(5).cells, () => 1.3 * (1 + rs() * .03), 1.22, .05);
+  teinter(soleil, goldberg(5).cells.map(() => new THREE.Color('#ffd25a').lerp(new THREE.Color('#ff7a1a'), rs() * .8)), .7);
+  sysO.soleil = new THREE.Group();
+  sysO.soleil.add(new THREE.Mesh(soleil.geo, new THREE.MeshBasicMaterial({ vertexColors: true })),new THREE.Mesh(new THREE.SphereGeometry(1.22, 24, 12), new THREE.MeshBasicMaterial({ color: '#ff9a30' })));
+  sysO.halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: texHalo(), color: '#ffb547', blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  sys.add(sysO.soleil, sysO.halo);
+  // la sphère de Dyson : 92 plaques dorées, posées du pôle vers l'équateur à chaque segment construit
+  const cellsD = [...goldberg(3).cells].sort((a, b) => b.n.y - a.n.y);
+  sysO.dyson = prismes(cellsD, () => 2.45, 2.33, .06);
+  sys.add(new THREE.Mesh(sysO.dyson.geo, new THREE.MeshStandardMaterial({ color: '#f0b440', metalness: .3, roughness: .4, emissive: '#6a4508', emissiveIntensity: .6, flatShading: true })));
+  // les corps célestes : mini-globes en hexagones, penchés sur leur axe
+  CORPS.forEach(c => {
+    const R = RVIS(c), g = new THREE.Group(), incl = new THREE.Group(), tour = new THREE.Group();
+    incl.rotation.z = (INCL[c.id] || 0) * Math.PI / 180; g.add(incl); incl.add(tour);
+    const pr = prismes(goldberg(FREQ(c)).cells, k => hauteurT(c, k, .035));
+    tour.add(new THREE.Mesh(pr.geo, matSol), new THREE.Mesh(G.noyau, mat('#151829'))); tour.scale.setScalar(R);
+    if (HALO[c.id]) { const h = new THREE.Mesh(G.halo, matHalo(HALO[c.id])); h.scale.setScalar(R); g.add(h); }
+    if (c.anneaux) { const a = new THREE.Group(); a.scale.setScalar(R); anneauxSaturne(a, []); incl.add(a); }
+    if (!c.parent) { const o = new THREE.Mesh(G.ombre, matPlat('#000000', .35)); o.scale.setScalar(R * 1.1); o.position.y = -elev(c) + .01; g.add(o); }
+    const pique = new THREE.Mesh(G.boule, new THREE.MeshBasicMaterial({ visible: false })); pique.scale.setScalar(Math.max(R * 2.6, c.parent ? .55 : .9)); pique.userData.c = c; g.add(pique); sysO.piqueCorps.push(pique);
+    sys.add(g);
+    const el = document.createElement('span'); el.className = 'etiq' + (c.parent ? ' lune' : ''); el.textContent = c.nom; $('etiquettes').append(el);
+    sysO.corps[c.id] = { c, g, tour, pr, R, el, ang: null, rad: 0, sol: null };
+  });
+  // survol, sélection, comète
+  sysO.survolM = new THREE.Mesh(G.hex, matPlat('#ffffff', .12)); sysO.survolM.visible = false;
+  sysO.selM = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 180 * (60 * i - 30); return new V3(Math.cos(a), .03, Math.sin(a)); })), new THREE.LineBasicMaterial({ color: '#ffb547' }));
+  sysO.comete = new THREE.Mesh(G.boule, new THREE.MeshBasicMaterial({ color: '#eaf6ff' })); sysO.comete.scale.setScalar(.16);
+  const qg = new THREE.BufferGeometry(); qg.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3)); qg.setAttribute('color', new THREE.Float32BufferAttribute([.8, .95, 1, 0, 0, 0], 3));
+  sysO.queue = new THREE.Line(qg, new THREE.LineBasicMaterial({ vertexColors: true, blending: THREE.AdditiveBlending, transparent: true }));
+  sys.add(sysO.survolM, sysO.selM, sysO.comete, sysO.queue);
+  sysO.pret = true;
+}
+// ce qui change avec la partie : couleurs des colonies, présences, flottes, missions, portée, sphère de Dyson
+function majSysteme() {
+  CORPS.forEach(c => { const o = sysO.corps[c.id]; if (o.sol) o.g.remove(o.sol); o.sol = null; });
+  if (sysO.dyn) sys.remove(sysO.dyn);
+  sysO.jet.forEach(g => g.dispose()); sysO.jet = []; sysO.etiqF.forEach(el => el.remove()); sysO.etiqF = [];
+  const dyn = sysO.dyn = new THREE.Group(); sys.add(dyn);
+  CORPS.forEach(c => {
+    const o = sysO.corps[c.id], facs = presents(c.id);
+    teinter(o.pr, couleursCorps(c, .35));
+    if (!facs.length) return;
+    const grp = new THREE.Group();
+    facs.forEach((f, i) => { const g = new THREE.RingGeometry(o.R + .12, o.R + .22, 40, 1, TAU * i / facs.length + .08, TAU / facs.length - .16); sysO.jet.push(g); grp.add(new THREE.Mesh(g, matPlat(FAC[f].c))); });
+    grp.rotation.x = -Math.PI / 2; grp.position.y = c.parent ? 0 : -elev(c) + .03; o.g.add(grp); o.sol = grp;
+  });
+  sysO.piqueFlottes = [];
+  const groupes = {};
+  E.flottes.forEach(f => (groupes[f.pos + ''] ||= []).push(f));
+  Object.values(groupes).forEach(gp => gp.forEach((f, i) => {
+    const grp = new THREE.Group(), col = FAC[f.camp].c;
+    grp.add(new THREE.Mesh(f.camp === 'vei' ? G.octa : G.fleche, mat(col, { emissive: col, emissiveIntensity: .5 })));
+    if (f === E.selFlotte) { const t = new THREE.Mesh(G.tore, mat('#ffb547', lueur('#ffb547'))); t.rotation.x = Math.PI / 2; t.scale.setScalar(1.1); grp.add(t); }
+    const pique = new THREE.Mesh(G.boule, new THREE.MeshBasicMaterial({ visible: false })); pique.scale.setScalar(.8); pique.userData.f = f; grp.add(pique); sysO.piqueFlottes.push(pique);
+    grp.userData = { f, off: new V3(.8 + i * .42, .65, -.5 + i * .18) };
+    sysO.posF[f.id] ||= hx(...f.pos).add(grp.userData.off);
+    const el = document.createElement('span'); el.className = 'etiq flotte'; el.style.color = col; el.textContent = nbNav(f); $('etiquettes').append(el); grp.userData.el = el; sysO.etiqF.push(el);
+    dyn.add(grp);
+  }));
+  E.missions.forEach(mi => {
+    const a = hx(...pos(C[mi.de]), .3), b = hx(...pos(C[mi.vers]), .3), g = new THREE.BufferGeometry().setFromPoints([a, b]); sysO.jet.push(g);
+    const l = new THREE.Line(g, matTiret(FAC[mi.camp].c)); l.computeLineDistances(); dyn.add(l);
+    const pt = new THREE.Mesh(G.boule, mat(FAC[mi.camp].c, lueur(FAC[mi.camp].c))); pt.scale.setScalar(.22); pt.position.lerpVectors(a, b, (E.tour - mi.depart) / Math.max(1, mi.arrivee - mi.depart)); dyn.add(pt);
+  });
+  const at = atteignables();
+  if (at.length) { const im = new THREE.InstancedMesh(G.hex, matPlat(FAC[E.j].c, .2), at.length); at.forEach((pp, i) => { const v = hx(...pp, .02); im.setMatrixAt(i, new THREE.Matrix4().makeTranslation(v.x, v.y, v.z)); }); dyn.add(im); }
+  const n = Math.round(E.dyson / 20 * sysO.dyson.debut.length);
+  sysO.dyson.geo.setDrawRange(0, n < sysO.dyson.debut.length ? sysO.dyson.debut[n] : Infinity);
+  lumSys.intensity = 3.2 * (1 - capture() * .8);
+  sysO.sale = false;
+}
+function atteignables() {
+  const f = E.selFlotte; if (!f || f.camp !== E.j || !f.mvt) return [];
+  const out = [];
+  for (let k = 1; k <= RMAX; k++) ANNEAUX[k].forEach(p => { if (dist(p, f.pos) <= f.mvt && dist(p, f.pos) > 0) out.push(p); });
+  return out;
+}
+const v3 = new V3();
+function etiquette(el, p, cond = true) {
+  v3.copy(p).project(camSys);
+  const vis = cond && v3.z < 1 && Math.abs(v3.x) < 1.05 && Math.abs(v3.y) < 1.05;
+  el.hidden = !vis;
+  if (vis) el.style.transform = `translate(${(v3.x + 1) / 2 * W}px, ${(1 - v3.y) / 2 * H}px) translateX(-50%)`;
+}
+function dessinSysteme(tt) {
+  if (!sysO.pret) construireSysteme();
+  if (sysO.sale) majSysteme();
+  placerCamSys();
+  // chaque planète glisse le long de son orbite vers sa nouvelle case
+  CORPS.forEach(c => {
+    const o = sysO.corps[c.id];
+    if (!c.parent) {
+      const t = hx(...pos(c)), ta = Math.atan2(t.z, t.x), tr = t.length();
+      if (o.ang === null) { o.ang = ta; o.rad = tr; }
+      o.ang += (((ta - o.ang) % TAU + TAU + Math.PI) % TAU - Math.PI) * .1; o.rad += (tr - o.rad) * .1;
+      o.g.position.set(Math.cos(o.ang) * o.rad, elev(c), Math.sin(o.ang) * o.rad);
+    }
+    o.tour.rotation.y = tt * (c.id === 'venus' ? -.05 : c.gaz ? .5 : .3);
+  });
+  CORPS.filter(c => c.parent).forEach(c => {
+    const o = sysO.corps[c.id], P = sysO.corps[c.parent], i = lunesDe(c.parent).indexOf(c), d = P.R + .38 + i * .34, an = tt * .5 / (i + 1) * (c.id === 'triton' ? -1 : 1) + i * 2.1;
+    o.g.position.set(P.g.position.x + Math.cos(an) * d, P.g.position.y, P.g.position.z + Math.sin(an) * d);
+  });
+  sysO.troyens.rotation.y = -sysO.corps.jupiter.ang;
+  sysO.soleil.rotation.y = tt * .05;
+  sysO.halo.scale.setScalar((11 + Math.sin(tt * 1.3) * .4) * (1 - capture() * .6));
+  sysO.dyn.children.forEach(g => { const u = g.userData; if (!u.f) return; const p = sysO.posF[u.f.id].lerp(hx(...u.f.pos).add(u.off), .1); g.position.copy(p); g.position.y += Math.sin(tt * 2 + u.f.id) * .05; });
+  const sp = pos(C[E.sel]); sysO.selM.position.copy(hx(...sp));
+  if (sysO.survol) { sysO.survolM.visible = true; sysO.survolM.position.copy(hx(...sysO.survol, .01)); } else sysO.survolM.visible = false;
+  // une comète sur une orbite très allongée, la queue toujours à l'opposé du Soleil
+  const th = tt * .04 % TAU, rc = 20 * (1 - .85 ** 2) / (1 + .85 * Math.cos(th)), hc = new V3(Math.cos(th + 2.4) * rc, .6, Math.sin(th + 2.4) * rc);
+  sysO.comete.position.copy(hc); const qa = sysO.queue.geometry.attributes.position; qa.setXYZ(0, hc.x, hc.y, hc.z); const qb = hc.clone().add(hc.clone().setY(0).normalize().multiplyScalar(clamp(30 / rc, .5, 6))); qa.setXYZ(1, qb.x, qb.y, qb.z); qa.needsUpdate = true;
+  rendu.render(sys, camSys);
+  CORPS.forEach(c => { const o = sysO.corps[c.id]; etiquette(o.el, o.g.position.clone().setY(o.g.position.y + (c.parent ? o.R + .35 : -o.R - .08)), !c.parent || vueSys.dist < 40 || E.sel === c.id); o.el.classList.toggle('sel', E.sel === c.id); });
+  sysO.dyn.children.forEach(g => { if (g.userData.el) etiquette(g.userData.el, g.position.clone().setY(g.position.y + .45)); });
+}
+
+// ----- globe 3D de la planète choisie -----
+const scene = new THREE.Scene();
+scene.add(new THREE.AmbientLight(0x9098c8, .9), etoiles(1200, 40, .18));
+const lumSoleil = new THREE.DirectionalLight(0xfff0d0, 2.8); lumSoleil.position.set(-4, 1.5, 3); scene.add(lumSoleil);
+const planete = new THREE.Group(); scene.add(planete);
 // bâtiments en unités de case (rayon 1), posés sur y = 0
 function modele(b, fc) {
   const g = new THREE.Group(), P = (...a) => g.add(piece(...a));
@@ -829,53 +951,28 @@ function modeleOrb(t, fc) {
   return g;
 }
 const globe = { id: null, base: null, dyn: null, orbite: null, jet: [], jetDyn: [], sale: true, v: [0, 0], survol: -1 };
-const hauteur = (st, k) => 1 + (st.tuiles ? TER[st.tuiles[k].t][2] * .02 : globe.relief[k]);
-const HALO = { terre: '#6fb8ff', venus: '#ffd88a', titan: '#e8a64a' };
-
 function construireGlobe() {
   const c = C[E.sel], st = s(c.id), cells = goldberg(st.f).cells;
   if (globe.dyn) { planete.remove(globe.dyn); globe.jetDyn.forEach(g => g.dispose()); globe.dyn = null; }
   planete.clear(); globe.jet.forEach(g => g.dispose()); globe.jet = [];
-  if (c.gaz) { // bandes de nuages, et la Grande Tache rouge sur Jupiter
-    const nz = bruit(3 + c.anneau), tache = new V3(.75, -.35, .55).normalize();
-    globe.relief = []; globe.bandes = cells.map(({ n }) => { const v = Math.sin(n.y * 10 + nz(n.x, n.y, n.z) * 1.4); globe.relief.push((v + 1) * .005); return c.id === 'jupiter' && n.distanceTo(tache) < .2 ? new THREE.Color('#c8643c') : new THREE.Color(c.c1).lerp(new THREE.Color(c.c2), (v + 1) / 2); });
-  }
-  const pos = [], tri = [], debut = [], nTop = [], tops = [], cts = [], a = new V3(), b = new V3();
-  const t3 = (p1, p2, p3, ref, k) => { a.subVectors(p2, p1); b.subVectors(p3, p1); (a.cross(b).dot(ref) < 0 ? [p1, p3, p2] : [p1, p2, p3]).forEach(v => pos.push(v.x, v.y, v.z)); tri.push(k); };
-  cells.forEach((cell, k) => {
-    const n = cell.n, h = hauteur(st, k), m = cell.coins.length;
-    const ci = cell.coins.map(p => p.clone().lerp(n, .07).normalize()); // rainure entre les cases
-    const top = ci.map(p => p.clone().multiplyScalar(h)), bas = ci.map(p => p.clone().multiplyScalar(.94)), ct = n.clone().multiplyScalar(h);
-    tops.push(top); cts.push(ct); debut.push(pos.length / 3); nTop.push(m * 3);
-    for (let i = 0; i < m; i++) t3(ct, top[i], top[(i + 1) % m], n, k);
-    for (let i = 0; i < m; i++) { const j = (i + 1) % m, ref = top[i].clone().add(top[j]).multiplyScalar(.5).sub(ct); t3(top[i], bas[i], top[j], ref, k); t3(top[j], bas[i], bas[j], ref, k); }
-  });
-  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-  globe.couleurs = new THREE.Float32BufferAttribute(new Float32Array(pos.length), 3); geo.setAttribute('color', globe.couleurs); geo.computeVertexNormals();
-  globe.base = new THREE.Mesh(geo, matSol); globe.jet.push(geo);
+  const p = prismes(cells, k => hauteurT(c, k)); globe.jet.push(p.geo);
+  globe.base = new THREE.Mesh(p.geo, matSol);
   planete.add(globe.base, new THREE.Mesh(G.noyau, mat('#151829')));
   const halo = HALO[c.id] || (c.id === 'mars' && st.terra > 30 && '#9fd0ff');
-  if (halo) planete.add(new THREE.Mesh(G.halo, new THREE.MeshBasicMaterial({ color: halo, transparent: true, opacity: .16, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false })));
-  if (c.anneaux) [[1.35, 1.7, .5], [1.75, 2.15, .75], [2.2, 2.4, .35]].forEach(([r1, r2, op]) => { const g = new THREE.RingGeometry(r1, r2, 120); globe.jet.push(g); const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: '#e6d3a3', transparent: true, opacity: op, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2 + .35; planete.add(m); });
-  Object.assign(globe, { id: c.id, cells, tri, debut, nTop, tops, cts, R: cells.map(cl => cl.coins[0].distanceTo(cl.n)), sale: true, survol: -1 });
+  if (halo) planete.add(new THREE.Mesh(G.halo, matHalo(halo)));
+  if (c.anneaux) { const a = new THREE.Group(); a.rotation.x = .35; anneauxSaturne(a, globe.jet); planete.add(a); }
+  Object.assign(globe, { id: c.id, cells, p, R: cells.map(cl => cl.coins[0].distanceTo(cl.n)), sale: true, survol: -1 });
 }
 function repere(k, ox = 0, oz = 0, sc = 1) {
   const cell = globe.cells[k], q = new THREE.Quaternion().setFromUnitVectors(Y, cell.n), R = globe.R[k] * .95;
-  return new THREE.Matrix4().compose(cell.n.clone().multiplyScalar(hauteur(s(globe.id), k)), q, new V3(R, R, R)).multiply(new THREE.Matrix4().makeTranslation(ox, 0, oz)).multiply(new THREE.Matrix4().makeScale(sc, sc, sc));
+  return new THREE.Matrix4().compose(cell.n.clone().multiplyScalar(hauteurT(C[globe.id], k)), q, new V3(R, R, R)).multiply(new THREE.Matrix4().makeTranslation(ox, 0, oz)).multiply(new THREE.Matrix4().makeScale(sc, sc, sc));
 }
 // décor, bâtiments, frontières et orbite : refaits quand la partie change
 function reconstruire() {
   if (globe.dyn) { planete.remove(globe.dyn); globe.jetDyn.forEach(g => g.dispose()); }
   globe.jetDyn = [];
   const c = C[globe.id], st = s(c.id), dyn = new THREE.Group(); globe.dyn = dyn; planete.add(dyn);
-  const vert = new THREE.Color('#7cc35a'), mer = new THREE.Color('#3f7a8a');
-  globe.coul = globe.cells.map((cell, k) => {
-    if (!st.tuiles) return globe.bandes[k];
-    const t = st.tuiles[k], col = new THREE.Color(TER[t.t][1]);
-    // la terraformation se voit : Mars verdit, la lave de Vénus devient mer
-    if (st.terra && (c.id === 'mars' && t.t !== 'glace' || c.id === 'venus' && t.t === 'lave')) col.lerp(c.id === 'mars' ? vert : mer, clamp((st.terra - t.u * 80) / 25, 0, 1) * .85);
-    return col;
-  });
+  globe.coul = couleursCorps(c);
   if (st.tuiles) {
     const deco = { arbre: [], pic: [], plat: [], lave: [], nuage: [] };
     st.tuiles.forEach((t, k) => {
@@ -894,7 +991,7 @@ function reconstruire() {
     const fp = [], fcol = [];
     st.tuiles.forEach((t, k) => {
       if (!t.o) return;
-      const cell = globe.cells[k], top = globe.tops[k], ct = globe.cts[k], col = new THREE.Color(FAC[t.o].c), m = top.length;
+      const cell = globe.cells[k], top = globe.p.tops[k], ct = globe.p.cts[k], col = new THREE.Color(FAC[t.o].c), m = top.length;
       for (let i = 0; i < m; i++) {
         if (st.tuiles[cell.face[i]].o === t.o) continue;
         const p1 = top[i].clone().multiplyScalar(1.003), p2 = top[(i + 1) % m].clone().multiplyScalar(1.003), q1 = p1.clone().lerp(ct, .24), q2 = p2.clone().lerp(ct, .24);
@@ -911,18 +1008,15 @@ function reconstruire() {
   globe.sale = false;
 }
 function peindre(tt) {
-  const st = s(globe.id), arr = globe.couleurs.array, blanc = new THREE.Color(1, 1, 1), or = new THREE.Color('#ffb547'), cc = new THREE.Color(), cible = E.carteBat;
-  globe.cells.forEach((cell, k) => {
-    const t = st.tuiles?.[k], base = globe.coul[k]; cc.copy(base);
+  const st = s(globe.id), blanc = new THREE.Color(1, 1, 1), or = new THREE.Color('#ffb547'), cible = E.carteBat;
+  teinter(globe.p, globe.coul.map((base, k) => {
+    const t = st.tuiles?.[k], cc = base.clone();
     if (t?.o) cc.lerp(new THREE.Color(FAC[t.o].c), .12);
     if (cible && t && !t.b && t.o === E.j && peutConstruire(cible, t)) cc.lerp(blanc, .3 + .15 * Math.sin(tt * 4));
     if (t && t === E.selTuile) cc.lerp(or, .6);
     if (k === globe.survol) cc.lerp(blanc, .22);
-    const d = globe.debut[k], n = globe.nTop[k];
-    for (let v = d; v < d + n; v++) { arr[v * 3] = cc.r; arr[v * 3 + 1] = cc.g; arr[v * 3 + 2] = cc.b; }
-    for (let v = d + n; v < d + 3 * n; v++) { arr[v * 3] = base.r * .5; arr[v * 3 + 1] = base.g * .5; arr[v * 3 + 2] = base.b * .5; }
-  });
-  globe.couleurs.needsUpdate = true;
+    return cc;
+  }));
 }
 function tourner(dx, dy) {
   const k = .005 * (camera.position.z - 1) / 3;
@@ -936,30 +1030,27 @@ function dessinGlobe(tt) {
   peindre(tt);
   rendu.render(scene, camera);
 }
-const ray = new THREE.Raycaster();
-function tuileSous(x, y) {
-  if (!globe.base) return -1;
-  ray.setFromCamera(new THREE.Vector2(x / W * 2 - 1, 1 - y / H * 2), camera);
-  const h = ray.intersectObject(globe.base)[0];
-  return h ? globe.tri[h.faceIndex] : -1;
+function boucle(t) {
+  const tt = reduit ? 0 : t / 1000;
+  if (E.j && W) E.vue === 'systeme' ? dessinSysteme(tt) : dessinGlobe(tt);
+  requestAnimationFrame(boucle);
 }
 
 // ---------- Sélection à la souris / au doigt ----------
-function versHexS(sx, sy) { const px = (sx - W / 2) / camS.z + camS.x, py = ((sy - H / 2) / camS.z + camS.y) / ISO; return hexRound((SQ3 / 3 * px - py / 3) / S, (2 / 3 * py) / S); }
-function corpsSous(x, y) {
-  let best = null;
-  CORPS.forEach(c => { const [hx, hy] = axPix(...pos(c)); let [px, py] = scrS(hx, hy); const z = camS.z; if (c.parent) { const i = CORPS.filter(o => o.parent === c.parent).indexOf(c); px += (C[c.parent].ray + 7 + i * 6) * z; py -= (8 + i * 7) * z; } else py -= c.ray * z * 1.15 * .55; const r = Math.max(10, c.ray * z * 1.15 + 4); const d = Math.hypot(x - px, y - py); if (d < r && (!best || d < best.d || c.parent)) best = { c, d }; });
-  return best?.c;
-}
+const ray = new THREE.Raycaster(), plan = new THREE.Plane(new V3(0, 1, 0), 0);
+const viser = (x, y, cam) => ray.setFromCamera(new THREE.Vector2(x / W * 2 - 1, 1 - y / H * 2), cam);
+function hexSous() { const p = new V3(); if (!ray.ray.intersectPlane(plan, p)) return null; const h = hexRound(SQ3 / 3 * p.x - p.z / 3, 2 / 3 * p.z); return dist(h, [0, 0]) <= RMAX ? h : null; }
+const corpsVise = () => ray.intersectObjects(sysO.piqueCorps)[0]?.object.userData.c;
+function tuileSous(x, y) { if (!globe.base) return -1; viser(x, y, camera); const h = ray.intersectObject(globe.base)[0]; return h ? globe.p.tri[h.faceIndex] : -1; }
 function clic(x, y) {
   if (E.vue === 'systeme') {
-    const fl = E.flottes.find(f => f._scr && Math.hypot(x - f._scr[0], y - f._scr[1]) < 13);
+    viser(x, y, camSys);
+    const fl = ray.intersectObjects(sysO.piqueFlottes)[0]?.object.userData.f;
     if (fl) { E.selFlotte = fl.camp === E.j && fl !== E.selFlotte ? fl : null; if (fl.camp !== E.j) journal(`${fl.nom} (${FAC[fl.camp].nom}) : puissance ${fmt(puissance(fl))}.`, fl.camp === 'vei' ? 'alien' : ''); E.onglet = 'flottes'; rendrePanneau(); rendreHUD(); return; }
-    const h = versHexS(x, y);
-    if (E.selFlotte && atteignables().some(p => p[0] === h[0] && p[1] === h[1])) { bouger(E.selFlotte, h); return; }
-    if (dist(h, [0, 0]) === 0) { E.onglet = 'soleil'; rendrePanneau(); return; }
-    const c = corpsSous(x, y);
+    const c = corpsVise(), h = hexSous(), cible = c ? pos(c) : h;
+    if (E.selFlotte && cible && atteignables().some(p => p[0] === cible[0] && p[1] === cible[1])) { bouger(E.selFlotte, cible); return; }
     if (c) { if (E.sel === c.id && !E.selFlotte) { allerSurface(); return; } E.sel = c.id; E.onglet = 'corps'; E.selFlotte = null; }
+    else if (h && dist(h, [0, 0]) === 0) { E.onglet = 'soleil'; }
     else E.selFlotte = null;
     rendrePanneau(); rendreHUD();
   } else {
@@ -988,35 +1079,35 @@ function bouger(f, h) {
 function allerSurface() { E.vue = 'planete'; E.selTuile = null; E.carteBat = null; recentrer(); rendreHUD(); rendrePanneau(); }
 
 const ptrs = new Map(); let drag = null;
-const rel = e => { const r = e.currentTarget.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-const zoomer = k => { if (E.vue === 'systeme') camS.z = clamp(camS.z * k, .2, 3); else camera.position.z = clamp(camera.position.z / k, 1.6, 12); };
-for (const el of [cv, $('globe')]) {
-  el.addEventListener('pointerdown', e => { el.setPointerCapture(e.pointerId); const p = rel(e); ptrs.set(e.pointerId, p); const v = [...ptrs.values()]; drag = { p, moved: 0, d: v.length === 2 ? Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]) : 0, z: camS.z, cz: camera.position.z }; globe.v = [0, 0]; });
-  el.addEventListener('pointermove', e => {
-    const p = rel(e);
-    if (!ptrs.has(e.pointerId)) { survoler(p, e); return; }
-    ptrs.set(e.pointerId, p); const v = [...ptrs.values()];
-    if (v.length === 2 && drag.d) { const k = Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]) / drag.d; if (E.vue === 'systeme') camS.z = clamp(drag.z * k, .2, 3); else camera.position.z = clamp(drag.cz / k, 1.6, 12); drag.moved = 99; return; }
-    const dx = p[0] - drag.p[0], dy = p[1] - drag.p[1]; drag.moved += Math.abs(dx) + Math.abs(dy); drag.p = p;
-    if (drag.moved <= 6) return;
-    if (E.vue === 'systeme') { camS.x -= dx / camS.z; camS.y -= dy / camS.z; } else { tourner(dx, dy); globe.v = [dx, dy]; }
-  });
-  el.addEventListener('pointerup', e => { if (drag && drag.moved <= 6 && ptrs.size === 1) clic(...rel(e)); ptrs.delete(e.pointerId); if (!ptrs.size) drag = null; });
-  el.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); drag = null; });
-  el.addEventListener('pointerleave', () => { $('bulle').hidden = true; survol = null; globe.survol = -1; });
-  el.addEventListener('wheel', e => {
-    e.preventDefault(); const k = Math.exp(-e.deltaY * .0015);
-    if (E.vue !== 'systeme') { zoomer(k); return; }
-    const [x, y] = rel(e), nz = clamp(camS.z * k, .2, 3); camS.x += (x - W / 2) * (1 / camS.z - 1 / nz); camS.y += (y - H / 2) * (1 / camS.z - 1 / nz); camS.z = nz;
-  }, { passive: false });
+const rel = e => { const r = toile.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+const zoomer = k => { if (E.vue === 'systeme') vueSys.dist = clamp(vueSys.dist / k, 5, 150); else camera.position.z = clamp(camera.position.z / k, 1.6, 12); };
+function glisserSys(dx, dy) {
+  const { az, tilt } = vueSys, k = vueSys.dist * 2 * Math.tan(20 * Math.PI / 180) / H, k2 = k / Math.sin(tilt), c = vueSys.cible;
+  c.x += -Math.cos(az) * dx * k - Math.sin(az) * dy * k2; c.z += Math.sin(az) * dx * k - Math.cos(az) * dy * k2;
+  if (c.length() > 60) c.setLength(60);
 }
+toile.addEventListener('pointerdown', e => { toile.setPointerCapture(e.pointerId); const p = rel(e); ptrs.set(e.pointerId, p); const v = [...ptrs.values()]; drag = { p, moved: 0, d: v.length === 2 ? Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]) : 0, sd: vueSys.dist, cz: camera.position.z }; globe.v = [0, 0]; });
+toile.addEventListener('pointermove', e => {
+  const p = rel(e);
+  if (!ptrs.has(e.pointerId)) { survoler(p, e); return; }
+  ptrs.set(e.pointerId, p); const v = [...ptrs.values()];
+  if (v.length === 2 && drag.d) { const k = Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]) / drag.d; if (E.vue === 'systeme') vueSys.dist = clamp(drag.sd / k, 5, 150); else camera.position.z = clamp(drag.cz / k, 1.6, 12); drag.moved = 99; return; }
+  const dx = p[0] - drag.p[0], dy = p[1] - drag.p[1]; drag.moved += Math.abs(dx) + Math.abs(dy); drag.p = p;
+  if (drag.moved <= 6) return;
+  if (E.vue === 'systeme') glisserSys(dx, dy); else { tourner(dx, dy); globe.v = [dx, dy]; }
+});
+toile.addEventListener('pointerup', e => { if (drag && drag.moved <= 6 && ptrs.size === 1) clic(...rel(e)); ptrs.delete(e.pointerId); if (!ptrs.size) drag = null; });
+toile.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); drag = null; });
+toile.addEventListener('pointerleave', () => { $('bulle').hidden = true; sysO.survol = null; globe.survol = -1; });
+toile.addEventListener('wheel', e => { e.preventDefault(); zoomer(Math.exp(-e.deltaY * .0015)); }, { passive: false });
 function survoler(p, e) {
   const b = $('bulle'); if (!E.j) return;
   if (E.vue === 'systeme') {
-    survol = versHexS(...p); if (dist(survol, [0, 0]) > RMAX) survol = null;
-    const c = corpsSous(...p);
+    if (!sysO.pret) return;
+    viser(...p, camSys); sysO.survol = hexSous();
+    const c = corpsVise(), h = sysO.survol;
     if (c) { b.hidden = false; b.innerHTML = `<b>${c.nom}</b><br>${kelvin(temp(c))} · ${presents(c.id).map(f => FAC[f].nom).join(', ') || 'inoccupé'}`; }
-    else if (survol && dist(survol, [0, 0]) === 0) { b.hidden = false; b.innerHTML = `<b>Soleil</b><br>Sphère de Dyson : ${E.dyson} / 20 segments`; }
+    else if (h && dist(h, [0, 0]) === 0) { b.hidden = false; b.innerHTML = `<b>Soleil</b><br>Sphère de Dyson : ${E.dyson} / 20 segments`; }
     else b.hidden = true;
   } else {
     globe.survol = tuileSous(...p); const t = s(E.sel).tuiles?.[globe.survol];
@@ -1038,14 +1129,14 @@ function rendreHUD() {
   }).join('');
   const ch = 1 - capture();
   $('jaugeChaleur').style.width = ch * 100 + '%'; $('txtChaleur').textContent = fmt(ch * 100) + ' %';
-  globe.sale = true; $('bulle').hidden = true; cv.hidden = E.vue !== 'systeme'; $('globe').hidden = E.vue === 'systeme';
+  globe.sale = sysO.sale = true; $('bulle').hidden = true; $('etiquettes').hidden = E.vue !== 'systeme';
   $('vSys').classList.toggle('actif', E.vue === 'systeme'); $('vPla').classList.toggle('actif', E.vue === 'planete');
   $('vPla').textContent = 'Surface : ' + C[E.sel].nom;
   $('journal').innerHTML = E.journal.slice(0, 4).map(j => `<p class="${j.k}">${j.txt}</p>`).join('');
   $('journal').classList.toggle('haut', E.vue === 'planete');
   const aide = $('aide');
   aide.hidden = false;
-  if (E.vue === 'systeme') aide.textContent = E.selFlotte ? `${E.selFlotte.nom} : ${E.selFlotte.mvt} hex de mouvement. Touchez une case en surbrillance.` : 'Touchez une planète pour la gérer, touchez-la encore pour voir sa surface. Touchez une flotte pour la déplacer.';
+  if (E.vue === 'systeme') aide.textContent = E.selFlotte ? `${E.selFlotte.nom} : ${E.selFlotte.mvt} hex de mouvement. Touchez une case en surbrillance.` : 'Touchez une planète pour la gérer, encore une fois pour sa surface. Glissez pour vous déplacer, pincez pour zoomer.';
   else aide.textContent = E.carteBat ? `${BAT[E.carteBat].n} : touchez une case verte de votre territoire.` : C[E.sel].gaz ? 'Géante gazeuse : pas de sol. Construisez en orbite depuis l\'onglet Corps. Glissez pour la faire tourner.' : `${C[E.sel].nom} · ${kelvin(temp(C[E.sel]))} · habitabilité ${fmt(habitabilite(C[E.sel]) * 100)} % · glissez pour faire tourner`;
   rendreChantier();
 }
@@ -1068,12 +1159,13 @@ function rendrePanneau() {
 }
 function panCorps() {
   const c = C[E.sel], st = s(c.id), facs = presents(c.id), moi = facs.includes(E.j), T = temp(c), hab = habitabilite(c);
-  let h = `<h2>${c.nom}</h2><p class="sous">${c.gaz ? 'Géante gazeuse' : c.parent ? 'Lune de ' + C[c.parent].nom : 'Planète tellurique'} · ${fmt(c.ua, 2)} ua du Soleil</p>`;
+  let h = `<h2>${c.nom}</h2><p class="sous">${c.gaz ? 'Géante gazeuse' : c.parent ? 'Lune de ' + C[c.parent].nom : c.id === 'ceres' || c.id === 'pluton' ? 'Planète naine' : 'Planète tellurique'} · ${fmt(c.ua, 2)} ua du Soleil · orbite à ${(c.parent ? C[c.parent] : c).anneau} cases</p>`;
   h += `<div class="chips">${facs.map(chipFac).join('') || '<span class="chip">Inoccupé</span>'}</div><p>${c.desc}</p>`;
   h += `<div class="chips">${c.specs.map(x => `<span class="chip">${x}</span>`).join('')}</div>`;
   const lunes = CORPS.filter(o => o.parent === c.id || c.parent && (o.id === c.parent || o.parent === c.parent && o !== c));
   if (lunes.length) h += `<div class="lunes">${lunes.map(o => `<button class="btn petit" data-a="sel:${o.id}">${o.parent ? 'Lune' : 'Planète'} : ${o.nom}</button>`).join('')}</div>`;
   h += `<h3>Climat</h3><dl class="grille"><dt>Température</dt><dd>${kelvin(T)}${Math.abs(T - c.T0) > 1 ? ` <small style="color:var(--doux)">(${signe(T - c.T0)} °C)</small>` : ''}</dd><dt>Lumière reçue</dt><dd>${fmt(lumiere(c) * 100)} % de la Terre</dd><dt>Gravité</dt><dd>${fmt(c.g, 2)} g</dd>`;
+  if ((c.parent || c.id) !== 'terre') { const d = distReelle(c, C.terre), mn = d * 8.317; h += `<dt>Distance de la Terre</dt><dd>${fmt(d * 149.6)} M km</dd><dt>Délai radio</dt><dd>${mn < 60 ? fmt(mn) + ' min' : fmt(mn / 60, 1) + ' h'}</dd>`; }
   if (c.id === 'mars' || c.id === 'venus') h += `<dt>Terraformation</dt><dd>${fmt(st.terra)} %</dd>`;
   h += `</dl>`;
   if (!c.gaz) h += `<p class="sous" style="margin-top:8px">Habitabilité ${fmt(hab * 100)} %${hab <= .2 ? ' (sous dôme)' : ''}</p><div class="barre-p"><b style="width:${hab * 100}%"></b></div>`;
@@ -1107,7 +1199,7 @@ function panCorps() {
       h += `<div class="ligne"><div>${O.n}<small>${verrou ? 'Recherche : ' + TECH[O.tech].n : O.d}</small><small>${coutTxt(O.cout)}</small></div><button class="btn petit" data-a="orb:${k}" ${verrou || !peutPayer(O.cout) ? 'disabled' : ''}>Bâtir</button></div>`;
     });
     if (nbOrb(c.id, 'chantier', E.j)) {
-      const k = c.id === 'lune' ? .7 : c.id === 'ceres' ? .5 : 1;
+      const k = remiseChantier(c);
       h += `<h3>Chantier naval${k < 1 ? ` (−${fmt((1 - k) * 100)} %, gravité faible)` : ''}</h3>`;
       Object.entries(NAV).filter(([n]) => n !== 'se').forEach(([n, V]) => { const verrou = V.tech && !E.techs.has(V.tech); h += `<div class="ligne"><div>${V.n}<small>Puissance ${V.pw} · ${coutTxt(V.cout, k)}</small></div><button class="btn petit" data-a="nav:${n}" ${verrou || !peutPayer(V.cout, k) ? 'disabled' : ''}>${verrou ? 'Verrouillé' : 'Construire'}</button></div>`; });
     }
@@ -1183,12 +1275,13 @@ function panFactions() {
   return h;
 }
 const IDEES = [
+  ['Distances à l\'échelle', 'Le rayon des orbites en cases suit la racine carrée de la vraie distance : le système intérieur reste serré, Jupiter est à 11 cases et Neptune à 27. Les distances réelles et le délai radio sont affichés.', true],
   ['Fenêtres de lancement', 'Les planètes tournent à leur vraie vitesse : la distance Terre-Mars varie du simple au quintuple. Partir au bon moment divise la durée du voyage.', true],
   ['La sphère de Dyson comme arme climatique', 'Capter le Soleil refroidit tout le système. Cela gèle la Terre des rivaux, mais rend Vénus terraformable et Mercure vivable. Un vrai dilemme diplomatique.', true],
   ['Signature infrarouge', 'Plus la sphère est grande, plus elle est visible de loin : les Veilleurs arrivent plus tôt et en nombre.', true],
   ['Gravité et coût de lancement', 'Décoller de la Terre coûte cher, de la Lune ou de Cérès presque rien. La Lune devient naturellement le port industriel. Un ascenseur spatial terrestre changerait la donne.', true],
   ['Territoire par expansion', 'Comme dans Imagine Earth : chaque bâtiment agrandit le territoire autour de lui. Sur Terre, les frontières des trois factions se touchent.', true],
-  ['Points de Lagrange', 'Des cases fixes stratégiques (L1 à L5) entre la Terre et la Lune ou près de Jupiter, où les stations ne dérivent pas. Contrôle des routes.', false],
+  ['Troyens et points de Lagrange', 'Des cases fixes stratégiques (L1 à L5) entre la Terre et la Lune ou près de Jupiter, où les stations ne dérivent pas. Contrôle des routes.', false],
   ['Astéroïdes détournés', 'Pousser un astéroïde de la ceinture vers Mars pour y apporter de l\'eau (terraformation), ou vers une colonie rivale comme bombardement cinétique. Il faut alors une défense planétaire.', false],
   ['Indépendance des colonies', 'Une colonie lointaine et négligée réclame son autonomie. Si elle fait sécession, elle devient une nouvelle faction avec votre ancienne flotte locale.', false],
   ['Ruines des Veilleurs', 'Sous la glace d\'Europe ou dans les lacs de Titan, des vestiges à fouiller donnent des technologies uniques et un indice sur ce que veulent les Veilleurs.', false],
@@ -1215,11 +1308,12 @@ document.addEventListener('click', e => {
     case 'tab': E.onglet = x; break;
     case 'vue': if (x === 'planete') { allerSurface(); return; } E.vue = 'systeme'; E.carteBat = null; recentrer(); break;
     case 'zoom': if (x === '0') recentrer(); else zoomer(x === '+' ? 1.25 : .8); break;
+    case 'pivot': if (E.vue === 'systeme') vueSys.az += x * Math.PI / 8; else tourner(x * -90, 0); break;
     case 'sel': E.sel = x; E.selTuile = null; E.carteBat = null; if (E.vue === 'planete') recentrer(); break;
     case 'surface': E.sel = x; allerSurface(); return;
     case 'coloniser': { const info = infoMission(C[x]); if (!info || !peutPayer(info.cout)) break; payer(info.cout); E.missions.push({ camp: E.j, de: info.o.id, vers: x, depart: E.tour, arrivee: E.tour + info.duree }); journal(`Mission vers ${C[x].nom} lancée depuis ${info.o.nom} : ${info.duree} mois de voyage.`, 'bon'); break; }
     case 'orb': { const O = ORB[x]; if (!peutPayer(O.cout)) break; payer(O.cout); s(c.id).orb.push({ t: x, o: E.j }); journal(`${c.nom} : ${O.n.toLowerCase()} en orbite.`, 'bon'); break; }
-    case 'nav': { const k = c.id === 'lune' ? .7 : c.id === 'ceres' ? .5 : 1, V = NAV[x]; if (!peutPayer(V.cout, k)) break; payer(V.cout, k); const hote = c.parent ? C[c.parent] : c; let f = E.flottes.find(g => g.camp === E.j && g.dock === hote.id); if (!f) { f = { id: Date.now(), nom: 'Flotte ' + hote.nom, camp: E.j, nav: { ch: 0, cr: 0, pv: 0 }, dock: hote.id, pos: pos(hote), mvt: 0 }; E.flottes.push(f); } f.nav[x]++; journal(`${V.n} lancé depuis ${c.nom}.`, 'bon'); break; }
+    case 'nav': { const k = remiseChantier(c), V = NAV[x]; if (!peutPayer(V.cout, k)) break; payer(V.cout, k); const hote = c.parent ? C[c.parent] : c; let f = E.flottes.find(g => g.camp === E.j && g.dock === hote.id); if (!f) { f = { id: Date.now(), nom: 'Flotte ' + hote.nom, camp: E.j, nav: { ch: 0, cr: 0, pv: 0 }, dock: hote.id, pos: pos(hote), mvt: 0 }; E.flottes.push(f); } f.nav[x]++; journal(`${V.n} lancé depuis ${c.nom}.`, 'bon'); break; }
     case 'flotte': { const f = E.flottes.find(g => g.id == x); E.selFlotte = E.selFlotte === f ? null : f; if (E.vue !== 'systeme') { E.vue = 'systeme'; recentrer(); } break; }
     case 'dyson': { const k = coutDyson(); if (x === '+' && peutPayer(COUT_DYSON, k)) { payer(COUT_DYSON, k); E.dyson++; journal(`Segment ${E.dyson} de la sphère de Dyson en place. La Terre descend à ${kelvin(temp(C.terre))}.`, E.dyson > 4 ? 'mal' : 'bon'); if (E.rel.vei === 'paix' && E.dyson >= 5) { E.rel.vei = 'hostile'; journal('Les Veilleurs rompent la trêve !', 'alien'); } } if (x === '-' && E.dyson) { E.dyson--; E.res.me += 75; journal('Segment démantelé, 75 métaux récupérés.'); } break; }
     case 'tech': E.recherche = x; E.prog = 0; break;
