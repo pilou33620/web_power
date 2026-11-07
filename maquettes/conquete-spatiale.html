@@ -409,7 +409,7 @@ function terreReelle(n, b) {
   if (MONTAGNES.some(x => dansBoite(x, lo, la))) return 'montagne';
   if (DESERTS.some(x => dansBoite(x, lo, la))) return 'desert';
   if (la > 62) return 'toundra';
-  return Math.abs(la) < 12 || la > 48 ? (b > -.3 ? 'foret' : 'plaine') : b > .25 ? 'foret' : 'plaine';
+  return Math.abs(la) < 12 ? (b > -.3 ? 'foret' : 'plaine') : la > 50 ? (b > 0 ? 'foret' : 'plaine') : b > .25 ? 'foret' : 'plaine';
 }
 function genSurface(c, i) {
   const f = FREQ(c), nz = bruit(100 + i * 17), u = alea(500 + i);
@@ -796,7 +796,7 @@ function couleursCorps(c, teinte = 0) {
     const col = new THREE.Color(TER[t.t][1]);
     // la terraformation se voit : Mars verdit, la lave de Vénus devient mer
     if (st.terra && (c.id === 'mars' && t.t !== 'glace' || c.id === 'venus' && t.t === 'lave')) col.lerp(c.id === 'mars' ? vert : mer, clamp((st.terra - t.u * 80) / 25, 0, 1) * .85);
-    if (teinte && t.o) col.lerp(new THREE.Color(FAC[t.o].c), teinte);
+    if (teinte && t.o && !tags(t.t).includes('eau')) col.lerp(new THREE.Color(FAC[t.o].c), teinte);
     return col;
   });
 }
@@ -1097,7 +1097,7 @@ function peindre(tt) {
   const st = s(globe.id), blanc = new THREE.Color(1, 1, 1), or = new THREE.Color('#ffb547'), cible = E.carteBat;
   teinter(globe.p, globe.coul.map((base, k) => {
     const t = st.tuiles?.[k], cc = base.clone();
-    if (t?.o) cc.lerp(new THREE.Color(FAC[t.o].c), .12);
+    if (t?.o && !tags(t.t).includes('eau')) cc.lerp(new THREE.Color(FAC[t.o].c), .12);
     if (cible && t && !t.b && t.o === E.j && peutConstruire(cible, t)) cc.lerp(blanc, .3 + .15 * Math.sin(tt * 4));
     if (t && t === E.selTuile) cc.lerp(or, .6);
     if (k === globe.survol) cc.lerp(blanc, .22);
