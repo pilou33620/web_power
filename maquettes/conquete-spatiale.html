@@ -50,7 +50,7 @@ button:focus-visible { outline: 3px solid var(--soleil); outline-offset: 2px; }
 .btn.petit { min-height: 30px; padding: 0 10px; font-size: 12px; box-shadow: 0 3px 0 rgba(0,0,0,.45); }
 
 main { position: relative; overflow: hidden; border-radius: 18px; border: 3px solid var(--bord); background: var(--vide); min-width: 0; min-height: 0; }
-#carte { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#carte, #globe { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
 .flottant { position: absolute; z-index: 3; background: var(--nuit); border: 2.5px solid var(--bord); border-radius: 14px; box-shadow: var(--ombre); }
 .vues { left: 10px; top: 10px; display: flex; gap: 3px; padding: 4px; }
 .vues button { min-height: 34px; padding: 0 11px; border: 0; border-radius: 10px; background: transparent; font-weight: 800; font-size: 13px; cursor: pointer; white-space: nowrap; }
@@ -148,6 +148,7 @@ svg.graph { width: 100%; height: auto; display: block; }
 
   <main>
     <canvas id="carte" aria-label="Carte du système solaire en hexagones"></canvas>
+    <canvas id="globe" hidden aria-label="Planète en hexagones, à faire tourner"></canvas>
     <div class="flottant vues" role="group" aria-label="Vue">
       <button data-a="vue:systeme" id="vSys" class="actif">Système</button>
       <button data-a="vue:planete" id="vPla">Surface</button>
@@ -201,8 +202,9 @@ svg.graph { width: 100%; height: auto; display: block; }
   </div>
 </div>
 
-<script>
-'use strict';
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
 // ---------- Outils ----------
 const $ = id => document.getElementById(id);
 const SQ3 = Math.sqrt(3), TAU = Math.PI * 2;
@@ -216,7 +218,6 @@ const MOIS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 
 const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
 const dist = (a, b) => { const dq = a[0] - b[0], dr = a[1] - b[1]; return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2; };
 function hexRound(q, r) { let x = q, z = r, y = -x - z, rx = Math.round(x), ry = Math.round(y), rz = Math.round(z); const dx = Math.abs(rx - x), dy = Math.abs(ry - y), dz = Math.abs(rz - z); if (dx > dy && dx > dz) rx = -ry - rz; else if (dy > dz) ry = -rx - rz; else rz = -rx - ry; return [rx, rz]; }
-function shade(hex, f) { const n = parseInt(hex.slice(1), 16); const c = [n >> 16, n >> 8 & 255, n & 255].map(v => Math.round(clamp(f < 1 ? v * f : v + (255 - v) * (f - 1), 0, 255))); return `rgb(${c})`; }
 function rgba(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${n >> 8 & 255},${n & 255},${a})`; }
 const cap1 = t => t[0].toUpperCase() + t.slice(1);
 const kelvin = T => fmt(T - 273) + ' °C';
@@ -316,8 +317,33 @@ function posA(c, t) {
 }
 const pos = c => posA(c, E.tour);
 
-// ---------- Surfaces (hexagones à plat, prismes isométriques) ----------
-function bruit(seed) { const r = alea(seed); const w = Array.from({ length: 6 }, () => ({ a: r() * .5 + .18, b: r() * .5 + .18, p: r() * TAU, k: r() * TAU })); return (x, y) => w.reduce((s, o) => s + Math.sin(x * o.a + o.p) * Math.cos(y * o.b + o.k), 0) / 2.4; }
+// ---------- Surfaces : sphère de Goldberg (12 pentagones, tout le reste en hexagones) ----------
+const V3 = THREE.Vector3, GB = {};
+function goldberg(f) {
+  if (GB[f]) return GB[f];
+  const p = (1 + Math.sqrt(5)) / 2;
+  const ico = [[-1, p, 0], [1, p, 0], [-1, -p, 0], [1, -p, 0], [0, -1, p], [0, 1, p], [0, -1, -p], [0, 1, -p], [p, 0, -1], [p, 0, 1], [-p, 0, -1], [-p, 0, 1]].map(v => new V3(...v).normalize());
+  const faces = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+  const pts = [], cles = new Map(), tris = [];
+  const id = v => { const k = v.toArray().map(x => Math.round(x * 1e4)).join(','); if (!cles.has(k)) { cles.set(k, pts.length); pts.push(v); } return cles.get(k); };
+  faces.forEach(([a, b, c]) => {
+    const g = [];
+    for (let i = 0; i <= f; i++) { g[i] = []; for (let j = 0; j <= f - i; j++) g[i][j] = id(new V3().addScaledVector(ico[a], (f - i - j) / f).addScaledVector(ico[b], i / f).addScaledVector(ico[c], j / f).normalize()); }
+    for (let i = 0; i < f; i++) for (let j = 0; j < f - i; j++) { tris.push([g[i][j], g[i + 1][j], g[i][j + 1]]); if (j < f - i - 1) tris.push([g[i + 1][j], g[i + 1][j + 1], g[i][j + 1]]); }
+  });
+  // la case = un sommet de l'icosaèdre subdivisé ; ses coins = les centres des triangles autour
+  const centres = tris.map(t => t.reduce((acc, i) => acc.add(pts[i]), new V3()).normalize()), autourS = pts.map(() => []);
+  tris.forEach((t, k) => t.forEach(i => autourS[i].push(k)));
+  const cells = pts.map((n, i) => {
+    const u = new V3().crossVectors(Math.abs(n.y) < .9 ? new V3(0, 1, 0) : new V3(1, 0, 0), n).normalize(), w = new V3().crossVectors(n, u);
+    const ks = autourS[i].sort((a, b) => Math.atan2(centres[a].dot(w), centres[a].dot(u)) - Math.atan2(centres[b].dot(w), centres[b].dot(u)));
+    const face = ks.map((k, m) => tris[k].find(v => v !== i && tris[ks[(m + 1) % ks.length]].includes(v))); // voisin de l'autre côté de chaque arête
+    return { n, coins: ks.map(k => centres[k]), face, nb: [...new Set(face)] };
+  });
+  console.assert(cells.length === 10 * f * f + 2 && cells.filter(c => c.coins.length === 5).length === 12, 'sphère de Goldberg invalide');
+  return GB[f] = { cells };
+}
+function bruit(seed) { const r = alea(seed); const w = Array.from({ length: 8 }, () => { const d = [r() - .5, r() - .5, r() - .5], l = Math.hypot(...d); return { d: d.map(x => x / l), f: 1.5 + r() * 3, p: r() * TAU }; }); return (x, y, z) => w.reduce((acc, o) => acc + Math.sin((o.d[0] * x + o.d[1] * y + o.d[2] * z) * o.f + o.p), 0) / 4; }
 function terrain(sol, n, lat, u) {
   switch (sol) {
     case 'terre': return lat > .86 ? 'neige' : n < -.08 ? 'ocean' : n < .04 ? 'plage' : n > .78 ? 'montagne' : n > .4 ? 'foret' : 'plaine';
@@ -331,18 +357,12 @@ function terrain(sol, n, lat, u) {
     case 'pluton': return n < -.1 ? 'azote' : n > .4 ? 'mont_p' : 'glace_p';
   }
 }
+// nombre de cases : 10 f² + 2 (Terre 362, planètes 252, lunes 162, géantes 642)
+const FREQ = c => c.id === 'terre' ? 6 : c.gaz ? 8 : c.parent || c.id === 'ceres' || c.id === 'pluton' ? 4 : 5;
 function genSurface(c, i) {
-  const R = c.id === 'terre' ? 6 : c.parent || c.id === 'ceres' || c.id === 'pluton' ? 4 : 5;
-  const nz = bruit(100 + i * 17), u = alea(500 + i), tu = [], maxY = s2 * SQ3 * R;
-  for (let q = -R; q <= R; q++) for (let r = Math.max(-R, -q - R); r <= Math.min(R, -q + R); r++) {
-    const px = s2 * 1.5 * q, py = s2 * SQ3 * (r + q / 2);
-    tu.push({ q, r, px, py, t: terrain(c.sol, nz(q * 1.1, r + q / 2), Math.abs(py) / maxY, u()), o: null, b: null });
-  }
-  tu.sort((a, b) => a.py - b.py || a.px - b.px);
-  return tu;
+  const f = FREQ(c), nz = bruit(100 + i * 17), u = alea(500 + i);
+  return { f, tuiles: goldberg(f).cells.map(({ n }, k) => { const uu = u(); return { i: k, t: terrain(c.sol, nz(n.x, n.y, n.z), Math.abs(n.y), uu), u: uu, o: null, b: null }; }) };
 }
-const s2 = 30, ISO2 = .62, HU = 6;
-const cleT = (q, r) => q + ',' + r;
 
 // ---------- État de la partie ----------
 const E = {
@@ -378,11 +398,9 @@ function capacite(c, fac) {
   cap += nbOrb(c.id, 'anneau', fac) * 2000;
   return cap;
 }
-function voisins(st, t) { return DIRS.map(d => st.idx.get(cleT(t.q + d[0], t.r + d[1]))).filter(Boolean); }
-function revendiquer(st, t, rayon, fac) {
-  let front = [t], vus = new Set([t]);
-  for (let k = 0; k <= rayon; k++) { const suiv = []; front.forEach(x => { if (!x.o) x.o = fac; if (k < rayon) voisins(st, x).forEach(v => { if (!vus.has(v)) { vus.add(v); suiv.push(v); } }); }); front = suiv; }
-}
+const voisins = (st, t) => GB[st.f].cells[t.i].nb.map(j => st.tuiles[j]);
+function autour(st, t, k) { const d = new Map([[t, 0]]), file = [t]; for (const x of file) if (d.get(x) < k) voisins(st, x).forEach(v => { if (!d.has(v)) { d.set(v, d.get(x) + 1); file.push(v); } }); return d; }
+function revendiquer(st, t, rayon, fac) { autour(st, t, rayon).forEach((_, x) => { if (!x.o) x.o = fac; }); }
 const peutConstruire = (b, t) => BAT[b].sur.some(g => tags(t.t).includes(g));
 
 function journal(txt, k = '') { E.journal.unshift({ txt, k }); E.journal.length = Math.min(E.journal.length, 30); }
@@ -392,14 +410,15 @@ function initPartie(j) {
   document.documentElement.style.setProperty('--j', FAC[j].c);
   E.rel = { [E.rivaux[0]]: 'paix', [E.rivaux[1]]: 'paix', vei: 'inconnu' };
   E.tension = { [E.rivaux[0]]: 20, [E.rivaux[1]]: 35 };
-  CORPS.forEach((c, i) => { E.c[c.id] = { tuiles: null, idx: null, orb: [], pop: {}, terra: 0 }; if (c.sol) { const tu = genSurface(c, i); E.c[c.id].tuiles = tu; E.c[c.id].idx = new Map(tu.map(t => [cleT(t.q, t.r), t])); } });
+  CORPS.forEach((c, i) => { E.c[c.id] = { tuiles: null, f: FREQ(c), orb: [], pop: {}, terra: 0, ...(c.sol ? genSurface(c, i) : {}) }; });
   // La Terre : trois capitales, chacune avec son territoire
   const T = s('terre'), facs = [j, ...E.rivaux];
   facs.forEach((f, k) => {
-    const a = TAU * (k / 3) + Math.PI / 2, cx = Math.cos(a) * 3.6 * s2 * 1.5, cy = Math.sin(a) * 3.6 * s2 * 1.5;
-    const cap = T.tuiles.reduce((m, t) => Math.hypot(t.px - cx, t.py - cy) < Math.hypot(m.px - cx, m.py - cy) ? t : m);
-    T.tuiles.forEach(t => { if (dist([t.q, t.r], [cap.q, cap.r]) <= 2 && t.t === 'ocean') t.t = 'plaine'; });
-    const mt = T.tuiles.find(t => dist([t.q, t.r], [cap.q, cap.r]) === 2); mt.t = 'montagne';
+    const a = TAU * k / 3, dir = new V3(Math.sin(a), .15, Math.cos(a)).normalize(), cells = GB[T.f].cells;
+    const cap = T.tuiles.reduce((m, t) => cells[t.i].n.dot(dir) > cells[m.i].n.dot(dir) ? t : m);
+    const zone = autour(T, cap, 2);
+    zone.forEach((d, t) => { if (t.t === 'ocean' || t.t === 'neige') t.t = 'plaine'; });
+    const mt = [...zone].find(([, d]) => d === 2)[0]; mt.t = 'montagne';
     revendiquer(T, cap, 2, f);
     cap.b = 'port';
     const libres = () => T.tuiles.filter(t => t.o === f && !t.b && t.t !== 'ocean');
@@ -480,8 +499,7 @@ function coloniser(fac, c) {
   if (c.gaz) { st.orb.push({ t: 'station', o: fac }); st.pop[fac] = (st.pop[fac] || 0) + 1; return true; }
   const ok = st.tuiles.filter(t => !t.o && !t.b && (c.id === 'venus' ? t.t === 'nuage' : tags(t.t).includes('sol')) && voisins(st, t).every(v => !v.o));
   if (!ok.length) return false;
-  const centre = ok.reduce((m, t) => Math.hypot(t.px, t.py) < Math.hypot(m.px, m.py) ? t : m, ok[Math.floor(rnd() * ok.length)]);
-  const lieu = fac === E.j ? centre : pick(ok);
+  const lieu = pick(ok);
   revendiquer(st, lieu, 2, fac);
   lieu.b = c.id === 'venus' ? 'cite' : 'port';
   if (fac !== E.j) { const l = st.tuiles.filter(t => t.o === fac && !t.b && tags(t.t).some(g => g === 'sol' || g === 'nuage')); if (l.length) pick(l).b = c.id === 'venus' ? 'solaire' : 'habitat'; }
@@ -637,16 +655,21 @@ function actionCombat(x) {
 // ---------- Rendu ----------
 const cv = $('carte'), ctx = cv.getContext('2d');
 let W = 0, H = 0, DPR = 1;
-const camS = { x: 0, y: 0, z: 1 }, camP = { x: 0, y: 0, z: 1 };
-const cam = () => E.vue === 'systeme' ? camS : camP;
-function taille() { const r = cv.getBoundingClientRect(); DPR = Math.min(2, devicePixelRatio || 1); W = r.width; H = r.height; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); }
-new ResizeObserver(() => { const avant = W; taille(); if (!avant) recentrer(); }).observe(cv);
+const camS = { x: 0, y: 0, z: 1 }, zoneCarte = cv.parentElement;
+function taille() { DPR = Math.min(2, devicePixelRatio || 1); W = zoneCarte.clientWidth; H = zoneCarte.clientHeight; cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR); rendu.setPixelRatio(DPR); rendu.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix(); }
+new ResizeObserver(() => { const avant = W; taille(); if (!avant) recentrer(); }).observe(zoneCarte);
 function recentrer() {
   if (E.vue === 'systeme') { camS.x = 0; camS.y = 0; camS.z = clamp(Math.min(W, H / ISO * .95) / 2 / (6.6 * S * SQ3), .25, 2.5); }
-  else { const st = s(E.sel); const R = st?.tuiles ? Math.max(...st.tuiles.map(t => Math.abs(t.px))) + s2 : 200; camP.x = 0; camP.y = -10; camP.z = clamp(Math.min(W / (2 * R + 40), H / (2 * R * ISO2 + 120)), .3, 2.2); }
+  else {
+    // la planète tourne pour montrer votre territoire ; la caméra recule assez pour la voir entière avec son orbite
+    const st = s(E.sel), t = st.tuiles?.find(x => x.o === E.j && x.b) || st.tuiles?.find(x => x.o);
+    planete.quaternion.copy(t ? new THREE.Quaternion().setFromUnitVectors(GB[st.f].cells[t.i].n, new V3(0, .35, 1).normalize()) : new THREE.Quaternion());
+    globe.v = [0, 0];
+    const demi = Math.min(17.5, Math.atan(Math.tan(17.5 * Math.PI / 180) * W / H) * 180 / Math.PI) * Math.PI / 180;
+    camera.position.set(0, 0, (C[E.sel].anneaux ? 2.5 : 1.75) / Math.sin(demi));
+  }
 }
 const scrS = (px, py) => [(px - camS.x) * camS.z + W / 2, (py * ISO - camS.y) * camS.z + H / 2];
-const scrP = (px, py, h = 0) => [(px - camP.x) * camP.z + W / 2, (py * ISO2 - h - camP.y) * camP.z + H / 2];
 function poly(pts, fill, stroke, lw = 1) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw; ctx.stroke(); } }
 const etoiles = Array.from({ length: 220 }, (_, i) => { const r = alea(900 + i); return [r(), r(), r() * 1.4 + .3, r()]; });
 const reduit = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -657,7 +680,7 @@ function boucle(t) {
   const tt = reduit ? 0 : t / 1000;
   etoiles.forEach(([x, y, r, p]) => { ctx.globalAlpha = .35 + .4 * Math.abs(Math.sin(tt * .6 + p * 9)); ctx.fillStyle = '#dfe6ff'; ctx.fillRect(x * W, y * H, r, r); });
   ctx.globalAlpha = 1;
-  if (E.j) E.vue === 'systeme' ? dessinSysteme(tt) : dessinPlanete(tt);
+  if (E.j) E.vue === 'systeme' ? dessinSysteme(tt) : dessinGlobe(tt);
   requestAnimationFrame(boucle);
 }
 
@@ -708,6 +731,7 @@ function dessinSysteme(tt) {
     if (c.anneaux) { ctx.beginPath(); ctx.ellipse(px, cy, r * 2, r * .55, -.25, Math.PI, TAU); ctx.strokeStyle = 'rgba(230,210,160,.8)'; ctx.lineWidth = 3 * z; ctx.stroke(); }
     const gr = ctx.createRadialGradient(px - r * .35, cy - r * .35, r * .1, px, cy, r); gr.addColorStop(0, c.c1); gr.addColorStop(1, c.c2);
     ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(px, cy, r, 0, TAU); ctx.fill(); ctx.strokeStyle = '#03050d'; ctx.lineWidth = 1.5; ctx.stroke();
+    if (r > 5) facettes(px, cy, r, tt * (c.gaz ? .6 : 12 / Math.max(3, c.per || 12)));
     if (c.gaz) { ctx.save(); ctx.beginPath(); ctx.arc(px, cy, r, 0, TAU); ctx.clip(); ctx.strokeStyle = rgba(c.c2, .45); ctx.lineWidth = r * .14; for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.moveTo(px - r, cy + k * r * .33); ctx.lineTo(px + r, cy + k * r * .33 + r * .1); ctx.stroke(); } ctx.restore(); }
     if (c.anneaux) { ctx.beginPath(); ctx.ellipse(px, cy, r * 2, r * .55, -.25, 0, Math.PI); ctx.strokeStyle = 'rgba(240,220,170,.9)'; ctx.lineWidth = 3 * z; ctx.stroke(); }
     if (c.id === 'terre' || c.id === 'venus' && s('venus').terra > 50 || c.id === 'mars' && s('mars').terra > 40) { ctx.beginPath(); ctx.arc(px, cy, r + 2, 0, TAU); ctx.strokeStyle = 'rgba(160,220,255,.5)'; ctx.lineWidth = 2; ctx.stroke(); }
@@ -733,72 +757,195 @@ function dessinSysteme(tt) {
   }));
 }
 
-// ----- surface -----
-function boite(x, y, w, h, mur, toit) { const d = w * .55, k = 'rgba(3,5,13,.6)'; poly([[x - w, y], [x, y + d], [x, y + d - h], [x - w, y - h]], shade(mur, .82), k); poly([[x, y + d], [x + w, y], [x + w, y - h], [x, y + d - h]], shade(mur, .64), k); poly([[x - w, y - h], [x, y - d - h], [x + w, y - h], [x, y + d - h]], toit || mur, k); }
-function cyl(x, y, rx, h, col, haut) { const ry = rx * .5; ctx.fillStyle = shade(col, .7); ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI); ctx.lineTo(x - rx, y - h); ctx.ellipse(x, y - h, rx, ry, 0, Math.PI, 0, true); ctx.closePath(); ctx.fill(); ctx.strokeStyle = 'rgba(3,5,13,.6)'; ctx.lineWidth = 1; ctx.stroke(); ctx.fillStyle = haut || col; ctx.beginPath(); ctx.ellipse(x, y - h, rx, ry, 0, 0, TAU); ctx.fill(); ctx.stroke(); }
-function dessinBat(b, x, y, k, fc, tt) {
-  switch (BAT[b].f) {
-    case 'tour': boite(x - 7 * k, y + 1 * k, 5 * k, 14 * k, '#e9edf6', fc); boite(x + 5 * k, y - 2 * k, 4.5 * k, 23 * k, '#dfe5f2', fc); boite(x + 1 * k, y + 6 * k, 4 * k, 9 * k, '#f2f4fa', fc); break;
-    case 'panneau': for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { const px = x + (i - j) * 8 * k, py = y + (i + j - 1) * 4.5 * k; poly([[px - 7 * k, py], [px, py - 4 * k], [px + 7 * k, py - 7 * k], [px, py - 3 * k]], '#2a4596', '#9fb6ff', 1); } break;
-    case 'mine': boite(x, y + 3 * k, 8 * k, 5 * k, '#7a6352', fc); ctx.strokeStyle = '#3a2c22'; ctx.lineWidth = 2 * k; ctx.beginPath(); ctx.moveTo(x - 6 * k, y - 2 * k); ctx.lineTo(x, y - 20 * k); ctx.lineTo(x + 6 * k, y - 2 * k); ctx.moveTo(x - 3 * k, y - 10 * k); ctx.lineTo(x + 3 * k, y - 10 * k); ctx.stroke(); ctx.fillStyle = '#9a8a7a'; ctx.beginPath(); ctx.ellipse(x - 10 * k, y + 6 * k, 6 * k, 3 * k, 0, Math.PI, TAU); ctx.fill(); break;
-    case 'dome': { ctx.fillStyle = '#5a6380'; ctx.beginPath(); ctx.ellipse(x, y, 11 * k, 5.5 * k, 0, 0, TAU); ctx.fill(); const g = ctx.createRadialGradient(x - 4 * k, y - 10 * k, 1, x, y - 4 * k, 12 * k); g.addColorStop(0, 'rgba(255,255,255,.9)'); g.addColorStop(1, 'rgba(120,190,255,.55)'); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, 10 * k, 12 * k, 0, Math.PI, TAU); ctx.fill(); ctx.strokeStyle = 'rgba(3,5,13,.6)'; ctx.stroke(); ctx.fillStyle = fc; ctx.beginPath(); ctx.arc(x, y - 12 * k, 2 * k, 0, TAU); ctx.fill(); break; }
-    case 'port': ctx.fillStyle = '#4c5470'; ctx.beginPath(); ctx.ellipse(x, y + 2 * k, 13 * k, 6.5 * k, 0, 0, TAU); ctx.fill(); ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 1.5 * k; ctx.beginPath(); ctx.ellipse(x, y + 2 * k, 8 * k, 4 * k, 0, 0, TAU); ctx.stroke(); cyl(x, y, 3 * k, 22 * k, '#f3f5fb'); poly([[x - 3 * k, y - 22 * k], [x, y - 31 * k], [x + 3 * k, y - 22 * k]], fc, 'rgba(3,5,13,.6)'); break;
-    case 'extracteur': cyl(x - 3 * k, y + 2 * k, 6 * k, 10 * k, '#c9ccd6', fc); ctx.strokeStyle = '#7ef0e0'; ctx.lineWidth = 2.5 * k; ctx.beginPath(); ctx.moveTo(x - 3 * k, y - 8 * k); ctx.lineTo(x + 10 * k, y - 14 * k); ctx.lineTo(x + 12 * k, y + 2 * k); ctx.stroke(); break;
-    case 'foreuse': cyl(x + 5 * k, y + 2 * k, 5 * k, 8 * k, '#6fb8ff', '#a8d8ff'); boite(x - 5 * k, y, 2.5 * k, 22 * k, '#b0c4d6', fc); break;
-    case 'raff': cyl(x - 5 * k, y + 1 * k, 5 * k, 11 * k, '#e08a3a', fc); cyl(x + 6 * k, y + 3 * k, 4 * k, 8 * k, '#c9763a', fc); break;
-    case 'cite': { const hy = y - 10 * k + Math.sin(tt * 1.5 + x) * 1.5 * k; ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(x, y + 3 * k, 12 * k, 5 * k, 0, 0, TAU); ctx.fill(); cyl(x, hy, 13 * k, 3 * k, '#e6e0d0', '#f5f0e2'); boite(x - 4 * k, hy - 3 * k, 3.5 * k, 12 * k, '#ffffff', fc); boite(x + 4 * k, hy - 2 * k, 3 * k, 8 * k, '#f0f0f6', fc); const g = ctx.createRadialGradient(x, hy - 10 * k, 1, x, hy - 6 * k, 13 * k); g.addColorStop(0, 'rgba(255,255,255,.25)'); g.addColorStop(1, 'rgba(160,220,255,.35)'); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, hy - 3 * k, 12 * k, 15 * k, 0, Math.PI, TAU); ctx.fill(); break; }
-    case 'terra': cyl(x, y + 2 * k, 4 * k, 26 * k, '#cfd6e6', fc); for (let i = 0; i < 3; i++) { const p = (tt * .5 + i / 3) % 1; ctx.fillStyle = `rgba(150,240,200,${.5 * (1 - p)})`; ctx.beginPath(); ctx.arc(x + p * 8 * k, y - 26 * k - p * 18 * k, (3 + p * 6) * k, 0, TAU); ctx.fill(); } break;
-    case 'fusion': cyl(x, y + 2 * k, 10 * k, 9 * k, '#9aa4c4', fc); ctx.strokeStyle = `rgba(110,240,255,${.6 + .4 * Math.sin(tt * 4)})`; ctx.lineWidth = 2.5 * k; ctx.beginPath(); ctx.ellipse(x, y - 3 * k, 12 * k, 6 * k, 0, 0, TAU); ctx.stroke(); break;
-    case 'defense': boite(x, y + 2 * k, 7 * k, 6 * k, '#6a7290', fc); ctx.fillStyle = '#8a93b3'; ctx.beginPath(); ctx.arc(x, y - 6 * k, 5 * k, Math.PI, TAU); ctx.fill(); ctx.strokeStyle = '#2a2f45'; ctx.lineWidth = 2.5 * k; ctx.beginPath(); ctx.moveTo(x, y - 8 * k); ctx.lineTo(x + 11 * k, y - 15 * k); ctx.stroke(); break;
+// Facettes hexagonales qui défilent sur les planètes de la vue système : elles ont l'air de tourner sur elles-mêmes
+function facettes(x, y, r, tt) {
+  const hs = Math.max(3, r / 2.4), dx = hs * SQ3, dy = hs * 1.5, R2 = r * Math.PI / 2, off = (tt * hs * .5) % dx;
+  ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.clip(); ctx.strokeStyle = 'rgba(3,5,13,.4)'; ctx.lineWidth = 1;
+  for (let j = -Math.ceil(R2 / dy); j <= Math.ceil(R2 / dy); j++) for (let i = -Math.ceil(R2 / dx) - 1; i <= Math.ceil(R2 / dx) + 1; i++) {
+    const gx = i * dx + (j & 1) * dx / 2 + off, gy = j * dy, d = Math.hypot(gx, gy);
+    if (d > R2) continue;
+    const k = d ? r * Math.sin(d / r) / d : 1, sz = hs * Math.max(.15, Math.cos(d / r)) ** .6 * .9;
+    ctx.beginPath(); for (let a = 0; a < 6; a++) { const t = Math.PI / 3 * a + Math.PI / 6; ctx.lineTo(x + gx * k + Math.cos(t) * sz, y + gy * k + Math.sin(t) * sz); } ctx.closePath(); ctx.stroke();
   }
+  ctx.restore();
 }
-function coinsT(t, h) { return Array.from({ length: 6 }, (_, i) => { const a = Math.PI / 3 * i; return scrP(t.px + s2 * Math.cos(a), t.py + s2 * Math.sin(a), h); }); }
-const EDGE = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]];
-function dessinPlanete(tt) {
-  const c = C[E.sel], st = s(c.id), z = camP.z;
-  // orbite en fond
-  const R = (st.tuiles ? Math.max(...st.tuiles.map(t => Math.abs(t.px))) : 200) + 50;
-  const [ox, oy] = scrP(0, 0, 40);
-  ctx.beginPath(); ctx.ellipse(ox, oy, R * z, R * ISO2 * 1.05 * z, 0, Math.PI, TAU); ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1.5; ctx.stroke();
-  if (nbOrb(c.id, 'anneau')) { ctx.beginPath(); ctx.ellipse(ox, oy, (R + 20) * z, (R + 20) * ISO2 * 1.05 * z, 0, Math.PI, TAU); ctx.strokeStyle = 'rgba(123,224,138,.55)'; ctx.lineWidth = 9 * z; ctx.stroke(); }
-  st.orb.forEach((o, i) => { const a = Math.PI + (i + 1) / (st.orb.length + 1) * Math.PI; const x = ox + Math.cos(a) * R * z, y = oy + Math.sin(a) * R * ISO2 * 1.05 * z; poly([[x - 7, y], [x, y - 5], [x + 7, y], [x, y + 5]], FAC[o.o].c, '#03050d', 1.5); ctx.fillStyle = '#eef1ff'; ctx.font = '700 10px Nunito, sans-serif'; ctx.textAlign = 'center'; ctx.fillText(ORB[o.t].n, x, y - 9); });
-  if (!st.tuiles) {
-    const [x, y] = scrP(0, 0, 0), r = 170 * z, gr = ctx.createRadialGradient(x - r * .3, y - r * .3, r * .1, x, y, r);
-    gr.addColorStop(0, c.c1); gr.addColorStop(1, c.c2); ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
-    ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.clip();
-    for (let k = -6; k <= 6; k++) { ctx.fillStyle = rgba(k % 2 ? c.c2 : '#ffffff', .18); ctx.fillRect(x - r, y + k * r * .16 + Math.sin(tt * .3 + k) * 3, r * 2, r * .09); }
-    ctx.restore();
-    if (c.anneaux) { ctx.beginPath(); ctx.ellipse(x, y, r * 1.9, r * .45, -.2, 0, TAU); ctx.strokeStyle = 'rgba(240,220,170,.75)'; ctx.lineWidth = 10 * z; ctx.stroke(); }
-    return;
+
+// ----- globe 3D de la planète choisie -----
+const rendu = new THREE.WebGLRenderer({ canvas: $('globe'), antialias: true });
+rendu.setClearColor(0x070a1a);
+const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(35, 1, .1, 200);
+scene.add(new THREE.AmbientLight(0x9098c8, .9));
+const lumSoleil = new THREE.DirectionalLight(0xfff0d0, 2.8); lumSoleil.position.set(-4, 1.5, 3); scene.add(lumSoleil);
+{
+  const r = alea(42), p = [];
+  for (let i = 0; i < 1200; i++) { const v = new V3(r() - .5, r() - .5, r() - .5).normalize().multiplyScalar(40 + r() * 30); p.push(v.x, v.y, v.z); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xdfe6ff, size: .18 })));
+}
+const planete = new THREE.Group(); scene.add(planete);
+const Y = new V3(0, 1, 0);
+const G = {
+  boite: new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0), cyl: new THREE.CylinderGeometry(.5, .5, 1, 16).translate(0, .5, 0),
+  cone: new THREE.ConeGeometry(.5, 1, 12).translate(0, .5, 0), cone4: new THREE.ConeGeometry(.5, 1, 4).translate(0, .5, 0),
+  demi: new THREE.SphereGeometry(.5, 18, 8, 0, TAU, 0, Math.PI / 2), boule: new THREE.SphereGeometry(.5, 12, 8),
+  tore: new THREE.TorusGeometry(.5, .08, 8, 28), disque: new THREE.CylinderGeometry(.5, .5, .04, 24),
+  arbre: new THREE.ConeGeometry(.2, .65, 6).translate(0, .32, 0), pic: new THREE.ConeGeometry(.6, .85, 5).translate(0, .42, 0),
+  plat: new THREE.CylinderGeometry(.45, .45, .03, 14), noyau: new THREE.SphereGeometry(.94, 40, 20), halo: new THREE.SphereGeometry(1.13, 48, 24),
+};
+const mats = {};
+const mat = (col, o = {}) => mats[col + JSON.stringify(o)] ||= new THREE.MeshStandardMaterial({ color: col, flatShading: true, roughness: .55, ...o });
+const matSol = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .8, metalness: .05 });
+const verre = { transparent: true, opacity: .55, roughness: .1 }, lueur = c => ({ emissive: c, emissiveIntensity: 1.3 });
+function piece(g, col, p, sc, o, r) { const m = new THREE.Mesh(G[g], mat(col, o)); m.position.set(...p); m.scale.set(...sc); if (r) m.rotation.set(...r); return m; }
+// bâtiments en unités de case (rayon 1), posés sur y = 0
+function modele(b, fc) {
+  const g = new THREE.Group(), P = (...a) => g.add(piece(...a));
+  switch (b) {
+    case 'habitat': [[-.3, -.15, .9, .28], [.22, .05, 1.4, .26], [-.05, .38, .55, .22]].forEach(([x, z, h, w]) => { P('boite', '#e9edf6', [x, 0, z], [w, h, w]); P('boite', fc, [x, h, z], [w + .04, .08, w + .04]); }); break;
+    case 'solaire': [-.22, .22].forEach(x => [-.2, .2].forEach(z => { P('boite', '#8a93b3', [x, 0, z], [.04, .16, .04]); P('boite', '#2a4596', [x, .16, z], [.38, .03, .3], { roughness: .2, metalness: .4 }, [-.45, 0, 0]); })); break;
+    case 'mine': P('boite', '#7a6352', [0, 0, 0], [.5, .22, .5]); P('boite', fc, [0, .22, 0], [.52, .05, .52]); P('cone4', '#3a2c22', [.05, .27, 0], [.32, .75, .32]); P('cone', '#9a8a7a', [-.42, 0, .3], [.36, .22, .36]); break;
+    case 'labo': P('cyl', '#5a6380', [0, 0, 0], [.75, .08, .75]); P('demi', '#a8dcff', [0, .08, 0], [1.2, 1.2, 1.2], verre); P('boule', fc, [0, .66, 0], [.12, .12, .12]); break;
+    case 'port': P('cyl', '#4c5470', [0, 0, 0], [1.1, .05, 1.1]); P('cyl', '#ffd166', [0, .05, 0], [.6, .01, .6]); P('cyl', '#f3f5fb', [0, .06, 0], [.16, .9, .16]); P('cone', fc, [0, .96, 0], [.17, .3, .17]); break;
+    case 'he3': P('cyl', '#c9ccd6', [-.15, 0, 0], [.5, .45, .5]); P('cyl', fc, [-.15, .45, 0], [.52, .05, .52]); P('boite', '#7ef0e0', [.2, .45, 0], [.6, .06, .06], lueur('#3aa89a'), [0, 0, -.5]); break;
+    case 'foreuse': P('boite', '#b0c4d6', [-.2, 0, 0], [.14, 1.2, .14]); P('boite', fc, [-.2, 1.2, 0], [.18, .08, .18]); P('cyl', '#6fb8ff', [.22, 0, .1], [.45, .4, .45]); break;
+    case 'raff': P('cyl', '#e08a3a', [-.2, 0, 0], [.4, .55, .4]); P('cyl', '#c9763a', [.25, 0, .15], [.32, .4, .32]); P('cyl', fc, [-.2, .55, 0], [.42, .04, .42]); break;
+    case 'cite': P('cyl', '#e6e0d0', [0, .5, 0], [1.1, .08, 1.1]); P('boite', '#ffffff', [-.15, .58, 0], [.2, .5, .2]); P('boite', '#f0f0f6', [.18, .58, .1], [.18, .32, .18]); P('boite', fc, [-.15, 1.08, 0], [.22, .05, .22]); P('demi', '#cfe9ff', [0, .58, 0], [1.05, 1.05, 1.05], verre); break;
+    case 'terra': P('boite', fc, [0, 0, 0], [.45, .12, .45]); P('cyl', '#cfd6e6', [0, .12, 0], [.22, 1.5, .22]); P('tore', '#96f0c8', [0, 1.45, 0], [.7, .7, .7], lueur('#4fd99a'), [Math.PI / 2, 0, 0]); break;
+    case 'fusion': P('cyl', '#9aa4c4', [0, 0, 0], [.8, .4, .8]); P('cyl', fc, [0, .4, 0], [.5, .06, .5]); P('tore', '#6ef0ff', [0, .25, 0], [1.25, 1.25, 1.25], lueur('#2fc6e6'), [Math.PI / 2, 0, 0]); break;
+    case 'defense': P('boite', '#6a7290', [0, 0, 0], [.45, .28, .45]); P('boule', fc, [0, .34, 0], [.36, .36, .36]); P('cyl', '#2a2f45', [.12, .38, 0], [.08, .5, .08], {}, [0, 0, -1.1]); break;
   }
-  const bord = new Set(), cible = E.carteBat;
-  st.tuiles.forEach(t => {
-    const [n, col, hh] = TER[t.t], h = hh * HU, top = coinsT(t, h), bas = coinsT(t, -8);
-    const eau = t.t === 'ocean' || t.t === 'lac' || t.t === 'lave';
-    for (let i = 0; i < 3; i++) poly([top[i], top[i + 1], bas[i + 1], bas[i]], shade(col, [.78, .66, .84][i]), 'rgba(3,5,13,.35)');
-    let fill = col;
-    if (eau) fill = shade(col, 1 + .06 * Math.sin(tt * 1.5 + t.q + t.r));
-    poly(top, fill, 'rgba(3,5,13,.28)');
-    const [cx, cy] = scrP(t.px, t.py, h);
-    if (t.t === 'lave' || t.t === 'faille') { ctx.strokeStyle = `rgba(255,190,80,${.5 + .3 * Math.sin(tt * 3 + t.q)})`; ctx.lineWidth = 1.5 * z; ctx.beginPath(); ctx.moveTo(cx - 12 * z, cy - 2 * z); ctx.lineTo(cx - 2 * z, cy + 3 * z); ctx.lineTo(cx + 10 * z, cy - 3 * z); ctx.stroke(); }
-    if (tags(t.t).includes('crat') && !t.b) { ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(cx, cy, 10 * z, 5 * z, 0, 0, TAU); ctx.fill(); }
-    if (t.t === 'fissure') { ctx.strokeStyle = '#8a5a3e'; ctx.lineWidth = 2 * z; ctx.beginPath(); ctx.moveTo(cx - 16 * z, cy + 4 * z); ctx.lineTo(cx + 16 * z, cy - 5 * z); ctx.stroke(); }
-    if (t.t === 'nuage' && !t.b) { ctx.fillStyle = 'rgba(255,245,215,.7)'; [[-8, 0, 7], [2, -3, 9], [10, 1, 6]].forEach(([a, b, r]) => { ctx.beginPath(); ctx.arc(cx + a * z, cy + b * z + Math.sin(tt + t.q) * z, r * z, 0, TAU); ctx.fill(); }); }
-    if (t.t === 'foret' && !t.b) [[-9, 2], [0, -3], [8, 3]].forEach(([a, b]) => { const x = cx + a * z, y = cy + b * z; poly([[x - 4.5 * z, y], [x, y - 13 * z], [x + 4.5 * z, y]], '#2c7a37', 'rgba(3,5,13,.5)'); });
-    if (t.t === 'montagne' || t.t === 'mont_m' || t.t === 'mont_p') { if (!t.b) poly([[cx - 12 * z, cy + 3 * z], [cx - 2 * z, cy - 14 * z], [cx + 4 * z, cy - 6 * z], [cx + 7 * z, cy - 10 * z], [cx + 13 * z, cy + 3 * z]], shade(col, 1.15), 'rgba(3,5,13,.45)'); }
-    if (cible && !t.b) { const ok = t.o === E.j && peutConstruire(cible, t); if (t.o === E.j || ok) poly(top, ok ? `rgba(255,255,255,${.3 + .15 * Math.sin(tt * 4)})` : 'rgba(255,107,107,.25)', ok ? '#ffffff' : null, 2); }
-    if (t.o) { for (let i = 0; i < 6; i++) { const v = st.idx.get(cleT(t.q + EDGE[i][0], t.r + EDGE[i][1])); if (!v || v.o !== t.o) { ctx.beginPath(); ctx.moveTo(...top[i]); ctx.lineTo(...top[(i + 1) % 6]); ctx.strokeStyle = FAC[t.o].c; ctx.lineWidth = 3 * z; ctx.stroke(); } } if (!t.b) poly(top, rgba(FAC[t.o].c, .08)); }
-    if (t === E.selTuile) poly(top, null, '#ffb547', 3);
-    if (t === survolT) poly(top, 'rgba(255,255,255,.12)');
-    if (t.b) dessinBat(t.b, cx, cy, z, FAC[t.o]?.c || '#ccc', tt);
+  return g;
+}
+function modeleOrb(t, fc) {
+  const g = new THREE.Group(), P = (...a) => g.add(piece(...a));
+  switch (t) {
+    case 'station': P('cyl', '#dfe5f2', [0, -.5, 0], [.5, 1, .5]); P('boite', '#2a4596', [0, -.03, 0], [2.6, .06, .6], { metalness: .4, roughness: .2 }); break;
+    case 'chantier': P('boite', '#8a93b3', [0, -.6, 0], [1.6, 1.2, .9], { wireframe: true }); P('boite', '#ffb547', [0, -.2, 0], [.9, .4, .3]); break;
+    case 'ecope': P('cone', '#c9ccd6', [0, -.6, 0], [.7, 1.4, .7]); break;
+    case 'miroir': P('disque', '#f2f6ff', [0, 0, 0], [2.2, 1, 2.2], { metalness: .9, roughness: .1 }, [0, 0, Math.PI / 2]); break;
+    case 'parasol': P('disque', '#d9b25a', [0, 0, 0], [3.4, 1, 3.4], { metalness: .6, roughness: .3 }, [0, 0, Math.PI / 2]); break;
+  }
+  P('boule', fc, [0, .6, 0], [.35, .35, .35], lueur(fc));
+  return g;
+}
+const globe = { id: null, base: null, dyn: null, orbite: null, jet: [], jetDyn: [], sale: true, v: [0, 0], survol: -1 };
+const hauteur = (st, k) => 1 + (st.tuiles ? TER[st.tuiles[k].t][2] * .02 : globe.relief[k]);
+const HALO = { terre: '#6fb8ff', venus: '#ffd88a', titan: '#e8a64a' };
+
+function construireGlobe() {
+  const c = C[E.sel], st = s(c.id), cells = goldberg(st.f).cells;
+  if (globe.dyn) { planete.remove(globe.dyn); globe.jetDyn.forEach(g => g.dispose()); globe.dyn = null; }
+  planete.clear(); globe.jet.forEach(g => g.dispose()); globe.jet = [];
+  if (c.gaz) { // bandes de nuages, et la Grande Tache rouge sur Jupiter
+    const nz = bruit(3 + c.anneau), tache = new V3(.75, -.35, .55).normalize();
+    globe.relief = []; globe.bandes = cells.map(({ n }) => { const v = Math.sin(n.y * 10 + nz(n.x, n.y, n.z) * 1.4); globe.relief.push((v + 1) * .005); return c.id === 'jupiter' && n.distanceTo(tache) < .2 ? new THREE.Color('#c8643c') : new THREE.Color(c.c1).lerp(new THREE.Color(c.c2), (v + 1) / 2); });
+  }
+  const pos = [], tri = [], debut = [], nTop = [], tops = [], cts = [], a = new V3(), b = new V3();
+  const t3 = (p1, p2, p3, ref, k) => { a.subVectors(p2, p1); b.subVectors(p3, p1); (a.cross(b).dot(ref) < 0 ? [p1, p3, p2] : [p1, p2, p3]).forEach(v => pos.push(v.x, v.y, v.z)); tri.push(k); };
+  cells.forEach((cell, k) => {
+    const n = cell.n, h = hauteur(st, k), m = cell.coins.length;
+    const ci = cell.coins.map(p => p.clone().lerp(n, .07).normalize()); // rainure entre les cases
+    const top = ci.map(p => p.clone().multiplyScalar(h)), bas = ci.map(p => p.clone().multiplyScalar(.94)), ct = n.clone().multiplyScalar(h);
+    tops.push(top); cts.push(ct); debut.push(pos.length / 3); nTop.push(m * 3);
+    for (let i = 0; i < m; i++) t3(ct, top[i], top[(i + 1) % m], n, k);
+    for (let i = 0; i < m; i++) { const j = (i + 1) % m, ref = top[i].clone().add(top[j]).multiplyScalar(.5).sub(ct); t3(top[i], bas[i], top[j], ref, k); t3(top[j], bas[i], bas[j], ref, k); }
   });
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  globe.couleurs = new THREE.Float32BufferAttribute(new Float32Array(pos.length), 3); geo.setAttribute('color', globe.couleurs); geo.computeVertexNormals();
+  globe.base = new THREE.Mesh(geo, matSol); globe.jet.push(geo);
+  planete.add(globe.base, new THREE.Mesh(G.noyau, mat('#151829')));
+  const halo = HALO[c.id] || (c.id === 'mars' && st.terra > 30 && '#9fd0ff');
+  if (halo) planete.add(new THREE.Mesh(G.halo, new THREE.MeshBasicMaterial({ color: halo, transparent: true, opacity: .16, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false })));
+  if (c.anneaux) [[1.35, 1.7, .5], [1.75, 2.15, .75], [2.2, 2.4, .35]].forEach(([r1, r2, op]) => { const g = new THREE.RingGeometry(r1, r2, 120); globe.jet.push(g); const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: '#e6d3a3', transparent: true, opacity: op, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2 + .35; planete.add(m); });
+  Object.assign(globe, { id: c.id, cells, tri, debut, nTop, tops, cts, R: cells.map(cl => cl.coins[0].distanceTo(cl.n)), sale: true, survol: -1 });
 }
-let survolT = null;
+function repere(k, ox = 0, oz = 0, sc = 1) {
+  const cell = globe.cells[k], q = new THREE.Quaternion().setFromUnitVectors(Y, cell.n), R = globe.R[k] * .95;
+  return new THREE.Matrix4().compose(cell.n.clone().multiplyScalar(hauteur(s(globe.id), k)), q, new V3(R, R, R)).multiply(new THREE.Matrix4().makeTranslation(ox, 0, oz)).multiply(new THREE.Matrix4().makeScale(sc, sc, sc));
+}
+// décor, bâtiments, frontières et orbite : refaits quand la partie change
+function reconstruire() {
+  if (globe.dyn) { planete.remove(globe.dyn); globe.jetDyn.forEach(g => g.dispose()); }
+  globe.jetDyn = [];
+  const c = C[globe.id], st = s(c.id), dyn = new THREE.Group(); globe.dyn = dyn; planete.add(dyn);
+  const vert = new THREE.Color('#7cc35a'), mer = new THREE.Color('#3f7a8a');
+  globe.coul = globe.cells.map((cell, k) => {
+    if (!st.tuiles) return globe.bandes[k];
+    const t = st.tuiles[k], col = new THREE.Color(TER[t.t][1]);
+    // la terraformation se voit : Mars verdit, la lave de Vénus devient mer
+    if (st.terra && (c.id === 'mars' && t.t !== 'glace' || c.id === 'venus' && t.t === 'lave')) col.lerp(c.id === 'mars' ? vert : mer, clamp((st.terra - t.u * 80) / 25, 0, 1) * .85);
+    return col;
+  });
+  if (st.tuiles) {
+    const deco = { arbre: [], pic: [], plat: [], lave: [], nuage: [] };
+    st.tuiles.forEach((t, k) => {
+      if (t.b) { const m = modele(t.b, FAC[t.o]?.c || '#cccccc'); m.applyMatrix4(repere(k)); dyn.add(m); return; }
+      const tg = tags(t.t);
+      if (t.t === 'foret') [[-.35, -.2], [.3, -.25], [0, .35]].forEach(([x, z]) => deco.arbre.push([repere(k, x, z, .8 + t.u * .4)]));
+      if (/^mont/.test(t.t)) deco.pic.push([repere(k, 0, 0, .9 + t.u * .3), new THREE.Color(TER[t.t][1]).multiplyScalar(1.15)]);
+      if (tg.includes('crat')) deco.plat.push([repere(k, 0, 0, .9)]);
+      if (t.t === 'lave' || t.t === 'faille') deco.lave.push([repere(k, (t.u - .5) * .4, 0, .7)]);
+      if (t.t === 'nuage' && t.u < .55) [[-.2, 0], [.22, .15]].forEach(([x, z], i) => deco.nuage.push([repere(k, x, z, .55 + ((t.u * 7 + i) % 1) * .3).multiply(new THREE.Matrix4().makeTranslation(0, .25, 0))]));
+    });
+    const inst = (geo, col, liste, o) => { if (!liste.length) return; const m = new THREE.InstancedMesh(geo, mat(col, o), liste.length); liste.forEach(([mx, cc], i) => { m.setMatrixAt(i, mx); if (cc) m.setColorAt(i, cc); }); dyn.add(m); };
+    inst(G.arbre, '#2c7a37', deco.arbre); inst(G.pic, '#ffffff', deco.pic); inst(G.plat, '#3a3c42', deco.plat);
+    inst(G.plat, '#ff8a3a', deco.lave, lueur('#ff5a1a')); inst(G.boule, '#fff3d6', deco.nuage, { roughness: 1 });
+    // frontières : un liseré de la couleur de la faction le long des arêtes du territoire
+    const fp = [], fcol = [];
+    st.tuiles.forEach((t, k) => {
+      if (!t.o) return;
+      const cell = globe.cells[k], top = globe.tops[k], ct = globe.cts[k], col = new THREE.Color(FAC[t.o].c), m = top.length;
+      for (let i = 0; i < m; i++) {
+        if (st.tuiles[cell.face[i]].o === t.o) continue;
+        const p1 = top[i].clone().multiplyScalar(1.003), p2 = top[(i + 1) % m].clone().multiplyScalar(1.003), q1 = p1.clone().lerp(ct, .24), q2 = p2.clone().lerp(ct, .24);
+        [p1, p2, q2, p1, q2, q1].forEach(p => { fp.push(p.x, p.y, p.z); fcol.push(col.r, col.g, col.b); });
+      }
+    });
+    if (fp.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(fp, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(fcol, 3)); globe.jetDyn.push(g); dyn.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }))); }
+  }
+  // structures en orbite, qui tournent autour de la planète
+  const orb = new THREE.Group(); orb.rotation.x = .3; dyn.add(orb); globe.orbite = orb;
+  const liste = st.orb.filter(o => o.t !== 'anneau');
+  liste.forEach((o, i) => { const m = modeleOrb(o.t, FAC[o.o].c), an = TAU * i / liste.length; m.position.set(Math.cos(an) * 1.55, 0, Math.sin(an) * 1.55); m.scale.setScalar(.055); orb.add(m); });
+  st.orb.filter(o => o.t === 'anneau').forEach((o, i) => { const g = new THREE.TorusGeometry(1.32 + i * .08, .03, 8, 120); globe.jetDyn.push(g); const m = new THREE.Mesh(g, mat('#7be08a', lueur('#2e8a45'))); m.rotation.x = Math.PI / 2; orb.add(m); });
+  globe.sale = false;
+}
+function peindre(tt) {
+  const st = s(globe.id), arr = globe.couleurs.array, blanc = new THREE.Color(1, 1, 1), or = new THREE.Color('#ffb547'), cc = new THREE.Color(), cible = E.carteBat;
+  globe.cells.forEach((cell, k) => {
+    const t = st.tuiles?.[k], base = globe.coul[k]; cc.copy(base);
+    if (t?.o) cc.lerp(new THREE.Color(FAC[t.o].c), .12);
+    if (cible && t && !t.b && t.o === E.j && peutConstruire(cible, t)) cc.lerp(blanc, .3 + .15 * Math.sin(tt * 4));
+    if (t && t === E.selTuile) cc.lerp(or, .6);
+    if (k === globe.survol) cc.lerp(blanc, .22);
+    const d = globe.debut[k], n = globe.nTop[k];
+    for (let v = d; v < d + n; v++) { arr[v * 3] = cc.r; arr[v * 3 + 1] = cc.g; arr[v * 3 + 2] = cc.b; }
+    for (let v = d + n; v < d + 3 * n; v++) { arr[v * 3] = base.r * .5; arr[v * 3 + 1] = base.g * .5; arr[v * 3 + 2] = base.b * .5; }
+  });
+  globe.couleurs.needsUpdate = true;
+}
+function tourner(dx, dy) {
+  const k = .005 * (camera.position.z - 1) / 3;
+  planete.quaternion.premultiply(new THREE.Quaternion().setFromAxisAngle(Y, dx * k).multiply(new THREE.Quaternion().setFromAxisAngle(new V3(1, 0, 0), dy * k)));
+}
+function dessinGlobe(tt) {
+  if (globe.id !== E.sel) construireGlobe();
+  if (globe.sale) reconstruire();
+  if (!drag && Math.hypot(...globe.v) > .05) { tourner(...globe.v); globe.v = globe.v.map(x => x * .92); } // élan après le glisser
+  if (!reduit) globe.orbite.rotation.y += .003;
+  peindre(tt);
+  rendu.render(scene, camera);
+}
+const ray = new THREE.Raycaster();
+function tuileSous(x, y) {
+  if (!globe.base) return -1;
+  ray.setFromCamera(new THREE.Vector2(x / W * 2 - 1, 1 - y / H * 2), camera);
+  const h = ray.intersectObject(globe.base)[0];
+  return h ? globe.tri[h.faceIndex] : -1;
+}
 
 // ---------- Sélection à la souris / au doigt ----------
 function versHexS(sx, sy) { const px = (sx - W / 2) / camS.z + camS.x, py = ((sy - H / 2) / camS.z + camS.y) / ISO; return hexRound((SQ3 / 3 * px - py / 3) / S, (2 / 3 * py) / S); }
-function dansPoly(p, pts) { let d = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > p[1]) !== (yj > p[1]) && p[0] < (xj - xi) * (p[1] - yi) / (yj - yi) + xi) d = !d; } return d; }
-function tuileSous(x, y) { const st = s(E.sel); if (!st?.tuiles) return null; for (let i = st.tuiles.length - 1; i >= 0; i--) { const t = st.tuiles[i]; if (dansPoly([x, y], coinsT(t, TER[t.t][2] * HU))) return t; } return null; }
 function corpsSous(x, y) {
   let best = null;
   CORPS.forEach(c => { const [hx, hy] = axPix(...pos(c)); let [px, py] = scrS(hx, hy); const z = camS.z; if (c.parent) { const i = CORPS.filter(o => o.parent === c.parent).indexOf(c); px += (C[c.parent].ray + 7 + i * 6) * z; py -= (8 + i * 7) * z; } else py -= c.ray * z * 1.15 * .55; const r = Math.max(10, c.ray * z * 1.15 + 4); const d = Math.hypot(x - px, y - py); if (d < r && (!best || d < best.d || c.parent)) best = { c, d }; });
@@ -816,7 +963,7 @@ function clic(x, y) {
     else E.selFlotte = null;
     rendrePanneau(); rendreHUD();
   } else {
-    const t = tuileSous(x, y);
+    const t = s(E.sel).tuiles?.[tuileSous(x, y)];
     if (!t) { E.selTuile = null; rendrePanneau(); return; }
     if (E.carteBat) {
       const b = E.carteBat, k = remiseBat(b);
@@ -824,7 +971,7 @@ function clic(x, y) {
       else if (t.b) journal('Case déjà occupée.', 'mal');
       else if (!peutConstruire(b, t)) journal(`${BAT[b].n} impossible sur ${TER[t.t][0].toLowerCase()}.`, 'mal');
       else if (!peutPayer(BAT[b].cout, k)) journal('Pas assez de crédits ou de métaux.', 'mal');
-      else { payer(BAT[b].cout, k); t.b = b; revendiquer(s(E.sel), t, 1, E.j); journal(`${C[E.sel].nom} : ${BAT[b].n.toLowerCase()} construit. Le territoire s'agrandit.`, 'bon'); if (!peutPayer(BAT[b].cout, k)) E.carteBat = null; }
+      else { payer(BAT[b].cout, k); t.b = b; globe.sale = true; revendiquer(s(E.sel), t, 1, E.j); journal(`${C[E.sel].nom} : ${BAT[b].n.toLowerCase()} construit. Le territoire s'agrandit.`, 'bon'); if (!peutPayer(BAT[b].cout, k)) E.carteBat = null; }
       rendreHUD();
     }
     E.selTuile = t; E.onglet = 'corps'; rendrePanneau();
@@ -841,20 +988,28 @@ function bouger(f, h) {
 function allerSurface() { E.vue = 'planete'; E.selTuile = null; E.carteBat = null; recentrer(); rendreHUD(); rendrePanneau(); }
 
 const ptrs = new Map(); let drag = null;
-const rel = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); const p = rel(e); ptrs.set(e.pointerId, p); const v = [...ptrs.values()]; drag = { p, moved: 0, d: v.length === 2 ? Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]) : 0, z: cam().z }; });
-cv.addEventListener('pointermove', e => {
-  const p = rel(e);
-  if (!ptrs.has(e.pointerId)) { survoler(p, e); return; }
-  ptrs.set(e.pointerId, p); const v = [...ptrs.values()], c = cam();
-  if (v.length === 2 && drag.d) { c.z = clamp(drag.z * Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]) / drag.d, .2, 3); drag.moved = 99; return; }
-  const dx = p[0] - drag.p[0], dy = p[1] - drag.p[1]; drag.moved += Math.abs(dx) + Math.abs(dy); drag.p = p;
-  if (drag.moved > 6) { c.x -= dx / c.z; c.y -= dy / c.z; }
-});
-const fin = e => { if (drag && drag.moved <= 6 && ptrs.size === 1) clic(...rel(e)); ptrs.delete(e.pointerId); if (!ptrs.size) drag = null; };
-cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); drag = null; });
-cv.addEventListener('pointerleave', () => { $('bulle').hidden = true; survol = survolT = null; });
-cv.addEventListener('wheel', e => { e.preventDefault(); const c = cam(), [x, y] = rel(e), k = Math.exp(-e.deltaY * .0015), nz = clamp(c.z * k, .2, 3); c.x += (x - W / 2) * (1 / c.z - 1 / nz); c.y += (y - H / 2) * (1 / c.z - 1 / nz); c.z = nz; }, { passive: false });
+const rel = e => { const r = e.currentTarget.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+const zoomer = k => { if (E.vue === 'systeme') camS.z = clamp(camS.z * k, .2, 3); else camera.position.z = clamp(camera.position.z / k, 1.6, 12); };
+for (const el of [cv, $('globe')]) {
+  el.addEventListener('pointerdown', e => { el.setPointerCapture(e.pointerId); const p = rel(e); ptrs.set(e.pointerId, p); const v = [...ptrs.values()]; drag = { p, moved: 0, d: v.length === 2 ? Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]) : 0, z: camS.z, cz: camera.position.z }; globe.v = [0, 0]; });
+  el.addEventListener('pointermove', e => {
+    const p = rel(e);
+    if (!ptrs.has(e.pointerId)) { survoler(p, e); return; }
+    ptrs.set(e.pointerId, p); const v = [...ptrs.values()];
+    if (v.length === 2 && drag.d) { const k = Math.hypot(v[0][0] - v[1][0], v[0][1] - v[1][1]) / drag.d; if (E.vue === 'systeme') camS.z = clamp(drag.z * k, .2, 3); else camera.position.z = clamp(drag.cz / k, 1.6, 12); drag.moved = 99; return; }
+    const dx = p[0] - drag.p[0], dy = p[1] - drag.p[1]; drag.moved += Math.abs(dx) + Math.abs(dy); drag.p = p;
+    if (drag.moved <= 6) return;
+    if (E.vue === 'systeme') { camS.x -= dx / camS.z; camS.y -= dy / camS.z; } else { tourner(dx, dy); globe.v = [dx, dy]; }
+  });
+  el.addEventListener('pointerup', e => { if (drag && drag.moved <= 6 && ptrs.size === 1) clic(...rel(e)); ptrs.delete(e.pointerId); if (!ptrs.size) drag = null; });
+  el.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); drag = null; });
+  el.addEventListener('pointerleave', () => { $('bulle').hidden = true; survol = null; globe.survol = -1; });
+  el.addEventListener('wheel', e => {
+    e.preventDefault(); const k = Math.exp(-e.deltaY * .0015);
+    if (E.vue !== 'systeme') { zoomer(k); return; }
+    const [x, y] = rel(e), nz = clamp(camS.z * k, .2, 3); camS.x += (x - W / 2) * (1 / camS.z - 1 / nz); camS.y += (y - H / 2) * (1 / camS.z - 1 / nz); camS.z = nz;
+  }, { passive: false });
+}
 function survoler(p, e) {
   const b = $('bulle'); if (!E.j) return;
   if (E.vue === 'systeme') {
@@ -864,8 +1019,8 @@ function survoler(p, e) {
     else if (survol && dist(survol, [0, 0]) === 0) { b.hidden = false; b.innerHTML = `<b>Soleil</b><br>Sphère de Dyson : ${E.dyson} / 20 segments`; }
     else b.hidden = true;
   } else {
-    survolT = tuileSous(...p);
-    if (survolT) { b.hidden = false; b.innerHTML = `<b>${TER[survolT.t][0]}</b><br>${survolT.b ? BAT[survolT.b].n + ' · ' : ''}${survolT.o ? FAC[survolT.o].nom : 'libre'}`; } else b.hidden = true;
+    globe.survol = tuileSous(...p); const t = s(E.sel).tuiles?.[globe.survol];
+    if (t) { b.hidden = false; b.innerHTML = `<b>${TER[t.t][0]}</b><br>${t.b ? BAT[t.b].n + ' · ' : ''}${t.o ? FAC[t.o].nom : 'libre'}`; } else b.hidden = true;
   }
   b.style.left = (e.clientX + 14) + 'px'; b.style.top = (e.clientY + 14) + 'px';
 }
@@ -883,6 +1038,7 @@ function rendreHUD() {
   }).join('');
   const ch = 1 - capture();
   $('jaugeChaleur').style.width = ch * 100 + '%'; $('txtChaleur').textContent = fmt(ch * 100) + ' %';
+  globe.sale = true; $('bulle').hidden = true; cv.hidden = E.vue !== 'systeme'; $('globe').hidden = E.vue === 'systeme';
   $('vSys').classList.toggle('actif', E.vue === 'systeme'); $('vPla').classList.toggle('actif', E.vue === 'planete');
   $('vPla').textContent = 'Surface : ' + C[E.sel].nom;
   $('journal').innerHTML = E.journal.slice(0, 4).map(j => `<p class="${j.k}">${j.txt}</p>`).join('');
@@ -890,7 +1046,7 @@ function rendreHUD() {
   const aide = $('aide');
   aide.hidden = false;
   if (E.vue === 'systeme') aide.textContent = E.selFlotte ? `${E.selFlotte.nom} : ${E.selFlotte.mvt} hex de mouvement. Touchez une case en surbrillance.` : 'Touchez une planète pour la gérer, touchez-la encore pour voir sa surface. Touchez une flotte pour la déplacer.';
-  else aide.textContent = E.carteBat ? `${BAT[E.carteBat].n} : touchez une case verte de votre territoire.` : C[E.sel].gaz ? 'Géante gazeuse : pas de sol. Construisez en orbite depuis l\'onglet Corps.' : `${C[E.sel].nom} · ${kelvin(temp(C[E.sel]))} · habitabilité ${fmt(habitabilite(C[E.sel]) * 100)} %`;
+  else aide.textContent = E.carteBat ? `${BAT[E.carteBat].n} : touchez une case verte de votre territoire.` : C[E.sel].gaz ? 'Géante gazeuse : pas de sol. Construisez en orbite depuis l\'onglet Corps. Glissez pour la faire tourner.' : `${C[E.sel].nom} · ${kelvin(temp(C[E.sel]))} · habitabilité ${fmt(habitabilite(C[E.sel]) * 100)} % · glissez pour faire tourner`;
   rendreChantier();
 }
 function rendreChantier() {
@@ -1058,7 +1214,7 @@ document.addEventListener('click', e => {
     case 'tour': tourSuivant(); return;
     case 'tab': E.onglet = x; break;
     case 'vue': if (x === 'planete') { allerSurface(); return; } E.vue = 'systeme'; E.carteBat = null; recentrer(); break;
-    case 'zoom': { const k = cam(); if (x === '0') recentrer(); else k.z = clamp(k.z * (x === '+' ? 1.25 : .8), .2, 3); break; }
+    case 'zoom': if (x === '0') recentrer(); else zoomer(x === '+' ? 1.25 : .8); break;
     case 'sel': E.sel = x; E.selTuile = null; E.carteBat = null; if (E.vue === 'planete') recentrer(); break;
     case 'surface': E.sel = x; allerSurface(); return;
     case 'coloniser': { const info = infoMission(C[x]); if (!info || !peutPayer(info.cout)) break; payer(info.cout); E.missions.push({ camp: E.j, de: info.o.id, vers: x, depart: E.tour, arrivee: E.tour + info.duree }); journal(`Mission vers ${C[x].nom} lancée depuis ${info.o.nom} : ${info.duree} mois de voyage.`, 'bon'); break; }
@@ -1088,6 +1244,7 @@ taille();
 initPartie('atl'); $('accueil').hidden = false; E.journal = []; journal('Choisissez votre faction pour commencer.');
 document.querySelectorAll('#choixFaction button').forEach(b => b.addEventListener('click', () => { const f = b.dataset.a.split(':')[1]; Object.assign(E, { tour: 0, res: { cr: 500, me: 300, he: 10 }, dyson: 0, techs: new Set(), prog: 0, c: {}, flottes: [], missions: [], journal: [], combats: [], vagues: 0, sel: 'terre', selFlotte: null, vue: 'systeme', onglet: 'corps' }); }, { capture: true }));
 rendreHUD(); rendrePanneau();
+window.maquette = { E, allerSurface }; // accès depuis la console, pour déboguer
 requestAnimationFrame(boucle);
 </script>
 </body>

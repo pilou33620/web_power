@@ -153,7 +153,7 @@ Beaucoup de bâtiments, dans les trois réseaux, ont un malus. La fiche du bâti
 
 La maquette autonome qui a servi à concevoir ce mode reste dans `maquettes/dechets.html`.
 
-`maquettes/conquete-spatiale.html` est la maquette jouable d'un autre projet, **Héliosphère** : conquête du système solaire sur hexagones isométriques (colonies sur chaque planète, constructions en orbite, sphère de Dyson qui refroidit le système, batailles entre factions et contre les Veilleurs). Elle s'ouvre seule dans le navigateur.
+`maquettes/conquete-spatiale.html` est la maquette jouable d'un autre projet, **Héliosphère** : conquête du système solaire sur hexagones isométriques, chaque planète étant un globe en hexagones qu'on fait tourner (three.js) (colonies sur chaque planète, constructions en orbite, sphère de Dyson qui refroidit le système, batailles entre factions et contre les Veilleurs). Elle s'ouvre seule dans le navigateur.
 
 ## Organisation des fichiers
 
