@@ -79,7 +79,7 @@ function charger() {
   FUMEES.splice(0, FUMEES.length, ...FUMEES.filter(f => !f.q)); VILLES = [];
   for (const x of d.villes) {
     const v = { ...x, centre: T.get(x.centre), tuiles: [], servie: false };
-    for (const [k, q] of x.tuiles) { const t = T.get(k); Object.assign(t, { ville: v, quartier: q, t: 'ville' }); t.top = Math.max(t.top, TERR.ville.h); v.tuiles.push(t); dessinerQuartier(t, false); }
+    for (const [k, q] of x.tuiles) { const t = T.get(k); Object.assign(t, { ville: v, quartier: q, t: 'ville' }); t.top = TERR.ville.h; v.tuiles.push(t); dessinerQuartier(t, false); }
     v.hab = v.hab0 = habVille(v); v.rang0 = v.base ? 'capitale' : v.rang; VILLES.push(v);
   }
   for (const s of d.unites) { const u = creerUnite(T.get(s.k), s.type, { immediat: !s.fin, nom: s.nom, fin: s.fin }); Object.assign(u, { id: s.id, dispo: s.dispo, panne: s.panne, debut: s.debut, soc: s.soc, mode: s.mode }); if (s.niv !== undefined) u.niv = s.niv; if (s.etapes) u.etapes = s.etapes; if (s.reut) u.reut = true; if (s.rempli !== undefined) u.rempli = s.rempli; if (s.amelio) u.amelio = s.amelio; }

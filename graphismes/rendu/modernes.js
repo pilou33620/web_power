@@ -1,5 +1,26 @@
-"use strict";
-// ============================================================ modèles 3D des installations et des quartiers
+// Les bâtiments modernes (1900 → 2035), modèles du moteur : installations électriques, lignes, eau, déchets, quartiers, fermes.
+// Repris tels quels des modèles de web_power (js/04-modeles.js et les pylônes de js/09-lignes.js, 14109fc), qui parlent la même langue que toon.js
+// (lot, put, fige, boite, cyl…, unités de 10 par case). Le catalogue et les époques viennent des données de web_power.
+//
+//   import { BAT, QBAT, bFerme, modele, INSTALLATIONS, QUARTIERS, EPOQUES } from './modernes.js';
+//   const { groupe, fumees, rotors } = modele(BAT.nucleaire, 1);   // groupe à l'échelle du plateau (× 0,1)
+import { THREE, chaqueImage } from './scene.js';
+import { lot, put, fige, boite, cyl, cone, sphere, degrade, CONT } from './toon.js';
+import { climat, bouffee } from './vie.js';
+
+const R = 10, SQ3 = Math.sqrt(3);
+// le hasard reproductible de web_power (01-outils.js) : les variantes (couleurs des maisons, des champs…) suivent la graine
+let g = 1;
+function rnd() { g = (g + 0x6D2B79F5) | 0; let t = Math.imul(g ^ (g >>> 15), 1 | g); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+const semer = t => { g = t.q * 7919 + t.r * 104729 + 13; };
+const entre = (a, b) => a + rnd() * (b - a);
+// le toit en prisme de web_power (03-moteur-3d.js)
+function toit(L, w, d, h, col, x, y, z, ry = 0) {
+  const p = cyl(1, 1, d, 3); p.rotateX(Math.PI / 2); p.rotateZ(Math.PI / 2); p.scale(h / 1.5, w / SQ3, 1); p.translate(0, h / 2 - h / 3, 0);
+  put(L, p, col, x, y + h / 6, z, ry);
+}
+
+// ------------------------------------------------------------------ modèles de web_power
 function maison(L, x, z, ry, s = 1) {
   put(L, boite(2.2 * s, 1.7 * s, 2 * s), [0xf6eedb, 0xf1e2c2, 0xfaf6ee][rnd() * 3 | 0], x, .85 * s, z, ry);
   toit(L, 2.5 * s, 2.2 * s, 1.3 * s, [0xd9573b, 0xe07a3a, 0xc4493a][rnd() * 3 | 0], x, 1.7 * s, z, ry);
@@ -302,17 +323,104 @@ const QBAT = {
     put(L, boite(1.3, 4.6, 1.3), 0xefe3c6, 0, 2.3, -2); put(L, cone(1.05, 2.8, 4), 0x5d6f80, 0, 6, -2, Math.PI / 4);
   },
 };
-const FUMEES = [], ROTORS = [], ANIMS = [];
+// lignes électriques (09-lignes.js) : poteau en bois en 15 kV, pylône en treillis au-delà, chacun à l'échelle de sa tension
+const ECH_KV = { 15: .8, 63: .58, 225: .78, 400: 1 };
+function transfere(src, L, x, y, z, ry = 0, s = 1) { for (const k of ['g', 'o']) for (const geo of src[k]) { if (s !== 1) geo.scale(s, s, s); if (ry) geo.rotateY(ry); geo.translate(x, y, z); L[k].push(geo); } }
+/** Un pylône de web_power posé en (x, y, z), sa traverse tournée de ry ; kv : 15, 63, 225 ou 400. */
+function pylone(L, x, y, z, ry, kv) {
+  const m = lot(), s = ECH_KV[kv];
+  if (kv === 15) { put(m, cyl(.28, .36, 8.4, 6), 0x7a5a3a, 0, 4.2, 0, 0, .16); put(m, boite(6.8, .35, .35), 0x7a5a3a, 0, 8.2, 0, 0, .14); transfere(m, L, x, y, z, ry, s); return; }
+  const f = cyl(.45, 1.5, 9.4, 4); f.rotateY(Math.PI / 4); put(m, f, 0x99a2ac, 0, 4.7, 0, 0, .2);
+  put(m, boite(7.2, .45, .55), 0x99a2ac, 0, 8.4, 0, 0, .18);
+  if (kv !== 63) put(m, boite(kv === 400 ? 9 : 4.4, .4, .5), 0x99a2ac, 0, 6.6, 0, 0, .18);
+  put(m, cone(.5, 1.6, 4), 0x99a2ac, 0, 10.2, 0, 0, .14);
+  transfere(m, L, x, y, z, ry, s);
+}
+// un tronçon de ligne qui traverse la case (selon z) : deux pylônes et leurs deux câbles, comme dessinerLigne()
+for (const kv of [15, 63, 225, 400]) BAT['ligne' + kv] = (L, ex) => {
+  const s = ECH_KV[kv];
+  for (const z of [-4.5, 4.5]) pylone(L, 0, 0, z, 0, kv);
+  for (const k of [-1, 1]) { put(L, boite(.12, .12, 17), 0x3a3a3a, k * 3.3 * s, 8.4 * s, 0, 0, 0); ex.courant.push([k * 3.3 * s, 8.4 * s]); }
+};
 function rotor() {
   const L = lot();
   for (let k = 0; k < 3; k++) { const p = boite(.55, 6, .22); p.translate(0, 3, 0); p.rotateZ(k * Math.PI * 2 / 3); put(L, p, 0xfbfbf7, 0, 0, 0, 0, .14); }
   put(L, sphere(.55, 1), 0xfbfbf7, 0, 0, 0, 0, .12);
   return fige(L, new THREE.Group());
 }
-function dessinerQuartier(t, anim) {
-  semer(t); const L = lot(), ex = { fum: [] }, ry = (hache(t.q, t.r, 2) * 6 | 0) * Math.PI / 3;
-  QBAT[t.quartier](L, ex); t.grpQ = fige(L); t.grpQ.position.set(t.x, t.top, t.z); t.grpQ.rotation.y = ry;
-  for (const f of ex.fum) FUMEES.push({ p: new THREE.Vector3(f[0], f[1], f[2]).applyAxisAngle(AXEY, ry).add(t.grpQ.position), vap: f[3], tic: rnd() * 2, q: t });
-  if (anim) pop(t.grpQ);
+
+// ------------------------------------------------------------------ catalogue (données de web_power : 05-catalogue, 06-eau, 06b-dechets, 07-epoques-rd)
+/** Une entrée par modèle de BAT : clé, nom, groupe, première année de construction (an) et dernière (fin, si la technologie est dépassée). */
+export const INSTALLATIONS = [{"cle": "usine", "nom": "Usine électrique au charbon", "groupe": "Production", "an": 1900, "fin": 1960}, {"cle": "fil", "nom": "Usine au fil de l’eau", "groupe": "Production", "an": 1900}, {"cle": "barrage", "nom": "Barrage", "groupe": "Production", "an": 1922}, {"cle": "charbon", "nom": "Centrale à charbon", "groupe": "Production", "an": 1925, "fin": 1975}, {"cle": "charbonG", "nom": "Grande centrale à charbon", "groupe": "Production", "an": 1955, "fin": 2000}, {"cle": "fioul", "nom": "Centrale au fioul", "groupe": "Production", "an": 1952, "fin": 1985}, {"cle": "tac", "nom": "Turbine à combustion", "groupe": "Production", "an": 1965}, {"cle": "nucleaire", "nom": "Réacteur nucléaire 900 MW", "groupe": "Production", "an": 1974}, {"cle": "gaz", "nom": "Cycle combiné gaz", "groupe": "Production", "an": 1992}, {"cle": "eolien", "nom": "Parc éolien", "groupe": "Production", "an": 1996}, {"cle": "biomasse", "nom": "Centrale biomasse", "groupe": "Production", "an": 1998}, {"cle": "solaire", "nom": "Ferme solaire", "groupe": "Production", "an": 2006}, {"cle": "offshore", "nom": "Éolien en mer", "groupe": "Production", "an": 2012}, {"cle": "batterie", "nom": "Batteries", "groupe": "Stockage", "an": 2012}, {"cle": "smr", "nom": "Petit réacteur modulaire", "groupe": "Production", "an": 2030}, {"cle": "fusion", "nom": "Centrale à fusion", "groupe": "Production", "an": 2042}, {"cle": "poste", "nom": "Poste 225/63 kV", "groupe": "Réseau", "an": 1935}, {"cle": "frontiere", "nom": "Interconnexion avec la région voisine", "groupe": "Réseau", "an": 1938}, {"cle": "ligne15", "nom": "Ligne 15 kV (poteaux en bois)", "groupe": "Réseau", "an": 1900}, {"cle": "ligne63", "nom": "Ligne 63 kV", "groupe": "Réseau", "an": 1920}, {"cle": "ligne225", "nom": "Ligne 225 kV", "groupe": "Réseau", "an": 1935}, {"cle": "ligne400", "nom": "Ligne 400 kV", "groupe": "Réseau", "an": 1960}, {"cle": "source", "nom": "Captage de source", "groupe": "Eau", "an": 1900}, {"cle": "forage", "nom": "Forage en nappe", "groupe": "Eau", "an": 1900}, {"cle": "prise", "nom": "Prise d’eau en rivière", "groupe": "Eau", "an": 1900}, {"cle": "potab", "nom": "Usine de potabilisation", "groupe": "Eau", "an": 1905}, {"cle": "chateau", "nom": "Château d’eau", "groupe": "Eau", "an": 1900}, {"cle": "reservoir", "nom": "Réservoir sur colline", "groupe": "Eau", "an": 1900}, {"cle": "pompage", "nom": "Station de pompage", "groupe": "Eau", "an": 1910}, {"cle": "lagunage", "nom": "Lagunage", "groupe": "Eau", "an": 1900}, {"cle": "forageP", "nom": "Forage profond", "groupe": "Eau", "an": 1955}, {"cle": "step", "nom": "Station d’épuration", "groupe": "Eau", "an": 1950}, {"cle": "dessal", "nom": "Usine de dessalement", "groupe": "Eau", "an": 1985}, {"cle": "garage", "nom": "Dépôt de camions", "groupe": "Déchets", "an": 1900}, {"cle": "quai", "nom": "Quai de transfert", "groupe": "Déchets", "an": 1970}, {"cle": "decharge", "nom": "Décharge", "groupe": "Déchets", "an": 1900}, {"cle": "decheterie", "nom": "Déchèterie", "groupe": "Déchets", "an": 1985}, {"cle": "compost", "nom": "Plateforme de compostage", "groupe": "Déchets", "an": 1980}, {"cle": "tri", "nom": "Centre de tri", "groupe": "Déchets", "an": 1990}, {"cle": "incin", "nom": "Usine d’incinération", "groupe": "Déchets", "an": 1960}, {"cle": "dangereux", "nom": "Centre de traitement des déchets dangereux", "groupe": "Déchets", "an": 1955}, {"cle": "metha", "nom": "Méthaniseur", "groupe": "Déchets", "an": 2005}, {"cle": "grue", "nom": "Chantier (grue et palissade)", "groupe": "Chantier", "an": 1900}];
+/** Une entrée par modèle de QBAT. Les fermes : bFerme(L, false) pour la culture, bFerme(L, true) pour l'élevage. */
+export const QUARTIERS = [{"cle": "centre", "nom": "Centre-ville"}, {"cle": "residentiel", "nom": "Quartier résidentiel"}, {"cle": "affaires", "nom": "Quartier d'affaires"}, {"cle": "industriel", "nom": "Zone industrielle"}, {"cle": "hopital", "nom": "Hôpital (critique)"}, {"cle": "village", "nom": "Village"}];
+/** Les époques modernes de web_power. */
+export const EPOQUES = [{"an": 1900, "nom": "Les pionniers", "txt": "L’électricité éclaire les rues et fait tourner les premiers ateliers. Petites usines au charbon et au fil de l’eau, réseau en 15 kV."}, {"an": 1920, "nom": "L’entre-deux-guerres", "txt": "Le 63 kV relie les vallées et les premiers grands barrages sortent de terre."}, {"an": 1935, "nom": "Le réseau régional", "txt": "Le 225 kV et les postes de transformation arrivent. L’interconnexion avec la région voisine ouvre en 1938."}, {"an": 1946, "nom": "La reconstruction", "txt": "Après la guerre, la demande s’envole : grandes centrales au charbon, fioul et barrages."}, {"an": 1960, "nom": "Les Trente Glorieuses", "txt": "La consommation double tous les dix ans. Le 400 kV et les turbines à combustion font leur apparition."}, {"an": 1974, "nom": "Le choc pétrolier", "txt": "Le prix du fioul quadruple. Le programme nucléaire est lancé."}, {"an": 1990, "nom": "Le marché", "txt": "Cycles combinés au gaz, échanges entre régions et premiers parcs éoliens."}, {"an": 2005, "nom": "Le climat", "txt": "La taxe carbone arrive ; le solaire et l’éolien se développent."}, {"an": 2020, "nom": "La transition", "txt": "Le charbon doit fermer avant 2032. Batteries et éolien en mer."}, {"an": 2035, "nom": "Le futur", "txt": "Petits réacteurs, hydrogène, et peut-être la fusion."}];
+
+/** semer({ q, r }) : la graine des variantes (couleurs des maisons, des champs…) avant d'appeler soi-même un dessin de BAT ou QBAT. */
+export { BAT, QBAT, bFerme, rotor, pylone, semer };
+
+// ------------------------------------------------------------------ assemblage et animations (celles de web_power : 08-installations, 14-superpositions, 24-ciel, 25-boucle)
+const CHANT = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: degrade, transparent: true, opacity: .42, depthWrite: false });
+const TACHE = (() => {  // tache lumineuse ronde des fenêtres la nuit
+  const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'), d = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  d.addColorStop(0, '#fff'); d.addColorStop(.4, 'rgba(255,255,255,.6)'); d.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = d; g.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(c);
+})();
+const MLUM = new THREE.PointsMaterial({ map: TACHE, size: .5, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+const PART = new THREE.SphereGeometry(.55, 8, 6), MPART = new THREE.MeshBasicMaterial({ color: 0xfff1a0 });
+
+/** Assemble un modèle : { groupe (THREE.Group à l'échelle du plateau : une case de 10 → 1), fumees: [[x, y, z, vapeur]] (coordonnées
+ *  locales), rotors: [THREE.Group] (à faire tourner autour de z), lumieres (fenêtres la nuit, quartiers), courant (lignes) }.
+ *  dessin(L, ex) : BAT[cle], QBAT[cle] ou L => bFerme(L, elevage) ; graine : pour les variantes aléatoires ;
+ *  chantier : le modèle en transparence sous une grue, comme pendant les travaux dans web_power. */
+export function modele(dessin, graine = 1, { chantier = false } = {}) {
+  semer({ q: graine, r: 7 });
+  const L = lot(), ex = { fum: [], rotors: [], courant: [] };
+  dessin(L, ex);
+  const groupe = fige(L, null, chantier ? CHANT : undefined);
+  const rotors = ex.rotors.map(r => {
+    const o = rotor(); o.position.set(...r); groupe.add(o);
+    if (chantier) o.traverse(m => { if (m.isMesh) { if (m.material === CONT) m.visible = false; else m.material = CHANT; } });
+    return o;
+  });
+  if (chantier) { const G = lot(); BAT.grue(G); groupe.add(fige(G)); }
+  let lumieres = null;
+  if (Object.values(QBAT).includes(dessin)) {  // fenêtres et réverbères : 5 points par quartier, comme majLumieres()
+    const pos = [], col = [];
+    for (let k = 0; k < 5; k++) { pos.push((rnd() - .5) * 14, 1.5 + rnd() * 5, (rnd() - .5) * 12); col.push(1, k % 3 ? .74 : .9, k % 3 ? .36 : .65); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    lumieres = new THREE.Points(geo, MLUM); lumieres.visible = false; groupe.add(lumieres);
+  }
+  const courant = chantier ? [] : ex.courant.map(([x, y]) => {  // particules du courant le long des câbles, comme animParticules()
+    const ps = [0, 1 / 3, 2 / 3].map(u => { const m = new THREE.Mesh(PART, MPART); m.userData.u = u; m.position.set(x, y, 0); groupe.add(m); return m; });
+    return ps;
+  }).flat();
+  groupe.scale.setScalar(1 / R);
+  return { groupe, fumees: chantier ? [] : ex.fum, rotors: chantier ? [] : rotors, lumieres, courant };
 }
-function pop(grp) { grp.scale.y = .01; ANIMS.push({ grp, t0: performance.now() }); }
+
+// les modèles confiés à animer() ; ils sortent de la liste quand on les retire de la scène
+const ANIMES = [];
+/** Anime un modèle posé (après l'avoir placé et ajouté à la scène) : fumées (bouffées de vie.js), éoliennes selon le vent,
+ *  fenêtres allumées la nuit, courant dans les lignes ; pop : le rebond de la construction (650 ms). */
+export function animer(m, { pop = false } = {}) {
+  m.groupe.updateMatrixWorld(true);
+  const fum = m.fumees.map(([x, y, z, vapeur]) => ({ p: new THREE.Vector3(x, y, z).applyMatrix4(m.groupe.matrixWorld), genre: vapeur ? 'blanche' : 'noire', t: Math.random() }));
+  const a = { m, fum, t0: pop ? performance.now() : 0, sy: m.groupe.scale.y };
+  if (pop) m.groupe.scale.y = a.sy * .01;
+  ANIMES.push(a);
+  return m;
+}
+chaqueImage(dt => {
+  const nuit = Math.min(1, climat.nuit + climat.aube * .5), maintenant = performance.now();
+  for (let i = ANIMES.length - 1; i >= 0; i--) {
+    const a = ANIMES[i], { groupe, rotors, lumieres, courant } = a.m;
+    if (!groupe.parent) { ANIMES.splice(i, 1); continue; }
+    for (const f of a.fum) if ((f.t -= dt) < 0) { f.t = f.genre === 'blanche' ? .55 : .7; bouffee(f.p.x, f.p.y, f.p.z, f.genre); }
+    for (const r of rotors) r.rotation.z -= dt * 2 * (.5 + climat.vent * 1.5);
+    if (lumieres) { lumieres.visible = nuit > .05; MLUM.opacity = nuit; }
+    for (const p of courant) { p.userData.u = (p.userData.u + dt * .5) % 1; p.position.z = (p.userData.u - .5) * 17; }
+    if (a.t0) { const q = Math.min(1, (maintenant - a.t0) / 650); groupe.scale.y = a.sy * (q < 1 ? 1 + Math.sin(q * Math.PI * 1.5) * (1 - q) * .5 - (1 - q) ** 3 : 1); if (q >= 1) a.t0 = 0; }
+  }
+});

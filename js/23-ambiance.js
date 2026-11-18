@@ -88,8 +88,8 @@ function instancesC(geo, n, couleurs) {
 }
 // tache lumineuse ronde, pour les points (phares, flocons, fenêtres)
 const TACHE = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'), d = g.createRadialGradient(16, 16, 0, 16, 16, 16); d.addColorStop(0, '#fff'); d.addColorStop(.45, 'rgba(255,255,255,.75)'); d.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = d; g.fillRect(0, 0, 32, 32); return new THREE.CanvasTexture(c); })();
-// phares et lanternes la nuit
-const PHARES = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ map: TACHE, size: 2.6, color: 0xfff1c4, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+// phares et lanternes la nuit (la taille des points est en unités du moteur : MONDE ne les agrandit pas)
+const PHARES = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ map: TACHE, size: .26, color: 0xfff1c4, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
 PHARES.frustumCulled = false; scene.add(PHARES);
 const GEO_BATEAU = geoMerge([[boite(3.2, .7, 1.2), 0, .35, 0], [cone(1.2, 3.2, 3).scale(.25, 1, 1), 0, 2.3, 0]]);
 // oiseau (goéland) : le corps suit le sens du vol (x) ; une aile part vers +z depuis l'épaule, la seconde est la même retournée
@@ -148,7 +148,7 @@ function animAmbiance(dt) {
   for (const c of A.ronde) { const t = c.t, a = tAmb * c.v * VIT_VEH[c.genre] / 11 + c.ph; poser(c, t.x + Math.cos(a) * 7.6, t.top + .25, t.z + Math.sin(a) * 7.6, -a - Math.PI / 2); }
   for (const k of Object.keys(VEH_GEO)) A.m['v_' + k].instanceMatrix.needsUpdate = true;
   if (PA) { PH.needsUpdate = true; PHARES.geometry.setDrawRange(0, np); } PHARES.visible = np > 0;
-  A.bateaux.forEach((b, j) => { const a = tAmb * b.v + b.ph; poseI(A.m.bat, j, b.t.x + Math.cos(a) * b.r, -.85 + Math.sin(tAmb * 1.3 + j) * .12, b.t.z + Math.sin(a) * b.r, -a, 2.2); }); A.m.bat.instanceMatrix.needsUpdate = true;
+  A.bateaux.forEach((b, j) => { const a = tAmb * b.v + b.ph; poseI(A.m.bat, j, b.t.x + Math.cos(a) * b.r, MER_Y - .15 + Math.sin(tAmb * 1.3 + j) * .12, b.t.z + Math.sin(a) * b.r, -a, 2.2); }); A.m.bat.instanceMatrix.needsUpdate = true;
   A.oiseaux.forEach((o, j) => { const g = o.g, L = OX * 2.2, x = ((tAmb * (6 + g) + g * 170) % L) - L / 2, ang = .4 + g * 1.3, row = o.k - 2;
     // vol en V : quelques battements, puis un plané ; les deux ailes battent en miroir autour du corps
     const plane = Math.sin(tAmb * .8 + g * 2 + o.k * .3) > .2, bat = plane ? .12 + Math.sin(tAmb * 2 + o.k) * .05 : Math.sin(tAmb * 9 + o.k * .7) * .6;

@@ -153,7 +153,7 @@ function croissanceVille(v, r) {
   }
 }
 function ajouterQuartier(v, t, type, anim) {
-  retirerFerme(t); Object.assign(t, { ville: v, quartier: type, t: 'ville' }); t.top = Math.max(t.top, TERR.ville.h); v.tuiles.push(t); v.hab = habVille(v);
+  retirerFerme(t); Object.assign(t, { ville: v, quartier: type, t: 'ville' }); t.top = TERR.ville.h; v.tuiles.push(t); v.hab = habVille(v);
   dessinerQuartier(t, anim); dessinerFrontieres(); majAcceptation(); dessinerMini(); EAU_SALE = true;
   if (v.tuiles.length === 1 && !BANC_ON) dessinerRoutes(); else if (!BANC_ON) majAmbiance();
 }
