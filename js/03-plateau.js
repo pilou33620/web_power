@@ -18,7 +18,7 @@ const VA = new THREE.Vector3(), VB = new THREE.Vector3(), AXEY = new THREE.Vecto
 function transfere(src, L, x, y, z, ry = 0, s = 1) { for (const k of ['g', 'o']) for (const geo of src[k]) { if (s !== 1) geo.scale(s, s, s); if (ry) geo.rotateY(ry); geo.translate(x, y, z); L[k].push(geo); } }
 /** Fige un lot dans parent (MONDE par défaut) ; les matériaux translucides (fantôme, chantier) n'ont ni contours ni ombres. */
 function fige(L, parent = scene, mat = MAT) {
-  const plein = mat === MAT || mat === MAT_SOL || mat === MAT_RIV;
+  const plein = mat === MAT || mat === MAT_SOL || mat === MAT_RIV || mat === MOTEUR.boue.MAT_TERRE || mat === MOTEUR.boue.MAT_PAVE;
   const grp = TOON.fige(plein ? L : { g: L.g, o: [] }, parent, mat);
   if (!plein) grp.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = false; });
   return grp;

@@ -16,7 +16,7 @@ const cheminRoute = (a, b, deja = null) => {
 };
 function dessinerRoutes() {
   jeter(ROUTES); ROUTES = new THREE.Group(); scene.add(ROUTES); VEHIC = [];
-  const L = lot(), liens = [], vus = new Set(), reseau = new Set(VILLES.flatMap(v => v.tuiles));
+  const LT = lot(), LP = lot(), eau = [], liens = [], vus = new Set(), reseau = new Set(VILLES.flatMap(v => v.tuiles));
   // chaque ville vers ses deux voisines les plus proches
   VILLES.forEach(v => VILLES.filter(x => x !== v).sort((x, y) => dist(x.centre, v.centre) - dist(y.centre, v.centre)).slice(0, 2).forEach(x => { const k = [v.nom, x.nom].sort().join('|'); if (!vus.has(k)) { vus.add(k); liens.push([v.centre, x.centre, false]); } }));
   liens.sort((x, y) => dist(x[0], x[1]) - dist(y[0], y[1]));
@@ -31,7 +31,9 @@ function dessinerRoutes() {
     if (acces) { pts[0][0] += (pts[1][0] - pts[0][0]) * .45; pts[0][1] += (pts[1][1] - pts[0][1]) * .45; }  // la desserte s'arrête au pied de l'ouvrage
     const lisse = []; for (let i = 0; i < pts.length - 1; i++) for (let s = 0; s < 4; s++) { const k = s / 4; lisse.push([pts[i][0] + (pts[i + 1][0] - pts[i][0]) * k, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * k]); } lisse.push(pts.at(-1));
     const haut = i => { const t = versHex(lisse[i][0], lisse[i][1]); return t ? Math.max(t.top, 0) : 0; };
-    for (let i = 0; i < lisse.length - 1; i++) { const y = Math.max(haut(i), haut(i + 1)) + .18; put(L, ruban([lisse[i], lisse[i + 1]], chemin ? .7 : acces ? 1.2 : 1.7, y), goudron && !chemin ? 0x6f6c66 : 0xc9a874, 0, 0, 0, 0, 0); }
+    // chemins de terre et routes goudronnées sur les matériaux de la bibliothèque : boue, route mouillée et flaques sous la pluie
+    const pave = goudron && !chemin;
+    for (let i = 0; i < lisse.length - 1; i++) { const y = Math.max(haut(i), haut(i + 1)) + .18; put(pave ? LP : LT, ruban([lisse[i], lisse[i + 1]], chemin ? .7 : acces ? 1.2 : 1.7, y), pave ? 0x6f6c66 : 0xc9a874, 0, 0, 0, 0, 0); if (i % (pave ? 4 : 2) === 1) eau.push([lisse[i][0], y, lisse[i][1]]); }
     if (chemin) return;  // chemin de ferme : pas de trafic
     const v3 = lisse.map((q, i) => new THREE.Vector3(q[0], haut(i) + .7, q[1])), long = [0]; for (let i = 1; i < v3.length; i++) long.push(long[i - 1] + v3[i].distanceTo(v3[i - 1]));
     for (let k = 0, n = benne ? clamp(Math.round(S.dec.camions / 6), 1, 6) : Math.max(1, Math.round(long.at(-1) / (acces ? 28 : 18))); k < n; k++) VEHIC.push({ pts: v3, long, s: k / n, sens: k % 2 ? 1 : -1, v: .8 + hache(k, n, 3) * .4, h: hache(k, VEHIC.length, 5), h2: hache(VEHIC.length, k, 6), acces, benne });  // vers un site de déchets : les camions de collecte
@@ -40,7 +42,10 @@ function dessinerRoutes() {
   for (const u of ouvrages) { if (voisins(u.t).some(n => reseau.has(n)) || reseau.has(u.t)) continue; const p = cheminRoute(u.t, reseau, reseau); if (p && p.length >= 2) tracer(p, true, false, estDecU(u)); }
   // chemins de terre vers les fermes isolées
   for (const t of LISTE.filter(t => t.ferme && !t.occ && !t.ville)) { if (reseau.has(t) || voisins(t).some(n => reseau.has(n))) continue; const p = cheminRoute(t, reseau, reseau); if (p && p.length >= 2) tracer(p, true, true); }
-  if (L.g.length) fige(L, ROUTES, MAT_SOL);
+  const B = MOTEUR.boue;
+  if (LT.g.length) fige(LT, ROUTES, B.MAT_TERRE);
+  if (LP.g.length) fige(LP, ROUTES, B.MAT_PAVE);
+  B.flaques(ROUTES, eau, .45);
   majAmbiance();
 }
 function vehicules(ronde) {  // répartit routes et rondes de quartier entre les véhicules de l'époque

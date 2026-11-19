@@ -10,6 +10,7 @@ import * as modernes from '../graphismes/rendu/modernes.js';
 import { appliquerMeteo, forcerHeure } from '../graphismes/rendu/meteo.js';
 import { climat, bouffee } from '../graphismes/rendu/vie.js';
 import { majBrouillard, sansBrouillard } from '../graphismes/rendu/brouillard.js';
+import * as boue from '../graphismes/rendu/boue.js';
 import { mergeGeometries } from '../graphismes/three/addons/utils/BufferGeometryUtils.js';
 
 const MONDE = new M.THREE.Group();
@@ -18,4 +19,4 @@ M.scene.add(MONDE);
 
 window.THREE = M.THREE;
 window.mergeGeometries = mergeGeometries;
-window.MOTEUR = { ...M, MONDE, plateau, toon, modernes, appliquerMeteo, forcerHeure, climat, bouffee, majBrouillard, sansBrouillard };
+window.MOTEUR = { ...M, MONDE, plateau, toon, modernes, appliquerMeteo, forcerHeure, climat, bouffee, majBrouillard, sansBrouillard, boue };

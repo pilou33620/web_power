@@ -42,6 +42,7 @@ function animCiel(dt, kt) {
     MOTEUR.appliquerMeteo({ genre: g, pluie: pluieK, vent: clamp(w.vent / 15, 0, 1), temperature: w.temp, direction: .5 + .5 * Math.sin(S.min / 4000), neige_sol: neigeSol }, saisonM);
   }
   MAT_SOL.color.lerp(TEINTE[vue], kt);  // les vues réseau assombrissent la carte
+  MOTEUR.boue.TEINTE_ROUTES.copy(MAT_SOL.color);  // et les routes avec
   if ((lumTic -= dt) < 0) { lumTic = .5; majLumieres(); }
   const nuit = MOTEUR.climat.nuit + MOTEUR.climat.aube * .5;
   LUM.material.opacity = clamp(nuit * 1.4, 0, 1); LUM.visible = LUM.material.opacity > .01;
