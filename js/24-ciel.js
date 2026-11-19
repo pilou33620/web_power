@@ -17,7 +17,7 @@ function genreMeteo(w, m) {
 // fenêtres et réverbères la nuit : seules les villes alimentées s'allument
 const LUM = new THREE.Points(new THREE.BufferGeometry(), new THREE.PointsMaterial({ map: TACHE, size: .5, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
 LUM.frustumCulled = false; LUM.visible = false; scene.add(LUM);
-let lumCle = '', lumTic = 0, neigeSol = 0, minPrec = null, cleMeteo = '', platTic = 0;
+let debordTic = 0, lumCle = '', lumTic = 0, neigeSol = 0, minPrec = null, cleMeteo = '', platTic = 0;
 function majLumieres() {
   const cle = VILLES.map(v => v.nom + v.tuiles.length + v.servie).join();
   if (cle === lumCle) return; lumCle = cle;
@@ -27,6 +27,18 @@ function majLumieres() {
     col.push(1, k % 3 ? .74 : .9, k % 3 ? .36 : .65);
   }
   LUM.geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); LUM.geometry.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+}
+// les décharges qui débordent (dessin de la bibliothèque), posées sur leur modèle : presque pleines (80 %), puis pleines (95 %)
+function majDebords() {
+  for (const u of UNITES) {
+    if (u.type !== 'decharge' || u.fin || !u.grp) continue;
+    const r = (u.rempli || 0) / TYPES.decharge.volume, n = r >= .95 ? 2 : r >= .8 ? 1 : 0, g = u.grp;
+    if ((g.userData.debord || 0) === n) continue;
+    jeter(g.userData.debordGrp); g.userData.debordGrp = null; g.userData.debord = n;
+    if (!n) continue;
+    const L = lot(), ex = { pieces: [] }; MODERNES.semer(u.t); MODERNES.debordDecharge(n)(L, ex);
+    g.userData.debordGrp = fige(L, g); pieces(g.userData.debordGrp, ex);
+  }
 }
 function animCiel(dt, kt) {
   const w = meteo(S.min), mo = date(S.min).getUTCMonth(), g = genreMeteo(w, S.min), pluieK = pluieDe(w, S.min);
@@ -43,6 +55,11 @@ function animCiel(dt, kt) {
   }
   MAT_SOL.color.lerp(TEINTE[vue], kt);  // les vues réseau assombrissent la carte
   MOTEUR.boue.TEINTE_ROUTES.copy(MAT_SOL.color);  // et les routes avec
+  // pollution, rendue par la bibliothèque : ciel jauni et lointain voilé selon le charbon brûlé, rivières teintées quand l'eau n'est pas conforme
+  const mwCharbon = UNITES.reduce((a, u) => a + (CHARBON.has(u.type) && actifU(u) ? u.p || 0 : 0), 0);
+  MOTEUR.climat.pollution += (clamp(mwCharbon / 400, 0, .85) - MOTEUR.climat.pollution) * Math.min(1, dt * .3);
+  MOTEUR.climat.eauSale = clamp((1 - (S.eau?.conf ?? 1)) * 1.5, 0, 1);
+  if ((debordTic -= dt) < 0) { debordTic = 1; majDebords(); }
   if ((lumTic -= dt) < 0) { lumTic = .5; majLumieres(); }
   const nuit = MOTEUR.climat.nuit + MOTEUR.climat.aube * .5;
   LUM.material.opacity = clamp(nuit * 1.4, 0, 1); LUM.visible = LUM.material.opacity > .01;
