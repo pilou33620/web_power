@@ -8,7 +8,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 DEST=graphismes
-PARTIES="rendu"   # parties de la bibliothèque : rendu (le moteur unique, avec three), three (voir graphismes/README.md)
+PARTIES="moderne"   # parties : three, socle, moderne, antique, ancien, guerre, ou rendu (tout) ; leurs dépendances suivent (voir graphismes/README.md)
 DEPOT=https://github.com/pilou33620/web_engine.git
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 git clone -q "$DEPOT" "$TMP/web_engine"
