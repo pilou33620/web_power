@@ -66,8 +66,8 @@ function construirePlateau() {
   }
   // fermes : culture sur les plaines, élevage sur les prairies (modèles de la bibliothèque)
   for (const t of LISTE) if (t.ferme && !t.brume && !t.ville && t !== FRONT_T) {
-    const F = lot(); MODERNES.semer(t); MODERNES.bFerme(F, t.ferme === 'elevage');
-    t.grpF = fige(F, scene, MAT_SOL); t.grpF.position.set(t.x, t.top, t.z); t.grpF.rotation.y = (hache(t.q, t.r, 43) * 6 | 0) * Math.PI / 3;
+    const F = lot(), ex = { pieces: [] }; MODERNES.semer(t); MODERNES.bFerme(F, t.ferme === 'elevage', ex);
+    t.grpF = fige(F, scene, MAT_SOL); t.grpF.position.set(t.x, t.top, t.z); t.grpF.rotation.y = (hache(t.q, t.r, 43) * 6 | 0) * Math.PI / 3; pieces(t.grpF, ex, MAT_SOL);
     if (t.ferme === 'culture' && t.dr <= 2) FERMES.push(rivProche(t) ?? 0);
   }
 }
@@ -86,9 +86,14 @@ const { BAT, QBAT, bFerme, rotor: rotorM, pylone } = MODERNES;
 const FUMEES = [], ROTORS = [], ANIMS = [];
 const rotor = () => rotorM();
 function dessinerQuartier(t, anim) {
-  semer(t); MODERNES.semer(t); const L = lot(), ex = { fum: [] }, ry = (hache(t.q, t.r, 2) * 6 | 0) * Math.PI / 3;
-  QBAT[t.quartier](L, ex); t.grpQ = fige(L); t.grpQ.position.set(t.x, t.top, t.z); t.grpQ.rotation.y = ry;
+  semer(t); MODERNES.semer(t); const L = lot(), ex = { fum: [], pieces: [] }, ry = (hache(t.q, t.r, 2) * 6 | 0) * Math.PI / 3;
+  QBAT[t.quartier](L, ex); t.grpQ = fige(L); t.grpQ.position.set(t.x, t.top, t.z); t.grpQ.rotation.y = ry; pieces(t.grpQ, ex);
   for (const f of ex.fum) FUMEES.push({ p: new THREE.Vector3(f[0], f[1], f[2]).applyAxisAngle(AXEY, ry).add(t.grpQ.position), vap: f[3], tic: rnd() * 2, q: t });
   if (anim) pop(t.grpQ);
+}
+// les parties mobiles de la bibliothèque (piece() : voitures, engins, oiseaux, grues…) : posées dans grp, animées par la bibliothèque sauf en travaux
+function pieces(grp, ex, mat = MAT, anime = true) {
+  for (const p of ex.pieces) { const P = lot(); p.dessin(P); p.o = fige(P, grp, mat); p.o.position.set(...p.pos); p.base = p.o.position[p.axe]; }
+  if (anime && ex.pieces.length) MODERNES.animer({ groupe: grp, fumees: [], rotors: [], lumieres: null, courant: [], pieces: ex.pieces });
 }
 function pop(grp) { grp.scale.y = .01; ANIMS.push({ grp, t0: performance.now() }); }
