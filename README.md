@@ -23,13 +23,13 @@ La région a trois réseaux à gérer : l'électricité, l'eau et les déchets. 
 
 Le jeu est une page web, sans installation ni compilation : `index.html` charge ses styles (`css/`), ses scripts (`js/`) et le moteur graphique de web_engine (`graphismes/`). Voir [Organisation des fichiers](#organisation-des-fichiers).
 
-- **Localement** : `python3 serveur.py --local`, puis l'adresse affichée. Le moteur est en modules JavaScript, que les navigateurs refusent quand on ouvre `index.html` directement (`file://`). Seules les polices viennent d'internet : sans connexion, le jeu marche avec les polices du système.
+- **Localement** : `./lancer.sh --local` (Windows : `lancer.bat --local`), puis l'adresse affichée. Le moteur est en modules JavaScript, que les navigateurs refusent quand on ouvre `index.html` directement (`file://`). Seules les polices viennent d'internet : sans connexion, le jeu marche avec les polices du système.
 - **En ligne** : activez GitHub Pages sur la branche `main` (Settings → Pages). Le jeu sera alors disponible à l'adresse `https://pilou33620.github.io/web_power/`.
 
-- **Sur le réseau local** (tablette, autre poste) : `python3 serveur.py`, ou le bouton de `web_launcher` (port 8794). Bibliothèque standard Python seulement, rien à installer ; marche pareil sous Raspberry Pi, Windows et Termux.
+- **Sur le réseau local** (tablette, autre poste) : `./lancer.sh` (Windows : `lancer.bat`), ou le bouton de `web_launcher` (port 8794). Le serveur est un petit exécutable Rust (`rust/power`) : `lancer.sh` le compile si `cargo` est installé, sinon il télécharge celui de la publication GitHub « binaires » (Linux x86_64 et Raspberry Pi, macOS, Windows), vérifié par son empreinte SHA-256, une fois par version. Rust n'est donc pas nécessaire ; le premier lancement demande une connexion.
   - L'autre appareil ouvre l'adresse « réseau » affichée, entre une fois le code d'appairage (affiché dans le terminal et sur la carte du launcher), et peut installer la CA du poste depuis `/appairage/ca.pem` pour éviter l'alerte HTTPS.
-  - Options : `--port N`, `--local` (127.0.0.1 seulement), `--sans-navigateur`, `--sans-pause`, `--sans-maj` (au démarrage, le serveur met le dépôt à jour par `git pull --ff-only`, sauf sous `web_launcher`, qui s'en charge).
-  - Banc du serveur : `python test/banc-serveur.py` (affiche `OK`).
+  - Options : `--port N` (ou `--port=N` ; le port suivant s'il est pris), `--local` (127.0.0.1 seulement, sans code), `--sans-navigateur`, `--sans-pause` (acceptée pour web_launcher ; seul `lancer.bat` attend une touche), `--sans-maj` (au démarrage, le serveur met le dépôt à jour par `git merge --ff-only`, puis `lancer.sh` reprend l'exécutable de la nouvelle version et relance ; sauf sous `web_launcher`, qui s'en charge).
+  - Tests du serveur (fichiers servis et refusés, Host, méthodes, en-têtes, options) : `cargo test -p power`, lancé aussi par la CI à chaque envoi.
 
 La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu : chaque appareil a donc sa propre partie, et le serveur ne stocke rien. Menu → Exporter la partie la télécharge dans un fichier, Importer une partie la reprend (pour garder plusieurs parties ou changer d'appareil). Si le navigateur refuse d'enregistrer (navigation privée, stockage plein), le jeu prévient.
 
@@ -191,11 +191,11 @@ Le découpage reprend celui de web_cao : une page, un dossier `css/` et des scri
 | `js/24-ciel.js` | l'heure, la météo, la saison et la neige du jeu données au moteur ; lumières des villes |
 | `js/25-boucle.js` | démarrage ; l'image du jeu, appelée par la boucle du moteur |
 
-Les scripts sont des scripts classiques chargés dans l'ordre de leur numéro : ils partagent leurs déclarations, donc un fichier peut utiliser ce que les précédents ont défini. Seul le moteur (`js/01-moteur.js` et `graphismes/`) est en modules ES : le jeu se joue donc par un serveur (`serveur.py`), pas en ouvrant `index.html` directement.
+Les scripts sont des scripts classiques chargés dans l'ordre de leur numéro : ils partagent leurs déclarations, donc un fichier peut utiliser ce que les précédents ont défini. Seul le moteur (`js/01-moteur.js` et `graphismes/`) est en modules ES : le jeu se joue donc par un serveur (`lancer.sh`), pas en ouvrant `index.html` directement.
 
 **Le moteur et le jeu :** le moteur de web_engine compte une case pour 1 et place la case (0, 0) à l'origine ; le jeu garde ses unités (une case de 10, carte centrée) et dessine dans `MONDE`, un groupe ramené à l'échelle du moteur. Le plateau, la caméra, la météo, l'heure du jour et la brume des terres inexplorées sont ceux du moteur ; le jeu leur donne sa carte, son horloge et sa météo.
 
-Le serveur (`serveur.py`) ne sert que la page, `css/*.css`, `js/*.js` et les modules du moteur (`graphismes/rendu/*.js`, `graphismes/three/`).
+Le serveur (`rust/power/src/serveur.rs`) ne sert que la page, `css/*.css`, `js/*.js` et les modules du moteur (`graphismes/rendu/*.js`, `graphismes/three/`).
 
 ## Banc d'équilibrage
 
