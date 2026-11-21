@@ -1,16 +1,15 @@
 name: bancs d'essai
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   essais:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.12' }
-      - name: Serveur — fichiers servis, Host
-        run: python test/banc-serveur.py
+      # le serveur : fichiers servis et refusés, Host, méthodes, en-têtes, ligne de commande
+      - name: Serveur (Rust)
+        run: cargo test -p power
       # les graphismes viennent de la bibliothèque commune web_engine : ils se modifient là-bas, pas ici
       - name: Graphismes (identiques à la bibliothèque web_engine)
         run: bash outils/maj-graphismes.sh --verifier
-      - name: Appairage — code, jeton et cookie partagés
-        run: python appairage.py
