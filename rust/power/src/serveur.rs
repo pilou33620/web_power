@@ -53,22 +53,22 @@ fn statique(chemin: &str) -> Option<String> {
     ok.then(|| c.to_string())
 }
 
-fn type_mime(rel: &str) -> &'static str {
-    // nosniff : sans le bon type, le navigateur refuse le fichier
-    match rel.rsplit_once('.').map(|(_, e)| e) {
-        Some("html") => "text/html; charset=utf-8",
-        Some("css") => "text/css; charset=utf-8",
-        Some("js") => "text/javascript; charset=utf-8",
-        _ => "application/octet-stream",
+/// nosniff : sans le bon type, le navigateur refuse le fichier ; une extension hors de la table est un 404.
+fn type_mime(rel: &str) -> Option<&'static str> {
+    match rel.rsplit_once('.')?.1 {
+        "html" => Some("text/html; charset=utf-8"),
+        "css" => Some("text/css; charset=utf-8"),
+        "js" => Some("text/javascript; charset=utf-8"),
+        _ => None,
     }
 }
 
 fn fichier(chemin: &str) -> Reponse {
-    let Some(rel) = statique(&decoder_chemin(chemin)) else {
+    let Some((rel, mime)) = statique(&decoder_chemin(chemin)).and_then(|r| type_mime(&r).map(|m| (r, m))) else {
         return Reponse::texte(404, "File not found");
     };
     match std::fs::read(racine().join(&rel)) {
-        Ok(o) => Reponse::new(200, type_mime(&rel), o),
+        Ok(o) => Reponse::new(200, mime, o),
         Err(_) => Reponse::texte(404, "File not found"),
     }
 }
@@ -385,6 +385,15 @@ mod essais {
             assert!(rep.contains(e), "{e}");
         }
         assert!(!rep.contains("Cache-Control: no-store\r\n"), "un seul Cache-Control");
+        // chaque type de la table : 200 avec son Content-Type
+        for (c, t) in [("/", "text/html"), ("/css/style.css", "text/css"), ("/js/01-moteur.js", "text/javascript")] {
+            let rep = demander(port, "GET", c, &hote);
+            assert_eq!(statut(&rep), 200, "{c}");
+            assert!(rep.contains(&format!("Content-Type: {t}; charset=utf-8\r\n")), "{c}");
+        }
+        for inconnu in ["LICENSE", "VERSION.json", "rendu.png", "a.exe", "a.JS"] {
+            assert_eq!(type_mime(inconnu), None, "{inconnu}");
+        }
         srv.arreter();
     }
 }
