@@ -19,16 +19,41 @@ La région a trois réseaux à gérer : l'électricité, l'eau et les déchets. 
 | La transition | 2020 | sortie du charbon obligatoire avant 2032 |
 | Le futur | 2035 | petits réacteurs (2030), fusion (2042) |
 
+## Installation
+
+### Le plus simple : l'archive de production (sans git, sans rien installer)
+
+Dans la [publication « binaires »](https://github.com/pilou33620/web_power/releases/tag/binaires), prendre l'archive du système :
+
+| Système | Archive |
+|---|---|
+| Windows | `power-prod-windows-x86_64.zip` |
+| Linux x86_64 | `power-prod-linux-x86_64.tar.gz` |
+| Raspberry Pi (64 bits) | `power-prod-linux-aarch64.tar.gz` |
+| macOS (Apple) | `power-prod-macos-aarch64.tar.gz` |
+
+La décompresser où l'on veut (elle donne un dossier `power/` : le serveur dans `bin/`, la page, les scripts de démarrage), puis double-cliquer sur `demarrer_WEB_POWER.cmd` (Windows) ou lancer `./demarrer_WEB_POWER.sh`. À chaque démarrage, le serveur compare son archive à la dernière publiée ; si elle a changé, il la télécharge (empreinte SHA-256 vérifiée), recopie ses fichiers par-dessus et redémarre. La partie vit dans le navigateur : une mise à jour ne la touche pas.
+
+### Pour développer : le dépôt git
+
+```bash
+git clone https://github.com/pilou33620/web_power.git
+cd web_power
+./demarrer_WEB_POWER.sh             # Windows : demarrer_WEB_POWER.cmd
+```
+
+`demarrer_WEB_POWER` obtient d'abord le serveur (`scripts/binaires.sh`, `scripts/binaires.cmd`) : il le compile si `cargo` est installé, sinon il télécharge celui de la publication « binaires », vérifié par son empreinte SHA-256, une fois par version. À la racine, seul le lanceur du système en cours reste visible : le premier lancement masque l'autre. Sur une erreur, la fenêtre reste ouverte avec la raison ; quand le serveur s'est mis à jour (code 75), il est relancé. `lancer.sh` et `lancer.bat` restent, pour web_launcher : ils relaient vers `demarrer_WEB_POWER` avec les mêmes options.
+
 ## Jouer
 
 Le jeu est une page web, sans installation ni compilation : `index.html` charge ses styles (`css/`), ses scripts (`js/`) et le moteur graphique de web_engine (`graphismes/`). Voir [Organisation des fichiers](#organisation-des-fichiers).
 
-- **Localement** : `./lancer.sh --local` (Windows : `lancer.bat --local`), puis l'adresse affichée. Le moteur est en modules JavaScript, que les navigateurs refusent quand on ouvre `index.html` directement (`file://`). Seules les polices viennent d'internet : sans connexion, le jeu marche avec les polices du système.
+- **Localement** : `./demarrer_WEB_POWER.sh --local` (Windows : `demarrer_WEB_POWER.cmd --local`), puis l'adresse affichée. Le moteur est en modules JavaScript, que les navigateurs refusent quand on ouvre `index.html` directement (`file://`). Seules les polices viennent d'internet : sans connexion, le jeu marche avec les polices du système.
 - **En ligne** : activez GitHub Pages sur la branche `main` (Settings → Pages). Le jeu sera alors disponible à l'adresse `https://pilou33620.github.io/web_power/`.
 
-- **Sur le réseau local** (tablette, autre poste) : `./lancer.sh` (Windows : `lancer.bat`), ou le bouton de `web_launcher` (port 8794). Le serveur est un petit exécutable Rust (`rust/power`) : `lancer.sh` le compile si `cargo` est installé, sinon il télécharge celui de la publication GitHub « binaires » (Linux x86_64 et Raspberry Pi, macOS, Windows), vérifié par son empreinte SHA-256, une fois par version. Rust n'est donc pas nécessaire ; le premier lancement demande une connexion.
+- **Sur le réseau local** (tablette, autre poste) : `./demarrer_WEB_POWER.sh` (Windows : `demarrer_WEB_POWER.cmd`), ou le bouton de `web_launcher` (port 8794). Le serveur est un petit exécutable Rust (`rust/power`), publié pour Linux x86_64 et Raspberry Pi, macOS et Windows : Rust n'est donc pas nécessaire (voir [Installation](#installation)) ; le premier lancement d'un clone git demande une connexion.
   - L'autre appareil ouvre l'adresse « réseau » affichée, entre une fois le code d'appairage (affiché dans le terminal et sur la carte du launcher), et peut installer la CA du poste depuis `/appairage/ca.pem` pour éviter l'alerte HTTPS.
-  - Options : `--port N` (ou `--port=N` ; le port suivant s'il est pris), `--local` (127.0.0.1 seulement, sans code), `--sans-navigateur`, `--sans-pause` (acceptée pour web_launcher ; seul `lancer.bat` attend une touche), `--sans-maj` (au démarrage, le serveur met le dépôt à jour par `git merge --ff-only`, puis `lancer.sh` reprend l'exécutable de la nouvelle version et relance ; sauf sous `web_launcher`, qui s'en charge).
+  - Options : `--port N` (ou `--port=N` ; le port suivant s'il est pris), `--local` (127.0.0.1 seulement, sans code), `--sans-navigateur`, `--sans-pause` (acceptée pour web_launcher ; seul `demarrer_WEB_POWER.cmd` attend une touche, sur une erreur), `--sans-maj` (au démarrage, le serveur met à jour un clone git par `git merge --ff-only`, une archive de production par la publication « binaires », puis `demarrer_WEB_POWER` reprend l'exécutable de la nouvelle version et relance ; sauf sous `web_launcher`, qui s'en charge).
   - Tests du serveur (fichiers servis et refusés, Host, méthodes, en-têtes, options) : `cargo test -p power`, lancé aussi par la CI à chaque envoi.
 
 La partie s'enregistre automatiquement dans le navigateur à chaque jour de jeu : chaque appareil a donc sa propre partie, et le serveur ne stocke rien. Menu → Exporter la partie la télécharge dans un fichier, Importer une partie la reprend (pour garder plusieurs parties ou changer d'appareil). Si le navigateur refuse d'enregistrer (navigation privée, stockage plein), le jeu prévient.
@@ -191,7 +216,7 @@ Le découpage reprend celui de web_cao : une page, un dossier `css/` et des scri
 | `js/24-ciel.js` | l'heure, la météo, la saison et la neige du jeu données au moteur ; lumières des villes |
 | `js/25-boucle.js` | démarrage ; l'image du jeu, appelée par la boucle du moteur |
 
-Les scripts sont des scripts classiques chargés dans l'ordre de leur numéro : ils partagent leurs déclarations, donc un fichier peut utiliser ce que les précédents ont défini. Seul le moteur (`js/01-moteur.js` et `graphismes/`) est en modules ES : le jeu se joue donc par un serveur (`lancer.sh`), pas en ouvrant `index.html` directement.
+Les scripts sont des scripts classiques chargés dans l'ordre de leur numéro : ils partagent leurs déclarations, donc un fichier peut utiliser ce que les précédents ont défini. Seul le moteur (`js/01-moteur.js` et `graphismes/`) est en modules ES : le jeu se joue donc par un serveur (`demarrer_WEB_POWER`), pas en ouvrant `index.html` directement.
 
 **Le moteur et le jeu :** le moteur de web_engine compte une case pour 1 et place la case (0, 0) à l'origine ; le jeu garde ses unités (une case de 10, carte centrée) et dessine dans `MONDE`, un groupe ramené à l'échelle du moteur. Le plateau, la caméra, la météo, l'heure du jour et la brume des terres inexplorées sont ceux du moteur ; le jeu leur donne sa carte, son horloge et sa météo.
 

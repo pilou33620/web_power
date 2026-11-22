@@ -5,3 +5,4 @@ banc-rapport.md
 # Rust : compilation et exécutables (compilés ici ou téléchargés)
 /target/
 /bin/
+.hidden

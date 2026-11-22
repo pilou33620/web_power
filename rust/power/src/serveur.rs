@@ -11,6 +11,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 use web_tools_commun::appairage::{self, Garde};
+use web_tools_commun::production;
 use web_tools_commun::serveur::{decoder_chemin, Reponse, Requete, Serveur};
 
 pub const PORT: u16 = 8794;
@@ -104,7 +105,7 @@ pub struct Args {
     pub port: u16,
     pub local: bool,
     pub sans_navigateur: bool,
-    /// Sans effet ici : lancer.bat fait la pause sous Windows.
+    /// Sans effet ici : demarrer_WEB_POWER.cmd garde la fenêtre ouverte sur une erreur sous Windows.
     pub sans_pause: bool,
     pub sans_maj: bool,
     pub aide: bool,
@@ -204,6 +205,14 @@ fn git(args: &[&str], delai: u64) -> Result<String, String> {
 /// Mise à jour par git (avance rapide seulement, modifications locales mises en réserve puis
 /// réappliquées). Rend vrai si le code a changé ; tout échec mène au démarrage normal.
 fn mise_a_jour() -> bool {
+    // copie de production (archive sans git ni sources) : mise à jour depuis la publication « binaires »
+    if production::est_copie_prod(racine()) {
+        return production::mettre_a_jour("https://github.com/pilou33620/web_power", "power", racine(), &|t| println!("[*] {t}"))
+            .unwrap_or_else(|e| {
+                println!("[X] {e}");
+                false
+            });
+    }
     if git(&["rev-parse", "--is-inside-work-tree"], 5).is_err() {
         return false; // pas de git, ou pas un dépôt
     }
@@ -277,7 +286,7 @@ pub fn main() {
         }
     };
     if !args.sans_maj && mise_a_jour() {
-        // lancer.sh pose cette variable : il reprend l'exécutable de la nouvelle version et relance
+        // demarrer_WEB_POWER pose cette variable : il reprend l'exécutable de la nouvelle version et relance
         if std::env::var_os("WEB_POWER_RELANCEUR").is_some() {
             println!("[*] Redémarrage avec la nouvelle version...");
             std::process::exit(75);
