@@ -73,7 +73,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
 <!-- les graphismes viennent de la bibliothèque commune web_engine (graphismes/, voir outils/maj-graphismes.sh) : son moteur unique
-     tient le canevas, la caméra, le plateau et le ciel (js/01-moteur.js) ; le jeu se sert d'un serveur (serveur.py), les modules locaux
+     tient le canevas, la caméra, le plateau et le ciel (js/01-moteur.js) ; le jeu se sert du serveur Rust (lancer.sh), les modules locaux
      étant refusés en file:// -->
 <script type="importmap">{ "imports": { "three": "./graphismes/three/three.module.js" } }</script>
 <script type="module" src="js/01-moteur.js"></script>
