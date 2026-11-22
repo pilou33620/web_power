@@ -11,7 +11,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 use web_tools_commun::appairage::{self, Garde};
-use web_tools_commun::serveur::{decoder_url, Reponse, Requete, Serveur};
+use web_tools_commun::serveur::{decoder_chemin, Reponse, Requete, Serveur};
 
 pub const PORT: u16 = 8794;
 
@@ -64,7 +64,7 @@ fn type_mime(rel: &str) -> &'static str {
 }
 
 fn fichier(chemin: &str) -> Reponse {
-    let Some(rel) = statique(&decoder_url(chemin)) else {
+    let Some(rel) = statique(&decoder_chemin(chemin)) else {
         return Reponse::texte(404, "File not found");
     };
     match std::fs::read(racine().join(&rel)) {
