@@ -3,6 +3,108 @@
 Numérotation : on change le premier chiffre quand un jeu doit adapter son code (fonction renommée, format d'état modifié),
 le deuxième pour un ajout (nouveau modèle, nouvelle animation), le troisième pour une correction.
 
+## 2.28.0 — 2026-11-23
+
+Le décor par morceaux (`plateau.js`, au choix du jeu) : `decorProgressif(ms)` ; avec ms > 0, `construire()`, `majEtat()`,
+`majSaison()`… ne bâtissent plus aussitôt que les cases, le relief, les rivières et les contours ; le décor (arbres, buissons,
+rochers, montagnes, champs, fleurs) est posé ensuite par morceaux, au plus ms millisecondes par image, du centre de la carte vers
+les bords, et figé par paquets d'au moins 256 cases. `decorEnCours()` dit s'il en reste. Le décor obtenu est le même, pièce pour
+pièce (`node outils/essai-decor-progressif.mjs`, lancé par la CI : sur une carte de 60 × 50 cases, 3 s d'arrêt deviennent 70 ms,
+puis environ 190 images de 9 ms en médiane). Sans cet appel (ms = 0, par défaut), rien ne change : web_royaumes et web_power
+bâtissent leur décor d'un coup, comme avant. web_conquete l'active (6 ms) : changer de niveau de zoom n'arrête plus l'image.
+
+## 2.27.0 — 2026-11-23
+
+- Plus de vie sur le plateau (`vie.js`, tous les jeux), dans le style des autres figurines :
+  - voyageurs entre les villes : charrettes, cavaliers et piétons (baluchon, bâton) font l'aller et retour par la route, sur le
+    tracé du ruban (`passage()`), chacun sur sa droite ; un trajet par paire de villes voisines sur le réseau, 28 au plus, un à
+    trois voyageurs selon la longueur ; les piétons rentrent la nuit et sous la pluie ;
+  - troupeaux de moutons, leur berger et son chien qui fait le tour du troupeau, dans six autres prés (pas l'hiver, ni la nuit,
+    ni sous la pluie) ;
+  - barques qui remontent et descendent les rivières sur la courbe de l'eau, entre deux cascades (six au plus, pas sur l'eau gelée).
+  Nouveaux modèles : `cavalier`, `voyageur`, `berger`, `chien`.
+- Décor bâti plus vite (`toon.js`, tous les jeux) : `put()` ne refabrique plus une sphère ou un cône par défaut à chaque copie
+  (clone() de three.js), écrit les couleurs sans tableau intermédiaire (une conversion par teinte), tourne et pose la pièce en
+  une passe ; le contour ne grossit que les positions (son matériau ne lit pas les normales). Les sommets sont les mêmes
+  (`node outils/essai-toon.mjs`, lancé par la CI). Avec la 2.26.0, une reconstruction du plateau de web_conquete prend de 2 à
+  3,5 fois moins de temps qu'en 2.25.1.
+
+## 2.26.0 — 2026-11-23
+
+Construire une carte avec son état (`plateau.js`, tous les jeux) : `construire(carte, etat)` prend désormais l'état de la partie
+(facultatif, au format de `majEtat`) et ne bâtit le décor qu'une fois. Sans lui, l'appel à `majEtat()` qui suit d'habitude le
+rebâtissait aussitôt (le bâti, les routes et les territoires ne sont connus qu'avec l'état) : deux fois le temps de calcul à
+chaque nouvelle carte. web_conquete, qui rebâtit une fenêtre de la carte quand la vue change de niveau de zoom, s'arrête ainsi de
+35 à 60 % moins longtemps. `majEtat(etat, forcer)` : `forcer` rebâtit le décor même si rien n'a changé. Les jeux qui appellent
+`construire(carte)` seul ne changent pas.
+
+## 2.25.1 — 2026-11-23
+
+Arbres sur les routes (`plateau.js`, tous les jeux) : les arbres des forêts, les buissons, rochers, fleurs et cailloux des
+gisements, tirés au hasard dans la case, s'écartaient des rivières mais pas des routes, si bien qu'en forêt des arbres poussaient
+sur le ruban. `auHasard()` les écarte désormais du tracé des routes de la case (du point de passage au milieu de chaque bord relié,
+demi-largeur du ruban le plus large et une marge : `ECART_ROUTE`) ; une case de route a quatre essais de plus, tirés à part, pour
+garder sa forêt aussi dense (les arbres des autres cases ne bougent pas). Le tracé est désormais calculé à un seul endroit
+(`passage()` et `traceRoute()` de plateau.js, que routes.js dessine) ; `majEtat()` refait le décor quand une route relie
+autrement des cases déjà desservies. Essai sans navigateur : `node outils/essai-arbres-routes.mjs` (lancé par la CI).
+
+## 2.25.0 — 2026-11-21
+
+- Le vent dans les arbres (`plateau.js`, tous les jeux) : les sapins et les feuillus des forêts et des bosquets ploient dans le
+  sens du vent, en rafales décalées d'un arbre à l'autre, plus fort par grand vent (meteo.js donne `U.vent` et `U.dir`) ; le
+  pied reste fixe (attribut `souple` des sommets, que `fusion()` de toon.js conserve désormais). Les ombres restent immobiles.
+- Pièges du tower defense (`defense.js`) : `PIEGES` (pointes, boue, mine, barrage), leurs noms dans `STYLES[style].pieges`
+  et `piege(role, ere, { pop })`, cinq allures (chausse-trappes, fossé boueux, fosse à feu, abattis ; chevaux de frise, marais,
+  fougasse, gabions ; barbelés, tranchée inondée, mine, hérissons ; herse à clous, mousse collante, mine antichar, blocs de béton ;
+  champ de lames, champ de gravité, mine à impulsion, mur de force). Animations : les pointes jaillissent (`declencher`) et
+  s'émoussent (`usure`), la mine montre sa charge et son voyant tant qu'elle est armée (`arme`), la barricade tremble sous les
+  coups, penche quand elle faiblit et disparaît détruite (`vie`) ; boue qui bouillonne, roseaux, champs qui battent.
+- `batimentVille()` / `animerVille()` : les bâtiments de 1700 à 1816 ont leurs drapeaux, cheminées et fumées (`animerPose` de
+  monde.js) ; `oublierVille()` les retire.
+
+## 2.24.1 — 2026-11-21
+
+Hélices (`defense.js`) : elles tournaient trop vite (20 à 36 rad/s) et sautaient d'un quart de tour entre deux images, si bien
+qu'elles semblaient figées ou à l'envers. Les pales tournent désormais à une vitesse que l'œil suit (6 à 9 rad/s, les rotors du
+drone en sens alternés) et un disque translucide donne le flou de la rotation ; moyeux et pales plus épais pour l'hélicoptère et
+le drone ; les moteurs du zeppelin sortent du ballon, sur des bras, pour qu'on voie leurs hélices.
+
+## 2.24.0 — 2026-11-21
+
+`defense.js` refait dans le style du moteur, avec ses animations :
+- les tours deviennent de petits bâtiments : tour de guet gauloise au toit de chaume, onagre sur sa butte palissadée,
+  chaudron de poix sur son foyer, scorpion ; redoute crénelée et ses fusiliers en joue, bastion et canon de web_royaumes
+  (`canon()` de modeles.js), pompe à bras, grosse tour carrée et sa couleuvrine ; nid de mitrailleuse en sacs de sable, obusier,
+  pompe à vapeur, casemate et canon long ; tourelle double, lance-roquettes sur chenilles, camion lance-eau, rampe de missiles
+  et son radar ; tourelle laser, mortier à plasma, cristal cryogénique, canon électrique ; soldats aux coiffes de l'époque
+  (`tete()` de modeles.js, `homme()` d'antiques.js), fanions et torches selon le niveau ;
+- animations des tours : au tir (`tirer(t)`, qui rend la bouche et pose l'éclair et la fumée de poudre) recul des pièces, bras
+  de l'onagre, chaudron qui se renverse, levier de la pompe, mitrailleuse qui tremble, missile qui part et revient ; en continu
+  drapeaux au vent, flammes, fumée du chaudron et de la chaudière, radars, gyrophares, noyaux lumineux, cristal qui flotte ;
+  `tour(…, { pop: true })` sort de terre ;
+- les ennemis deviennent des troupes comme les armées du moteur (trois légionnaires, deux cavaliers, la tortue, trois fusiliers…) ;
+  `avancer(e, distance, dt)` : jambes et sabots au pas, roues qui tournent selon la distance, hélices, balancement ;
+  `abattre(e)` : la troupe s'effondre (les engins s'affaissent, les volants piquent) puis quitte la scène ; `toucher(e)` : elle tressaille ;
+- projectiles et effets : `suivreTir(p)` (traînée des roquettes, fumée de la poix), explosion avec onde au sol, éclaboussure
+  et ses gouttes, laser avec halo ;
+- `tour(role, ere, niveau)` et `ennemi(genre, ere)` prennent l'époque (ou, comme avant, un style).
+
+## 2.23.0 — 2026-11-21
+
+Nouvelle partie `defense` (`defense.js`, pour le tower defense web_defense ; maquette `maquettes/web_engine/defense.html`) :
+- `ERES` : quinze époques de l'Antiquité à 2035 (une tous les cinq niveaux du jeu), regroupées en cinq styles de dessin
+  (antique, poudre 1700 → 1816, guerres 1900 → 1946, moderne 1960 → 1990, futur 2005 → 2035), avec leur niveau de route et la
+  couleur des ennemis ; `STYLES` : les noms des tours et des ennemis, et le projectile de chaque tour ;
+- `tour(role, style, niveau)` : quatre rôles (rapide, zone, lent, loin) à trois niveaux (socle plus haut, fanion, cerclage doré),
+  avec une tête qui pivote vers sa cible et la bouche du tir ; archers, onagre, poix, scorpion → mousquetaires, canon, pompe à bras,
+  couleuvrine → mitrailleuse, obusier, pompe à vapeur, canon long → tourelle, lance-roquettes, canon à eau, missiles → laser,
+  plasma, rayon cryogénique, canon électrique ;
+- `ennemi(genre, style, couleur)` : fantassin, rapide, lourd, chef (de la tortue romaine et l'éléphant de guerre au méca géant ;
+  zeppelin, hélicoptère et drones volent, leurs hélices tournent) ;
+- `projectile(genre)`, effets `explosion`, `eclat`, `eclaboussure`, `rayon` (laser), `chute` ; `anneauPortee(r)`, `barreVie()` ;
+- `batimentVille(ere, coeur)` : la ville à défendre, faite des bâtiments existants (oppidum et huttes, citadelle et maisons de
+  l'époque, centre-ville et quartiers modernes), `animerVille()`.
+
 ## 2.22.0 — 2026-11-19
 
 Deux niveaux de route de plus (`routes.js`), un par époque : 4, routes impériales (Empire : larges, claires, bordées de
